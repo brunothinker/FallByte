@@ -6,7 +6,7 @@ from src.utils.scanner import scan_image_files
 # CONSTRUCTOR / TEST CONFIGURATION
 # Adjust this path to point to a local directory with images.
 # ==============================================================================
-TEST_SCAN_DIR: Path = Path("/home/bhzinn/FallByte/Teste/ImagePath")
+TEST_SCAN_DIR: Path = Path("/home/bhzinn/FallByte/Teste/OUT/Dir")
 RECURSIVE_SCAN: bool = True
 
 logging.basicConfig(level=logging.INFO)

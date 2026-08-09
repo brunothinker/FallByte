@@ -1,0 +1,17 @@
+import flet as ft
+
+# FallByte Global Color Palette
+COLOR_PRIMARY = ft.colors.BLUE_600
+COLOR_ICON = ft.colors.BLUE_400
+COLOR_TEXT = ft.colors.WHITE
+COLOR_SUBTEXT = ft.colors.WHITE54
+COLOR_SUCCESS = ft.colors.GREEN_600
+COLOR_ERROR = ft.colors.RED_600
+COLOR_WARNING = ft.colors.AMBER_600
+COLOR_BACKGROUND = "#12141C"
+COLOR_CARD_BG = "#1E222D"
+COLOR_CARD_HOVER = "#2A2F3D"
+
+# Layout Constants
+FORM_WIDTH = 550
+BUTTON_HEIGHT = 45
