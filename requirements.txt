@@ -1,2 +1,5 @@
+# UI Framework
 flet==0.21.2
-pillow
+
+# Image Processing Engine
+Pillow>=10.0.0
