@@ -15,8 +15,8 @@ def main(page: ft.Page):
         use_material3=True
     )
 
-    page.window_width = 800
-    page.window_height = 650
+    page.window_width = 620
+    page.window_height = 800
     page.window_center()
 
     selected_paths = {}
