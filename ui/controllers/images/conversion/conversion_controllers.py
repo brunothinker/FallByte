@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import Optional
 import flet as ft
 
-from src.image.conversion.file_converter import file_converter
-from src.image.conversion.directory_converter import directory_converter
+from src.image.conversion.file_conversion import file_converter
+from src.image.conversion.directory_conversion import directory_converter
 from ui.i18n import t
 from ui.theme import COLOR_SUCCESS, COLOR_ERROR, COLOR_SUBTEXT, COLOR_PRIMARY, COLOR_TEXT
 from ui.utils.conversion_utils import resolve_color_key_to_hex

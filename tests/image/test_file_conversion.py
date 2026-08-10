@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 from typing import List
-from src.image.conversion.file_converter import file_converter
+from src.image.conversion.file_conversion import file_converter
 
 # ==============================================================================
 # CONSTRUCTOR / TEST CONFIGURATION

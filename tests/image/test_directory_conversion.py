@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 from typing import List
-from src.image.conversion.directory_converter import directory_converter
+from src.image.conversion.directory_conversion import directory_converter
 from src.utils.progress import ProgressInfo
 
 # ==============================================================================

@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from src.image.compression.file_compressor import file_compressor
+from src.image.compression.file_compression import file_compressor
 
 # Silencia logs informativos no terminal para não poluir o output
 logging.basicConfig(level=logging.WARNING)
