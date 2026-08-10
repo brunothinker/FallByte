@@ -1,12 +1,18 @@
 import time
 from pathlib import Path
-from typing import Optional, List, Set, Any
+from typing import Optional, List, Set
 import flet as ft
 
 from src.image.compression.file_compression import file_compressor
 from src.image.compression.directory_compression import directory_compressor
 from ui.i18n import t
-from ui.theme import COLOR_SUCCESS, COLOR_ERROR, COLOR_SUBTEXT, COLOR_PRIMARY, COLOR_TEXT
+from ui.theme import (
+    COLOR_PRIMARY,
+    COLOR_TEXT,
+    COLOR_SUBTEXT,
+    COLOR_SUCCESS,
+    COLOR_ERROR,
+)
 from ui.utils.compression_utils import validate_quality_value
 from ui.utils.dialog_utils import show_summary_dialog
 
@@ -16,13 +22,13 @@ SUPPORTED_COMPRESSION_EXTS: Set[str] = {".jpg", ".jpeg", ".png", ".webp", ".tiff
 class CompressionFileController:
     """Controller responsible for single-file image compression business logic."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initializes internal state variables for single-file compression operations."""
         self.selected_input: Optional[Path] = None
         self.selected_output_dir: Optional[Path] = None
         self.picker_active: bool = False
 
-    def open_file_picker(self, picker: ft.FilePicker):
+    def open_file_picker(self, picker: ft.FilePicker) -> None:
         """
         Opens the single file selection picker if no picker operation is active.
 
@@ -33,7 +39,7 @@ class CompressionFileController:
             self.picker_active = True
             picker.pick_files(allow_multiple=False)
 
-    def open_dir_picker(self, picker: ft.FilePicker):
+    def open_dir_picker(self, picker: ft.FilePicker) -> None:
         """
         Opens the output directory picker if no picker operation is active.
 
@@ -44,7 +50,7 @@ class CompressionFileController:
             self.picker_active = True
             picker.get_directory_path()
 
-    def handle_file_result(self, e: ft.FilePickerResultEvent, lbl_file_path: ft.Text):
+    def handle_file_result(self, e: ft.FilePickerResultEvent, lbl_file_path: ft.Text) -> None:
         """
         Handles event result from input file picker.
 
@@ -59,7 +65,7 @@ class CompressionFileController:
             lbl_file_path.color = COLOR_TEXT
             lbl_file_path.update()
 
-    def handle_dir_result(self, e: ft.FilePickerResultEvent, lbl_out_path: ft.Text):
+    def handle_dir_result(self, e: ft.FilePickerResultEvent, lbl_out_path: ft.Text) -> None:
         """
         Handles event result from output directory picker.
 
@@ -74,7 +80,7 @@ class CompressionFileController:
             lbl_out_path.color = COLOR_TEXT
             lbl_out_path.update()
 
-    def sync_from_slider(self, e: ft.ControlEvent, txt_quality: ft.TextField):
+    def sync_from_slider(self, e: ft.ControlEvent, txt_quality: ft.TextField) -> None:
         """
         Synchronizes text field value when slider value changes.
 
@@ -87,7 +93,7 @@ class CompressionFileController:
             txt_quality.value = str(q)
             txt_quality.update()
 
-    def sync_from_text(self, e: ft.ControlEvent, slider_quality: ft.Slider):
+    def sync_from_text(self, e: ft.ControlEvent, slider_quality: ft.Slider) -> None:
         """
         Synchronizes slider value when text field value changes.
 
@@ -106,7 +112,7 @@ class CompressionFileController:
         except ValueError:
             pass
 
-    def validate_text_blur(self, e: ft.ControlEvent, slider_quality: ft.Slider, txt_quality: ft.TextField):
+    def validate_text_blur(self, e: ft.ControlEvent, slider_quality: ft.Slider, txt_quality: ft.TextField) -> None:
         """
         Validates quality value on text field focus loss (blur event).
 
@@ -121,7 +127,7 @@ class CompressionFileController:
         txt_quality.update()
         slider_quality.update()
 
-    def execute_compression(self, page: ft.Page, quality: int, lbl_status: ft.Text):
+    def execute_compression(self, page: ft.Page, quality: int, lbl_status: ft.Text) -> None:
         """
         Executes single-file compression and presents execution summary modal upon completion.
 
@@ -130,7 +136,6 @@ class CompressionFileController:
             quality (int): Target compression quality percentage.
             lbl_status (ft.Text): UI label displaying current execution status.
         """
-        # Validate file and output directory selections
         if not self.selected_input or not self.selected_output_dir:
             lbl_status.value = t("msg_select_required")
             lbl_status.color = COLOR_ERROR
@@ -139,7 +144,6 @@ class CompressionFileController:
 
         out_file = self.selected_output_dir / self.selected_input.name
 
-        # Update status feedback for execution start
         lbl_status.value = "Processando..."
         lbl_status.color = COLOR_SUBTEXT
         lbl_status.update()
@@ -152,7 +156,6 @@ class CompressionFileController:
         )
         elapsed = time.time() - start_time
 
-        # Update UI feedback according to compression result
         if success:
             lbl_status.value = t("msg_success")
             lbl_status.color = COLOR_SUCCESS
@@ -161,7 +164,6 @@ class CompressionFileController:
             lbl_status.color = COLOR_ERROR
         lbl_status.update()
 
-        # Build metrics dictionary and trigger summary modal
         summary = {
             "total_files": 1,
             "success": 1 if success else 0,
@@ -175,17 +177,16 @@ class CompressionFileController:
 class CompressionDirController:
     """Controller responsible for batch directory compression with pre-flight checks and cancellation."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initializes state variables for batch directory compression processing."""
         self.selected_input_dir: Optional[Path] = None
         self.selected_output_dir: Optional[Path] = None
         self.is_processing: bool = False
         self.abort_requested: bool = False
-        self.created_files: Set[Path] = set()
         self.cancel_dialog: Optional[ft.AlertDialog] = None
         self.picker_active: bool = False
 
-    def open_dir_picker(self, picker: ft.FilePicker):
+    def open_dir_picker(self, picker: ft.FilePicker) -> None:
         """
         Opens directory picker if no file picker operation is active.
 
@@ -196,7 +197,7 @@ class CompressionDirController:
             self.picker_active = True
             picker.get_directory_path()
 
-    def handle_in_dir_result(self, e: ft.FilePickerResultEvent, lbl_in_path: ft.Text):
+    def handle_in_dir_result(self, e: ft.FilePickerResultEvent, lbl_in_path: ft.Text) -> None:
         """
         Handles selection result from input directory picker.
 
@@ -211,7 +212,7 @@ class CompressionDirController:
             lbl_in_path.color = COLOR_TEXT
             lbl_in_path.update()
 
-    def handle_out_dir_result(self, e: ft.FilePickerResultEvent, lbl_out_path: ft.Text):
+    def handle_out_dir_result(self, e: ft.FilePickerResultEvent, lbl_out_path: ft.Text) -> None:
         """
         Handles selection result from output directory picker.
 
@@ -226,7 +227,7 @@ class CompressionDirController:
             lbl_out_path.color = COLOR_TEXT
             lbl_out_path.update()
 
-    def sync_from_slider(self, e: ft.ControlEvent, txt_quality: ft.TextField):
+    def sync_from_slider(self, e: ft.ControlEvent, txt_quality: ft.TextField) -> None:
         """
         Synchronizes quality text field with slider movement.
 
@@ -239,7 +240,7 @@ class CompressionDirController:
             txt_quality.value = str(q)
             txt_quality.update()
 
-    def sync_from_text(self, e: ft.ControlEvent, slider_quality: ft.Slider):
+    def sync_from_text(self, e: ft.ControlEvent, slider_quality: ft.Slider) -> None:
         """
         Synchronizes quality slider with direct text input.
 
@@ -258,7 +259,7 @@ class CompressionDirController:
         except ValueError:
             pass
 
-    def validate_text_blur(self, e: ft.ControlEvent, slider_quality: ft.Slider, txt_quality: ft.TextField):
+    def validate_text_blur(self, e: ft.ControlEvent, slider_quality: ft.Slider, txt_quality: ft.TextField) -> None:
         """
         Validates text input field when control loses focus.
 
@@ -280,7 +281,7 @@ class CompressionDirController:
         lbl_status: ft.Text,
         progress_bar: ft.ProgressBar,
         btn_action: ft.ElevatedButton
-    ):
+    ) -> None:
         """
         Routes action button click event to start batch execution or prompt cancellation.
 
@@ -303,7 +304,7 @@ class CompressionDirController:
         lbl_status: ft.Text,
         progress_bar: ft.ProgressBar,
         btn_action: ft.ElevatedButton
-    ):
+    ) -> None:
         """
         Performs pre-flight analysis for unsupported file extensions before starting compression.
 
@@ -320,7 +321,6 @@ class CompressionDirController:
             lbl_status.update()
             return
 
-        # Scan directory files and group by extension compatibility
         all_files = [f for f in self.selected_input_dir.rglob("*") if f.is_file()]
         supported_files: List[Path] = []
         unsupported_files: List[Path] = []
@@ -331,7 +331,6 @@ class CompressionDirController:
             else:
                 unsupported_files.append(f)
 
-        # Show warning dialog if incompatible file extensions exist in source folder
         if len(unsupported_files) > 0:
             ext_set = {f.suffix.upper() for f in unsupported_files if f.suffix}
             sample_exts = ", ".join(list(ext_set)[:4]) if ext_set else "Sem extensão"
@@ -381,7 +380,7 @@ class CompressionDirController:
         lbl_status: ft.Text,
         progress_bar: ft.ProgressBar,
         btn_action: ft.ElevatedButton
-    ):
+    ) -> None:
         """
         Displays confirmation modal to interrupt process and purge destination files.
 
@@ -416,7 +415,7 @@ class CompressionDirController:
                 ft.TextButton("Não, Continuar", on_click=close_dialog),
                 ft.ElevatedButton(
                     "Sim, Interromper e Apagar",
-                    bgcolor="red",
+                    bgcolor=COLOR_ERROR,
                     color=COLOR_TEXT,
                     on_click=stop_and_cleanup
                 ),
@@ -435,7 +434,7 @@ class CompressionDirController:
         lbl_status: ft.Text,
         progress_bar: ft.ProgressBar,
         btn_action: ft.ElevatedButton
-    ):
+    ) -> None:
         """
         Executes batch directory compression and updates progress indicators.
 
@@ -449,10 +448,9 @@ class CompressionDirController:
         self.is_processing = True
         self.abort_requested = False
 
-        # Switch button text and styling to indicate active processing
         btn_action.text = "PARAR PROCESSAMENTO"
         btn_action.icon = ft.icons.STOP
-        btn_action.bgcolor = "red"
+        btn_action.bgcolor = COLOR_ERROR
         btn_action.update()
 
         progress_bar.visible = True
@@ -460,7 +458,6 @@ class CompressionDirController:
         progress_bar.update()
 
         def update_progress(info):
-            # Check user cancellation flag
             if self.abort_requested:
                 raise InterruptedError("CANCELLED_BY_USER")
 
@@ -473,7 +470,6 @@ class CompressionDirController:
 
         summary = {}
         try:
-            # Execute batch compression process
             summary = directory_compressor(
                 input_dir=self.selected_input_dir,
                 output_dir=self.selected_output_dir,
@@ -510,7 +506,6 @@ class CompressionDirController:
                 page.update()
                 self.cancel_dialog = None
 
-            # Handle cleanup and cancellation feedback
             if self.abort_requested:
                 cleaned_count = summary.get("cleaned_files_count", 0)
                 progress_bar.visible = False
@@ -518,7 +513,6 @@ class CompressionDirController:
                 lbl_status.value = f"Processamento cancelado. {cleaned_count} arquivo(s) gerado(s) foram apagados."
                 lbl_status.color = COLOR_ERROR
 
-            # Reset controller state variables and UI controls
             self.is_processing = False
             self.abort_requested = False
             btn_action.text = t("btn_process")

@@ -70,13 +70,11 @@ def create_compression_dir_page(
     """
     controller = CompressionDirController()
 
-    # Define text labels and progress controls
     lbl_in_path = ft.Text(t("lbl_not_selected"), size=11, color=COLOR_SUBTEXT, overflow=ft.TextOverflow.ELLIPSIS, max_lines=1)
     lbl_out_path = ft.Text(t("lbl_not_selected"), size=11, color=COLOR_SUBTEXT, overflow=ft.TextOverflow.ELLIPSIS, max_lines=1)
     lbl_status = ft.Text("", size=13, weight=ft.FontWeight.W_600)
     progress_bar = ft.ProgressBar(width=FORM_WIDTH, value=0, visible=False)
 
-    # Setup synchronized quality controls (slider and text field)
     slider_quality = ft.Slider(
         min=1, max=100, divisions=100, value=80, expand=True
     )
@@ -92,17 +90,14 @@ def create_compression_dir_page(
     txt_quality.on_change = lambda e: controller.sync_from_text(e, slider_quality)
     txt_quality.on_blur = lambda e: controller.validate_text_blur(e, slider_quality, txt_quality)
 
-    # Initialize directory picker instances
     picker_in = ft.FilePicker(on_result=lambda e: controller.handle_in_dir_result(e, lbl_in_path))
     picker_out = ft.FilePicker(on_result=lambda e: controller.handle_out_dir_result(e, lbl_out_path))
 
-    # Register pickers in page overlay if not present
     if picker_in not in page.overlay:
         page.overlay.append(picker_in)
     if picker_out not in page.overlay:
         page.overlay.append(picker_out)
 
-    # Create selection cards for input and output directories
     card_in = create_clickable_card(
         title=t("lbl_select_input_dir"),
         icon=ft.icons.FOLDER_OPEN,
@@ -117,7 +112,6 @@ def create_compression_dir_page(
         on_click_action=lambda _: controller.open_dir_picker(picker_out)
     )
 
-    # Configure execution/cancellation action button
     btn_action = ft.ElevatedButton(
         t("btn_process"),
         icon=ft.icons.PLAY_ARROW,
@@ -135,7 +129,6 @@ def create_compression_dir_page(
         btn_action=btn_action
     )
 
-    # Construct main view card container expanding to fill layout space
     return ft.Container(
         expand=True,
         alignment=ft.alignment.center,
@@ -191,12 +184,10 @@ def create_compression_file_page(
     """
     controller = CompressionFileController()
 
-    # Define text labels for selection paths and operation status
     lbl_file_path = ft.Text(t("lbl_not_selected"), size=11, color=COLOR_SUBTEXT, overflow=ft.TextOverflow.ELLIPSIS, max_lines=1)
     lbl_out_path = ft.Text(t("lbl_not_selected"), size=11, color=COLOR_SUBTEXT, overflow=ft.TextOverflow.ELLIPSIS, max_lines=1)
     lbl_status = ft.Text("", size=13, weight=ft.FontWeight.W_600)
 
-    # Setup synchronized quality controls (slider and text field)
     slider_quality = ft.Slider(
         min=1, max=100, divisions=100, value=80, expand=True
     )
@@ -212,17 +203,14 @@ def create_compression_file_page(
     txt_quality.on_change = lambda e: controller.sync_from_text(e, slider_quality)
     txt_quality.on_blur = lambda e: controller.validate_text_blur(e, slider_quality, txt_quality)
 
-    # Initialize file and directory picker instances
     picker_file = ft.FilePicker(on_result=lambda e: controller.handle_file_result(e, lbl_file_path))
     picker_dir = ft.FilePicker(on_result=lambda e: controller.handle_dir_result(e, lbl_out_path))
 
-    # Register pickers in page overlay if not present
     if picker_file not in page.overlay:
         page.overlay.append(picker_file)
     if picker_dir not in page.overlay:
         page.overlay.append(picker_dir)
 
-    # Create selection cards for input file and output directory
     card_file = create_clickable_card(
         title=t("lbl_select_file"),
         icon=ft.icons.UPLOAD_FILE,
@@ -237,7 +225,6 @@ def create_compression_file_page(
         on_click_action=lambda _: controller.open_dir_picker(picker_dir)
     )
 
-    # Construct main view card container expanding to fill layout space
     return ft.Container(
         expand=True,
         alignment=ft.alignment.center,
