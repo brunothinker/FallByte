@@ -125,8 +125,9 @@ def create_conversion_file_page(
         on_click_action=lambda _: controller.open_dir_picker(picker_dir)
     )
 
-    # Construct main view card container
+    # Construct main view card container expanding to fill layout space
     return ft.Container(
+        expand=True,
         alignment=ft.alignment.center,
         padding=20,
         content=ft.Container(
@@ -141,7 +142,8 @@ def create_conversion_file_page(
                 ft.Row(
                     [card_file, card_out],
                     alignment=ft.MainAxisAlignment.CENTER,
-                    spacing=15
+                    spacing=15,
+                    wrap=True
                 ),
 
                 dd_format,
@@ -257,8 +259,9 @@ def create_conversion_dir_page(
         btn_action=btn_action
     )
 
-    # Construct main view card container
+    # Construct main view card container expanding to fill layout space
     return ft.Container(
+        expand=True,
         alignment=ft.alignment.center,
         padding=20,
         content=ft.Container(
@@ -273,7 +276,8 @@ def create_conversion_dir_page(
                 ft.Row(
                     [card_in, card_out],
                     alignment=ft.MainAxisAlignment.CENTER,
-                    spacing=15
+                    spacing=15,
+                    wrap=True
                 ),
 
                 dd_format,

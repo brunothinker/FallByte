@@ -1,5 +1,5 @@
-from typing import Callable, Dict
 from pathlib import Path
+from typing import Callable, Dict
 import flet as ft
 
 from ui.i18n import t
@@ -19,7 +19,15 @@ def create_conversion_hub_page(
     on_navigate: Callable[[str], None]
 ) -> ft.Container:
     """
-    Sub-Hub page for selecting between Single File or Directory (Batch) conversion.
+    Builds the Conversion Sub-Hub page for selecting single-file or directory batch format conversion.
+
+    Args:
+        page (ft.Page): Current Flet window page instance.
+        selected_paths (Dict[str, Path]): Context dictionary holding shared global paths.
+        on_navigate (Callable[[str], None]): Navigation callback function for route transitions.
+
+    Returns:
+        ft.Container: Centered container layout housing image conversion workflow choices.
     """
 
     def build_option_card(
@@ -28,17 +36,33 @@ def create_conversion_hub_page(
         icon: str,
         route_key: str
     ) -> ft.Container:
+        """
+        Constructs an interactive selection card for image format conversion options.
+
+        Args:
+            title (str): Display title for the tool card.
+            description (str): Short description of the conversion option.
+            icon (str): Flet icon identifier string.
+            route_key (str): Navigation route key triggered on click.
+
+        Returns:
+            ft.Container: Configured clickable card component with hover feedback.
+        """
         return ft.Container(
-            content=ft.Column([
-                ft.Icon(icon, size=40, color=COLOR_PRIMARY),
-                ft.Text(title, size=18, weight="bold", color=COLOR_TEXT),
-                ft.Text(
-                    description,
-                    size=12,
-                    color=COLOR_SUBTEXT,
-                    text_align=ft.TextAlign.CENTER
-                ),
-            ], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+            content=ft.Column(
+                [
+                    ft.Icon(icon, size=40, color=COLOR_PRIMARY),
+                    ft.Text(title, size=18, weight="bold", color=COLOR_TEXT),
+                    ft.Text(
+                        description,
+                        size=12,
+                        color=COLOR_SUBTEXT,
+                        text_align=ft.TextAlign.CENTER
+                    ),
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER
+            ),
             width=260,
             height=190,
             padding=20,
@@ -53,27 +77,38 @@ def create_conversion_hub_page(
             ) or e.control.update(),
         )
 
+    # Return fully centered container expanding across available window space
     return ft.Container(
+        expand=True,
         alignment=ft.alignment.center,
         padding=25,
-        content=ft.Column([
-            ft.Icon(ft.icons.TRANSFORM, size=50, color=COLOR_ICON),
-            ft.Text(t("conversion_hub_heading"), size=26, weight="bold", color=COLOR_TEXT),
-            ft.Text(t("conversion_hub_subheading"), color=COLOR_SUBTEXT),
-            ft.Container(height=20),
-            ft.Row([
-                build_option_card(
-                    title=t("conversion_file_card_title"),
-                    description=t("conversion_file_card_desc"),
-                    icon=ft.icons.INSERT_DRIVE_FILE_OUTLINED,
-                    route_key="image_conversion_file"
+        content=ft.Column(
+            [
+                ft.Icon(ft.icons.TRANSFORM, size=50, color=COLOR_ICON),
+                ft.Text(t("conversion_hub_heading"), size=26, weight="bold", color=COLOR_TEXT),
+                ft.Text(t("conversion_hub_subheading"), color=COLOR_SUBTEXT),
+                ft.Container(height=20),
+                ft.Row(
+                    [
+                        build_option_card(
+                            title=t("conversion_file_card_title"),
+                            description=t("conversion_file_card_desc"),
+                            icon=ft.icons.INSERT_DRIVE_FILE_OUTLINED,
+                            route_key="image_conversion_file"
+                        ),
+                        build_option_card(
+                            title=t("conversion_dir_card_title"),
+                            description=t("conversion_dir_card_desc"),
+                            icon=ft.icons.FOLDER_OPEN,
+                            route_key="image_conversion_dir"
+                        ),
+                    ],
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    spacing=20,
+                    wrap=True
                 ),
-                build_option_card(
-                    title=t("conversion_dir_card_title"),
-                    description=t("conversion_dir_card_desc"),
-                    icon=ft.icons.FOLDER_OPEN,
-                    route_key="image_conversion_dir"
-                ),
-            ], alignment=ft.MainAxisAlignment.CENTER, spacing=20),
-        ], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER
+        )
     )
