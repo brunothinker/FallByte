@@ -5,28 +5,16 @@ import flet as ft
 
 from ui.i18n import t
 from ui.router import ROUTE_REGISTRY, build_page_view
-from ui.theme import (
-    COLOR_PRIMARY,
-    COLOR_TEXT,
-    COLOR_CARD_BG,
-)
+from ui.theme import COLOR_CARD_BG, COLOR_PRIMARY, COLOR_TEXT
 
 # Setup module logger
 logger = logging.getLogger(__name__)
 
 
-def create_app_layout(page: ft.Page, selected_paths: Dict[str, Path]) -> ft.Container:
-    """
-    Creates the main application frame containing a fixed top header bar,
-    back navigation stack management, and a dynamic content rendering area.
-
-    Args:
-        page (ft.Page): Current Flet window page instance.
-        selected_paths (Dict[str, Path]): Context dictionary holding shared global paths.
-
-    Returns:
-        ft.Container: Root layout container encapsulating the header and route views.
-    """
+def create_app_layout(
+    page: ft.Page, selected_paths: Dict[str, Path]
+) -> ft.Container:
+    """Creates main application frame containing top header bar and scrollable centered view."""
     # Track route history for backward navigation
     navigation_stack: List[str] = ["home"]
 
@@ -36,7 +24,7 @@ def create_app_layout(page: ft.Page, selected_paths: Dict[str, Path]) -> ft.Cont
         icon_color=COLOR_PRIMARY,
         tooltip=t("header_back_tooltip"),
         visible=False,
-        on_click=lambda _: go_back()
+        on_click=lambda _: go_back(),
     )
 
     lbl_page_title = ft.Text(
@@ -44,24 +32,19 @@ def create_app_layout(page: ft.Page, selected_paths: Dict[str, Path]) -> ft.Cont
         size=18,
         weight="bold",
         color=COLOR_TEXT,
-        text_align=ft.TextAlign.CENTER
+        text_align=ft.TextAlign.CENTER,
     )
 
-    # Dynamic view container
-    content_area = ft.Container(expand=True)
+    # Dynamic scrollable view container filling remaining height
+    content_area = ft.Container(expand=True, alignment=ft.alignment.center)
 
     def cleanup_page_overlays() -> None:
-        """
-        Closes pending alert dialogs and clears registered FilePicker overlays
-        from previous views to prevent orphan elements during route transitions.
-        """
+        """Closes pending alert dialogs and clears registered FilePicker overlays."""
         page.dialog = None
         page.overlay.clear()
 
     def update_header_and_content() -> None:
-        """
-        Clears previous screen overlays, updates header state, and renders active route view.
-        """
+        """Clears overlays, updates header state, and renders active route view."""
         cleanup_page_overlays()
 
         current_route = navigation_stack[-1]
@@ -73,29 +56,35 @@ def create_app_layout(page: ft.Page, selected_paths: Dict[str, Path]) -> ft.Cont
         btn_back.visible = len(navigation_stack) > 1
 
         # Render view control corresponding to current route
-        content_area.content = build_page_view(
+        view_control = build_page_view(
             route_key=current_route,
             page=page,
             selected_paths=selected_paths,
-            on_navigate=navigate_to
+            on_navigate=navigate_to,
+        )
+
+        # Disable expand on page views to prevent zero-height bugs inside scrollable column
+        if isinstance(view_control, ft.Control):
+            view_control.expand = False
+
+        # Wrap in scrollable column with vertical and horizontal centering
+        content_area.content = ft.Column(
+            controls=[view_control],
+            expand=True,
+            scroll=ft.ScrollMode.AUTO,
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
         page.update()
 
     def navigate_to(target_route: str) -> None:
-        """
-        Pushes a new target route key onto the stack and triggers screen re-render.
-
-        Args:
-            target_route (str): Target route key identifier.
-        """
+        """Pushes a new target route key onto the stack and triggers screen re-render."""
         navigation_stack.append(target_route)
         update_header_and_content()
 
     def go_back() -> None:
-        """
-        Pops the active route from the stack and returns to the previous view.
-        """
+        """Pops active route from stack and returns to previous view."""
         if len(navigation_stack) > 1:
             navigation_stack.pop()
             update_header_and_content()
@@ -106,11 +95,23 @@ def create_app_layout(page: ft.Page, selected_paths: Dict[str, Path]) -> ft.Cont
         padding=ft.padding.symmetric(horizontal=15),
         bgcolor=COLOR_CARD_BG,
         border_radius=8,
-        content=ft.Row([
-            ft.Container(content=btn_back, width=50, alignment=ft.alignment.center_left),
-            ft.Container(content=lbl_page_title, expand=True, alignment=ft.alignment.center),
-            ft.Container(width=50)
-        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN, vertical_alignment=ft.CrossAxisAlignment.CENTER)
+        content=ft.Row(
+            [
+                ft.Container(
+                    content=btn_back,
+                    width=50,
+                    alignment=ft.alignment.center_left,
+                ),
+                ft.Container(
+                    content=lbl_page_title,
+                    expand=True,
+                    alignment=ft.alignment.center,
+                ),
+                ft.Container(width=50),
+            ],
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
     )
 
     # Initialize layout rendering
@@ -120,9 +121,7 @@ def create_app_layout(page: ft.Page, selected_paths: Dict[str, Path]) -> ft.Cont
     return ft.Container(
         expand=True,
         padding=10,
-        content=ft.Column([
-            header_bar,
-            ft.Container(height=5),
-            content_area
-        ], expand=True)
+        content=ft.Column(
+            [header_bar, ft.Container(height=5), content_area], expand=True
+        ),
     )

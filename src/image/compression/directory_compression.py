@@ -1,7 +1,7 @@
 import logging
 import time
 from pathlib import Path
-from typing import Dict, Callable, Optional, List, Any
+from typing import Any, Callable, Dict, List, Optional
 
 from src.image.compression.file_compression import file_compressor
 from src.utils.progress import ProgressInfo
@@ -15,22 +15,26 @@ def directory_compressor(
     input_dir: Path,
     output_dir: Path,
     quality: int = 80,
-    progress_callback: Optional[Callable[[ProgressInfo], None]] = None
+    progress_callback: Optional[Callable[[ProgressInfo], None]] = None,
 ) -> Dict[str, Any]:
-    """
-    Scans an input directory for image files, compresses each file, and saves them to output_dir.
-    Supports real-time progress callbacks, user cancellation, and cleanup of generated files.
+    """Scans an input directory for image files, compresses each file, and saves them to output_dir.
+
+    Supports real-time progress callbacks, user cancellation, and cleanup of
+    generated files.
 
     Args:
         input_dir (Path): Path to the source directory containing images.
-        output_dir (Path): Path to the destination directory where compressed images will be saved.
-        quality (int, optional): Compression quality percentage (1-100). Defaults to 80.
-        progress_callback (Callable[[ProgressInfo], None], optional): Callback function invoked
-            after processing each file, receiving a ProgressInfo instance. Defaults to None.
+        output_dir (Path): Path to the destination directory where compressed
+          images will be saved.
+        quality (int, optional): Compression quality percentage (1-100). Defaults
+          to 80.
+        progress_callback (Callable[[ProgressInfo], None], optional): Callback
+          function invoked after processing each file, receiving a ProgressInfo
+          instance. Defaults to None.
 
     Returns:
-        Dict[str, Any]: A summary dictionary containing compression statistics, byte sizes,
-            elapsed time, and cancellation state.
+        Dict[str, Any]: A summary dictionary containing compression
+        statistics, byte sizes, elapsed time, and cancellation state.
     """
     stats = {
         "success": 0,
@@ -66,7 +70,7 @@ def directory_compressor(
             success = file_compressor(
                 input_path=file_path,
                 output_path=destination_path,
-                quality=quality
+                quality=quality,
             )
 
             comp_size = 0
@@ -88,7 +92,7 @@ def directory_compressor(
                     file_path=file_path,
                     success=success,
                     orig_bytes=orig_size,
-                    comp_bytes=comp_size
+                    comp_bytes=comp_size,
                 )
                 progress_callback(progress_info)
 
@@ -107,16 +111,26 @@ def directory_compressor(
         for dst_file in created_destination_files:
             if dst_file.exists():
                 try:
-                    affected_dirs.add(dst_file.parent)
+                    if (
+                        dst_file.parent != output_dir
+                        and dst_file.parent.is_relative_to(output_dir)
+                    ):
+                        affected_dirs.add(dst_file.parent)
                     dst_file.unlink()
                     cleaned_count += 1
                 except Exception as e:
                     logger.warning(f"Failed to remove file {dst_file}: {e}")
 
         # Remove empty directories left behind in destination
-        for folder in affected_dirs:
+        for folder in sorted(
+            affected_dirs, key=lambda p: len(p.parts), reverse=True
+        ):
             try:
-                if folder.exists() and not any(folder.iterdir()):
+                if (
+                    folder != output_dir
+                    and folder.exists()
+                    and not any(folder.iterdir())
+                ):
                     folder.rmdir()
             except Exception:
                 pass
