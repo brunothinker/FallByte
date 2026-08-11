@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from src.image.compression.file_compression import file_compressor
+from src.utils.cleanup import safe_cleanup_session_files
 from src.utils.progress import ProgressInfo
 from src.utils.scanner import scan_image_files
 
@@ -104,41 +105,17 @@ def directory_compressor(
         logger.info(f"Directory compression cancelled by user: '{input_dir}'")
         stats["cancelled"] = True
 
-        # Purge all files created during this processing session
-        cleaned_count = 0
-        affected_dirs = set()
-
-        for dst_file in created_destination_files:
-            if dst_file.exists():
-                try:
-                    if (
-                        dst_file.parent != output_dir
-                        and dst_file.parent.is_relative_to(output_dir)
-                    ):
-                        affected_dirs.add(dst_file.parent)
-                    dst_file.unlink()
-                    cleaned_count += 1
-                except Exception as e:
-                    logger.warning(f"Failed to remove file {dst_file}: {e}")
-
-        # Remove empty directories left behind in destination
-        for folder in sorted(
-            affected_dirs, key=lambda p: len(p.parts), reverse=True
-        ):
-            try:
-                if (
-                    folder != output_dir
-                    and folder.exists()
-                    and not any(folder.iterdir())
-                ):
-                    folder.rmdir()
-            except Exception:
-                pass
+        # Delegate session cleanup to global utility
+        cleaned_count = safe_cleanup_session_files(
+            created_files=created_destination_files, root_output_dir=output_dir
+        )
 
         stats["cleaned_files_count"] = cleaned_count
         stats["elapsed_seconds"] = round(time.perf_counter() - start_time, 2)
         return stats
 
     except Exception as e:
-        logger.error(f"Failed to compress directory '{input_dir}': {e}", exc_info=True)
+        logger.error(
+            f"Failed to compress directory '{input_dir}': {e}", exc_info=True
+        )
         return stats
