@@ -14,7 +14,7 @@ def normalize_format_name(target_format: str) -> str:
     return "JPEG" if fmt in ("JPG", "JPEG") else fmt
 
 
-def file_converter(
+def directory_converter(
     input_path: Path,
     output_path: Path,
     target_format: str,
