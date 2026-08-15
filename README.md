@@ -35,8 +35,8 @@ Pre-compiled portable packages (`.zip`) are available on the **Releases** page:
 
 | Operating System | Status | Package |
 |---|---|---|
-| **Linux (x86_64)** | Supported | Portable `.zip` |
-| **Windows (x64)** | Supported | Portable `.zip` |
+| **Linux (x86_64)** | Supported | [Download Portable `.zip`](https://github.com/brunothinker/FallByte/releases/latest) |
+| **Windows (x64)** | Supported | [Download Portable `.zip`](https://github.com/brunothinker/FallByte/releases/latest) |
 | **macOS** | Community Supported | Source execution available |
 
 ---
@@ -79,6 +79,17 @@ Pre-compiled portable packages (`.zip`) are available on the **Releases** page:
 * **UI Framework:** Flet (Flutter for Python)
 * **Image Processing:** Pillow (PIL)
 * **Media Engine (Upcoming):** FFmpeg
+
+---
+
+## Download
+
+Download the latest pre-compiled portable binaries for your operating system:
+
+* 🐧 **Linux (x86_64):** [Download Portable `.zip`](https://github.com/brunothinker/FallByte/releases/latest)
+* 🪟 **Windows (x64):** [Download Portable `.zip`](https://github.com/brunothinker/FallByte/releases/latest)
+
+> **Note:** Check all version updates and source assets directly on the [FallByte Releases Page](https://github.com/brunothinker/FallByte/releases). For macOS, refer to the [Quick Start](#quick-start-running-from-source) section.
 
 ---
 
