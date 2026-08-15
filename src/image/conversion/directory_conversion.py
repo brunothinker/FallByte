@@ -1,67 +1,125 @@
 import logging
+import time
 from pathlib import Path
-from PIL import Image, ImageOps
+from typing import Any, Callable, Dict, List, Optional
 
-from src.image.utils.remove_transparency import NON_ALPHA_FORMATS, remove_transparency
+from src.image.conversion.file_conversion import file_converter
+from src.image.utils.image_cleanup import safe_cleanup_session_files
+from src.image.utils.image_progress import ProgressInfo
+from src.image.utils.image_scanner import scan_image_files
 
 # Setup module logger
 logger = logging.getLogger(__name__)
 
 
-def normalize_format_name(target_format: str) -> str:
-    """Normalizes format extension string to Pillow-compatible format identifier."""
-    fmt = target_format.upper().strip().lstrip(".")
-    return "JPEG" if fmt in ("JPG", "JPEG") else fmt
-
-
 def directory_converter(
-    input_path: Path,
-    output_path: Path,
+    input_dir: Path,
+    output_dir: Path,
     target_format: str,
     transparency_replacement_color: str = "#FFFFFF",
-) -> bool:
-    """Converts any supported image file to the specified target format.
+    progress_callback: Optional[Callable[[ProgressInfo], None]] = None,
+) -> Dict[str, Any]:
+    """Scans an input directory for image files, converts each file to the target format, and saves them to output_dir.
+
+    Supports real-time progress callbacks, user cancellation, and cleanup of
+    generated files.
 
     Args:
-        input_path (Path): Path to the source image file.
-        output_path (Path): Path where the converted image will be saved.
-        target_format (str): Desired output format (e.g., 'JPEG', 'PNG', 'WEBP').
-        transparency_replacement_color (str, optional): Hex color code used to replace
-            the Alpha channel if the target format does not support transparency.
-            Defaults to "#FFFFFF".
+        input_dir (Path): Path to the source directory containing images.
+        output_dir (Path): Path to the destination directory where converted
+          images will be saved.
+        target_format (str): Desired output format (e.g., 'jpeg', 'png', 'webp').
+        transparency_replacement_color (str, optional): Hex color used to replace
+          transparency if target format lacks alpha support. Defaults to "#FFFFFF".
+        progress_callback (Callable[[ProgressInfo], None], optional): Callback
+          function invoked after processing each file. Defaults to None.
 
     Returns:
-        bool: True if conversion succeeded, False otherwise.
+        Dict[str, Any]: A summary dictionary containing conversion
+        statistics, byte sizes, elapsed time, and cancellation state.
     """
+    stats = {
+        "success": 0,
+        "failed": 0,
+        "elapsed_seconds": 0.0,
+        "original_bytes": 0,
+        "compressed_bytes": 0,
+        "cancelled": False,
+        "cleaned_files_count": 0,
+    }
+    start_time = time.perf_counter()
+    created_destination_files: List[Path] = []
+
     try:
-        # Ensure the destination directory exists
-        output_path.parent.mkdir(parents=True, exist_ok=True)
+        # Scan input directory for valid image files
+        image_files = scan_image_files(input_dir)
+        total_files = len(image_files)
 
-        fmt = normalize_format_name(target_format)
+        if total_files == 0:
+            logger.warning(f"No valid image files found in '{input_dir}'.")
+            return stats
 
-        with Image.open(input_path) as img:
-            # Auto-rotate image based on EXIF orientation tags
-            img = ImageOps.exif_transpose(img)
+        target_fmt = target_format.lower().lstrip(".")
 
-            # Handle transparency fallback if target format lacks alpha support
-            if fmt in NON_ALPHA_FORMATS:
-                final_img = remove_transparency(
-                    image=img,
-                    background_color=transparency_replacement_color,
-                )
+        # Iterate over discovered files and execute conversion
+        for index, file_path in enumerate(image_files, start=1):
+            # Preserve directory structure relative to input_dir and change extension
+            relative_path = file_path.relative_to(input_dir)
+            destination_path = (output_dir / relative_path).with_suffix(f".{target_fmt}")
+
+            orig_size = file_path.stat().st_size
+            stats["original_bytes"] += orig_size
+
+            # Execute single file conversion
+            success = file_converter(
+                input_path=file_path,
+                output_path=destination_path,
+                target_format=target_fmt,
+                transparency_replacement_color=transparency_replacement_color,
+            )
+
+            comp_size = 0
+            if success:
+                stats["success"] += 1
+                if destination_path.exists():
+                    created_destination_files.append(destination_path)
+                    comp_size = destination_path.stat().st_size
+                    stats["compressed_bytes"] += comp_size
             else:
-                final_img = img
+                stats["failed"] += 1
 
-            # Defensive check: ICO format enforces a maximum dimension of 256x256
-            if fmt == "ICO" and (final_img.width > 256 or final_img.height > 256):
-                final_img = final_img.copy()
-                final_img.thumbnail((256, 256), Image.Resampling.LANCZOS)
+            # Dispatch progress metrics to callback if provided
+            if progress_callback:
+                progress_info = ProgressInfo(
+                    current=index,
+                    total=total_files,
+                    start_time=start_time,
+                    file_path=file_path,
+                    success=success,
+                    orig_bytes=orig_size,
+                    comp_bytes=comp_size,
+                )
+                progress_callback(progress_info)
 
-            # Save converted file
-            final_img.save(output_path, format=fmt)
-            logger.info(f"Successfully converted '{input_path.name}' to '{fmt}'.")
-            return True
+        # Calculate total elapsed time
+        stats["elapsed_seconds"] = round(time.perf_counter() - start_time, 2)
+        return stats
+
+    except InterruptedError:
+        logger.info(f"Directory conversion cancelled by user: '{input_dir}'")
+        stats["cancelled"] = True
+
+        # Delegate session cleanup to global utility
+        cleaned_count = safe_cleanup_session_files(
+            created_files=created_destination_files, root_output_dir=output_dir
+        )
+
+        stats["cleaned_files_count"] = cleaned_count
+        stats["elapsed_seconds"] = round(time.perf_counter() - start_time, 2)
+        return stats
 
     except Exception as e:
-        logger.error(f"Failed to convert '{input_path.name}': {e}", exc_info=True)
-        return False
+        logger.error(
+            f"Failed to convert directory '{input_dir}': {e}", exc_info=True
+        )
+        return stats

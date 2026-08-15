@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from src.utils.scanner import scan_image_files
+from src.image.utils.image_scanner import scan_image_files
 
 # ==============================================================================
 # CONSTRUCTOR / TEST CONFIGURATION

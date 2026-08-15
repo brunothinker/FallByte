@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from src.image.compression.directory_compression import directory_compressor
 from src.image.utils.analysis import UNCOMPRESSIBLE_FORMATS
-from src.utils.progress import ProgressInfo
+from src.image.utils.image_progress import ProgressInfo
 
 logging.basicConfig(level=logging.WARNING)
 

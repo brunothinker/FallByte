@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from src.image.compression.file_compression import file_compressor
-from src.utils.cleanup import safe_cleanup_session_files
-from src.utils.progress import ProgressInfo
-from src.utils.scanner import scan_image_files
+from src.image.utils.image_cleanup import safe_cleanup_session_files
+from src.image.utils.image_progress import ProgressInfo
+from src.image.utils.image_scanner import scan_image_files
 
 # Setup module logger
 logger = logging.getLogger(__name__)

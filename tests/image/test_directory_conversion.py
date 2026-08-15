@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import List
 from src.image.conversion.directory_conversion import directory_converter
-from src.utils.progress import ProgressInfo
+from src.image.utils.image_progress import ProgressInfo
 
 # ==============================================================================
 # CONSTRUCTOR / TEST CONFIGURATION
