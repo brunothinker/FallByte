@@ -11,27 +11,33 @@ FallByte/
 ├── README.md
 ├── main.py
 ├── requirements.txt
-├── resources/              # Third-party binaries (FFmpeg) and static assets (icons)
+├── resources/              # Third-party binaries (FFmpeg) and static assets
 │   ├── bin/
 │   │   ├── linux/
+│   │   │   └── ffmpeg
 │   │   ├── mac/
 │   │   └── win/
+│   │       └── ffmpeg.exe
 │   └── icons/
 │       └── logo.png
 ├── src/                    # Core Engine: Business logic and I/O processing
-│   ├── image/
-│   │   ├── compression/    # Compression engines and orchestrators
-│   │   ├── conversion/     # Conversion engines and orchestrators
-│   │   └── utils/          # Pre-flight analysis and transparency removal
-│   ├── utils/              # Directory scanning, Progress metrics, and Safe cleanup
-│   └── video/              # Engines for video module expansion
+│   ├── image/              # Image processing domain
+│   │   ├── compression/    # Image compression engine and orchestrator
+│   │   ├── conversion/     # Image conversion engine and orchestrator
+│   │   └── utils/          # Pre-flight analysis, opacity removal, scanner, metrics
+│   ├── utils/              # Shared infrastructure utilities
+│   └── video/              # Video processing domain
+│       ├── compression/    # Video compression engine and orchestrator
+│       ├── conversion/     # Video conversion engine and orchestrator
+│       └── utils/          # Binary manager (FFmpeg), video progress, scanner, cleanup
 ├── tests/                  # Unit and integration test suite
 │   ├── image/
-│   └── utils/
+│   ├── utils/
+│   └── video/
 └── ui/                     # Reactive graphical user interface (Flet / Flutter for Python)
     ├── components/         # Encapsulated visual components
     ├── controllers/        # State controllers and asynchronous bridge
-    ├── pages/              # Primary views/pages
+    ├── pages/              # Primary views/pages (Image & Video)
     ├── utils/              # UI utilities and converter support
     ├── app_layout.py       # Global frame, Dynamic header, and Navigation stack
     ├── i18n.py             # Internationalization engine (i18n)
@@ -61,8 +67,10 @@ end
 subgraph Views["Pages (Views)"]
     PAGE_HOME["home_page.py"]
     PAGE_HUB["media_hub_page.py"]
-    PAGE_COMP["compression_page.py"]
-    PAGE_CONV["conversion_page.py"]
+    IMG_COMP_PAGE["image_compression_page.py"]
+    IMG_CONV_PAGE["image_conversion_page.py"]
+    VID_COMP_PAGE["video_compression_page.py"]
+    VID_CONV_PAGE["video_conversion_page.py"]
 end
 
 subgraph Components["Reusable Components"]
@@ -71,38 +79,36 @@ subgraph Components["Reusable Components"]
     DIALOGS["dialog_utils.py"]
 end
 
-subgraph Controllers["Controllers"]
-    COMP_CTRL["CompressionController"]
-    CONV_CTRL["ConversionController"]
+subgraph Controllers["Controllers Layer"]
+    IMG_COMP_CTRL["ImageCompressionController"]
+    IMG_CONV_CTRL["ImageConversionController"]
+    VID_COMP_CTRL["VideoCompressionController"]
+    VID_CONV_CTRL["VideoConversionController"]
 end
 
 subgraph CoreEngine["Core Engine (src/)"]
-    DIR_COMP_ENGINE["src.image.compression"]
-    DIR_CONV_ENGINE["src.image.conversion"]
+    IMG_ENGINE["src.image.*"]
+    VID_ENGINE["src.video.*"]
 end
 
 LAYOUT -->|"Navigation"| ROUTER
-ROUTER -->|"Builds View"| PAGE_HOME
-ROUTER -->|"Builds View"| PAGE_HUB
-ROUTER -->|"Builds View"| PAGE_COMP
-ROUTER -->|"Builds View"| PAGE_CONV
+ROUTER -->|"Builds"| PAGE_HOME
+ROUTER -->|"Builds"| PAGE_HUB
+ROUTER -->|"Builds"| IMG_COMP_PAGE
+ROUTER -->|"Builds"| VID_COMP_PAGE
 
-LAYOUT -.->|"Translates Titles"| I18N
-PAGE_COMP -.->|"Localized Strings"| I18N
-PAGE_CONV -.->|"Localized Strings"| I18N
+LAYOUT -.->|"Localization"| I18N
+Views -.->|"Localized Strings"| I18N
 
-PAGE_COMP -->|"Uses"| CARD_IO
-PAGE_COMP -->|"Uses"| Q_SELECT
-PAGE_CONV -->|"Uses"| CARD_IO
+IMG_COMP_PAGE -->|"Delegates Events"| IMG_COMP_CTRL
+IMG_CONV_PAGE -->|"Delegates Events"| IMG_CONV_CTRL
+VID_COMP_PAGE -->|"Delegates Events"| VID_COMP_CTRL
+VID_CONV_PAGE -->|"Delegates Events"| VID_CONV_CTRL
 
-PAGE_COMP -->|"Delegates Events"| COMP_CTRL
-PAGE_CONV -->|"Delegates Events"| CONV_CTRL
+IMG_COMP_CTRL -->|"Async Thread"| IMG_ENGINE
+VID_COMP_CTRL -->|"Async Thread"| VID_ENGINE
 
-COMP_CTRL -->|"Async Thread"| DIR_COMP_ENGINE
-CONV_CTRL -->|"Async Thread"| DIR_CONV_ENGINE
-
-COMP_CTRL -->|"Displays Report"| DIALOGS
-CONV_CTRL -->|"Displays Report"| DIALOGS
+Controllers -->|"Displays Metrics Modal"| DIALOGS
 ```
 
 ### C. UI Architectural Patterns
@@ -158,16 +164,18 @@ end
 ## 3. Core Engine (`src/`)
 
 ### A. Core Layer Overview
-
-The `src/` directory concentrates business logic, low-level image handlers, and system utilities for **FallByte**. It was designed under the **Single Responsibility Principle (SRP)** and **Total UI Decoupling**, allowing any orchestrator (GUI, CLI, or Tests) to execute processing routines synchronously or asynchronously.
-
+The `src/` directory concentrates business logic, low-level media processors, and infrastructure utilities. It adheres strictly to the **Single Responsibility Principle (SRP)** and **Total UI Decoupling**, allowing any orchestrator (GUI, CLI, or Test Suites) to run processing routines synchronously or asynchronously.
 ```text
 src/
-├── image/
-│   ├── compression/        # Compression engines and orchestrators
-│   ├── conversion/         # Conversion engines and orchestrators
-│   └── utils/              # Pre-flight analysis and opacity handling
-└── utils/                  # Infrastructure: Scanning, Progress, and Cleanup
+├── image/                  # Image processing domain
+│   ├── compression/        # Image compression engine and orchestrator
+│   ├── conversion/         # Image conversion engine and orchestrator
+│   └── utils/              # Pre-flight analysis, opacity removal, scanner, metrics
+├── utils/                  # Shared infrastructure utilities
+└── video/                  # Video processing domain
+    ├── compression/        # Video compression engine and orchestrator
+    ├── conversion/         # Video conversion engine and orchestrator
+    └── utils/              # Binary manager (FFmpeg), video progress, scanner, cleanup
 ```
 
 ### B. Core Component Diagram (`src`)

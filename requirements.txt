@@ -2,4 +2,4 @@
 flet==0.21.2
 
 # Image Processing Engine
-Pillow>=10.0.0
+pillow==12.3.0
