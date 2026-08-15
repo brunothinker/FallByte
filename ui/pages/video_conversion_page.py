@@ -3,8 +3,10 @@ from typing import Callable, Dict
 import flet as ft
 
 from ui.components.io_picker_card import create_clickable_card
-from ui.components.quality_selector import QualitySelector
-from ui.controllers.compression_controller import CompressionController
+from ui.controllers.video_conversion_controller import (
+    SUPPORTED_VIDEO_CONVERSION_FORMATS,
+    VideoConversionController,
+)
 from ui.i18n import t
 from ui.theme import (
     BUTTON_HEIGHT,
@@ -16,13 +18,13 @@ from ui.theme import (
 )
 
 
-def create_compression_page(
+def create_video_conversion_page(
     page: ft.Page,
     selected_paths: Dict[str, Path],
     on_navigate: Callable[[str], None],
 ) -> ft.Container:
-    """Builds unified image compression page layout referencing i18n keys."""
-    controller = CompressionController()
+    """Builds unified video conversion page layout referencing i18n keys."""
+    controller = VideoConversionController()
 
     lbl_in_path = ft.Text(
         t("lbl_not_selected"),
@@ -41,8 +43,15 @@ def create_compression_page(
     lbl_status = ft.Text("", size=13, weight=ft.FontWeight.W_600)
     progress_bar = ft.ProgressBar(width=FORM_WIDTH, value=0, visible=False)
 
-    quality_selector = QualitySelector(
-        initial_value=80, label_text=t("lbl_quality_title")
+    # Setup target format dropdown control
+    dd_format = ft.Dropdown(
+        label=t("lbl_target_format"),
+        value=SUPPORTED_VIDEO_CONVERSION_FORMATS[0].upper(),
+        width=385,
+        options=[
+            ft.dropdown.Option(fmt.upper())
+            for fmt in SUPPORTED_VIDEO_CONVERSION_FORMATS
+        ],
     )
 
     # Initialize FilePickers for input and output selection
@@ -60,7 +69,7 @@ def create_compression_page(
         if p not in page.overlay:
             page.overlay.append(p)
 
-    # Clean Left Card using PopupMenu for source selection
+    # Source selection card with popup menu
     card_in = ft.Container(
         width=185,
         height=125,
@@ -88,7 +97,7 @@ def create_compression_page(
             ),
             items=[
                 ft.PopupMenuItem(
-                    icon=ft.icons.UPLOAD_FILE,
+                    icon=ft.icons.VIDEO_FILE,
                     text=t("lbl_select_file"),
                     on_click=lambda _: controller.open_picker(
                         picker_in_file, allow_directory=False
@@ -105,7 +114,7 @@ def create_compression_page(
         ),
     )
 
-    # Clean Right Card (Destination Directory)
+    # Destination directory card
     card_out = create_clickable_card(
         title=t("lbl_destination"),
         icon=ft.icons.FOLDER,
@@ -126,7 +135,7 @@ def create_compression_page(
 
     btn_action.on_click = lambda _: controller.handle_action_click(
         page=page,
-        quality=quality_selector.get_value(),
+        target_format=dd_format.value,
         lbl_status=lbl_status,
         progress_bar=progress_bar,
         btn_action=btn_action,
@@ -144,7 +153,7 @@ def create_compression_page(
             content=ft.Column(
                 [
                     ft.Text(
-                        t("image_hub_card_compression_title"),
+                        t("video_hub_card_conversion_title"),
                         size=20,
                         weight=ft.FontWeight.W_600,
                         color=COLOR_TEXT,
@@ -156,7 +165,7 @@ def create_compression_page(
                         spacing=15,
                         wrap=True,
                     ),
-                    quality_selector,
+                    dd_format,
                     ft.Container(height=5),
                     progress_bar,
                     btn_action,

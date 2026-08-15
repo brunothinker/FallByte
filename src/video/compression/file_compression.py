@@ -37,27 +37,58 @@ def file_compressor(
         # Quality 100 -> CRF 18 | Quality 80 -> CRF 22 | Quality 50 -> CRF 29
         crf = round(18 + (100 - quality) * 0.22)
 
+        target_ext = output_path.suffix.lower().lstrip(".")
+
+        # Select compression codecs and arguments based on target container
+        if target_ext == "webm":
+            codec_args = [
+                "-c:v",
+                "libvpx-vp9",
+                "-crf",
+                str(crf),
+                "-b:v",
+                "0",
+                "-row-mt",
+                "1",
+                "-cpu-used",
+                "4",
+                "-c:a",
+                "libopus",
+            ]
+        elif target_ext == "wmv":
+            # Map CRF to qscale for WMV2 (1 = best, 31 = worst)
+            qscale = round(1 + (100 - quality) * 0.3)
+            codec_args = [
+                "-c:v",
+                "wmv2",
+                "-qscale:v",
+                str(qscale),
+                "-c:a",
+                "wmav2",
+            ]
+        else:
+            # Universal default compression for MP4, MKV, MOV, AVI
+            codec_args = [
+                "-c:v",
+                "libx264",
+                "-crf",
+                str(crf),
+                "-preset",
+                "medium",
+                "-c:a",
+                "aac",
+                "-b:a",
+                "128k",
+            ]
+
         # Build FFmpeg compression command:
         # -y: Overwrite output file
-        # -c:v libx264: Industry standard video codec
-        # -crf: Rate control factor based on user quality setting
-        # -preset medium: Balanced speed/compression ratio
-        # -c:a aac: Standard audio codec
         cmd = [
             str(ffmpeg_bin),
             "-y",
             "-i",
             str(input_path),
-            "-c:v",
-            "libx264",
-            "-crf",
-            str(crf),
-            "-preset",
-            "medium",
-            "-c:a",
-            "aac",
-            "-b:a",
-            "128k",
+            *codec_args,
             str(output_path),
         ]
 

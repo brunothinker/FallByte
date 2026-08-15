@@ -70,6 +70,12 @@ def create_home_page(
             "icon": ft.icons.IMAGE,
             "route_key": "image_hub",
         },
+        {
+            "title": t("home_mod_video_title"),
+            "description": t("home_mod_video_desc"),
+            "icon": ft.icons.VIDEO_LIBRARY,
+            "route_key": "video_hub",
+        },
     ]
 
     return ft.Container(

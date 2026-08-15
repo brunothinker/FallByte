@@ -19,6 +19,8 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "home_header_title": "FallByte - Painel Principal",
         "home_mod_image_title": "Módulo de Imagens",
         "home_mod_image_desc": "Conversão, compressão e otimização individual ou em lote.",
+        "home_mod_video_title": "Módulo de Vídeos",
+        "home_mod_video_desc": "Conversão e compressão de vídeos mantendo alta qualidade.",
         # Image Hub Navigation Modules
         "image_hub_header_title": "Ferramentas de Imagem",
         "image_hub_heading": "Processamento de Imagens",
@@ -80,6 +82,23 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "log_no_errors": "Nenhum erro registrado durante o processamento.",
         "log_size_stat": "Tamanho: {orig} -> {comp}",
         "log_reduction_stat": "Redução: -{pct:.1f}%",
+        # Video Hub Navigation Modules
+        "video_hub_header_title": "Ferramentas de Vídeo",
+        "video_hub_heading": "Processamento de Vídeos",
+        "video_hub_subheading": "Selecione a ferramenta que deseja utilizar",
+        "video_hub_card_conversion_title": "Conversão de Vídeo",
+        "video_hub_card_conversion_desc": "Altere o formato/container do seu vídeo (MP4, MKV, WEBM, AVI, etc).",
+        "video_hub_card_compression_title": "Compressão de Vídeo",
+        "video_hub_card_compression_desc": "Reduza o peso do arquivo de vídeo ajustando a taxa de qualidade CRF.",
+        # Selector Labels & Popup Items
+        "lbl_quality_percentage": "Qualidade: {value}%",
+        # Target Formats & Selectors
+        "video_format_mp4": "MP4 (MPEG-4)",
+        "video_format_mkv": "MKV (Matroska)",
+        "video_format_webm": "WebM",
+        "video_format_avi": "AVI",
+        "video_format_mov": "MOV (QuickTime)",
+        "video_format_wmv": "WMV (Windows Media)",
     }
 }
 
