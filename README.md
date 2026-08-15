@@ -8,32 +8,36 @@ FallByte is a fast, lightweight, and local-first media optimization tool designe
 
 ## About the Project
 
-Most media optimization tools require uploading sensitive files to cloud servers or dealing with ad-heavy web interfaces. **FallByte** runs 100% locally on your machine, processing images and media offline with speed, safety, and precision.
+Most media optimization tools require uploading sensitive files to cloud servers or dealing with ad-heavy web interfaces. **FallByte** runs 100% locally on your machine, processing images and videos offline with speed, safety, and precision.
 
 ---
 
-## Key Features (Image Module Ready)
+## Key Features
 
-The initial release comes fully equipped with the **Image Engine**:
+FallByte comes fully equipped with high-performance engines for both **Images** and **Videos**:
 
 * **Local-First & Private:** Your files never leave your system. No server uploads, no telemetry, no internet required.
+* **Embedded Media Engine (FFmpeg):** Native video conversion and compression powered by standalone FFmpeg binaries—no external system installations required.
+* **Smart Video Processing:** 
+  * **Conversion:** Standardize videos across major formats (`MP4`, `MKV`, `WEBM`, `MOV`, `AVI`, `WMV`) with automatic multi-threaded codec mapping (`VP9`, `H.264`, `WMV2`).
+  * **Compression:** Map quality scales to CRF and bitrate parameters for high space savings.
+* **Advanced Image Processing:**
+  * **Compression:** Reclaim storage using quality controls and advanced PNG quantization (palette reduction) while strictly keeping original file formats.
+  * **Conversion:** Convert between various formats (`PNG`, `JPEG`, `WEBP`, `BMP`, `ICO`) with automatic background blending for transparency channels on unsupported formats.
 * **Batch & Single File Operations:** Process individual files or entire directory structures preserving folder hierarchies.
-* **Smart Image Compression:** Reclaim storage using quality controls and advanced PNG quantization (palette reduction) while strictly keeping original file formats.
-* **Flexible Image Conversion:** Convert between various formats with automatic background blending for alpha/transparency channels on unsupported formats (e.g., JPEG, BMP).
-* **ICO Generation:** Automatic smart scaling (max 256x256) using Lanczos resampling for Windows icons.
 * **Safe Session Cancellation:** Interrupt batch processing at any point without leaving orphan or corrupted files behind.
 
 ---
 
-## OS Support & Releases
+## OS Support
 
-Pre-compiled portable packages (`.zip`) are available for the initial release on the **Releases** page:
+Pre-compiled portable packages (`.zip`) are available on the **Releases** page:
 
 | Operating System | Status | Package |
 |---|---|---|
-| **Windows (x64)** | Supported | Portable `.zip` |
 | **Linux (x86_64)** | Supported | Portable `.zip` |
-| **macOS** | Planned | Coming in future releases |
+| **Windows (x64)** | Supported | Portable `.zip` |
+| **macOS** | Community Supported | Source execution available |
 
 ---
 
@@ -41,7 +45,7 @@ Pre-compiled portable packages (`.zip`) are available for the initial release on
 
 ### Prerequisites
 
-* Python 3.10 or higher
+* **Python 3.13+** (Recommended version: `Python 3.13.x`)
 
 ### Installation
 
@@ -53,8 +57,8 @@ Pre-compiled portable packages (`.zip`) are available for the initial release on
 
 2. Create and activate a virtual environment:
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+    python3.13 -m venv venv
+    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
 3. Install dependencies:
@@ -64,7 +68,7 @@ Pre-compiled portable packages (`.zip`) are available for the initial release on
 
 4. Launch the application:
    ```bash
-   python main.py
+   python test_conversion.py
    ```
 
 ---
@@ -75,17 +79,6 @@ Pre-compiled portable packages (`.zip`) are available for the initial release on
 * **UI Framework:** Flet (Flutter for Python)
 * **Image Processing:** Pillow (PIL)
 * **Media Engine (Upcoming):** FFmpeg
-
----
-
-## Roadmap
-
-- [x] Core Image Compression Engine (Single & Directory)
-- [x] Core Image Conversion Engine (With transparency handling)
-- [x] Reactive Flet UI with dark theme & internationalization (i18n)
-- [x] Safe I/O session cleanup on process abort
-- [ ] Video Compression & Conversion Engine (FFmpeg integration)
-- [ ] macOS build support & testing
 
 ---
 

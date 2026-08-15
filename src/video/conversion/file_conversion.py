@@ -18,13 +18,14 @@ def file_converter(
 
     If the input file is already in the target format, it bypasses re-encoding
     and copies the file directly to destination to save time and preserve
-    quality.
+    quality. Target format container requirements are checked to select
+    compatible audio/video codecs automatically.
 
     Args:
         input_path (Path): Path to the source video file.
         output_path (Path): Path where the converted video will be saved.
         target_format (str): Desired output extension/format (e.g., 'mp4',
-          'mkv', 'webm', 'avi').
+          'mkv', 'webm', 'mov', 'avi', 'wmv').
 
     Returns:
         bool: True if conversion succeeded, False otherwise.
@@ -47,19 +48,24 @@ def file_converter(
         # Retrieve absolute FFmpeg path for current OS
         ffmpeg_bin = get_ffmpeg_path()
 
+        # Select compatible audio and video codecs based on target container
+        if target_fmt == "webm":
+            codec_args = ["-c:v", "libvpx-vp9", "-row-mt", "1", "-cpu-used", "4", "-c:a", "libopus"]
+        elif target_fmt == "wmv":
+            codec_args = ["-f", "asf", "-c:v", "wmv1", "-c:a", "wmav2"]
+        else:
+            # Universal default codecs for MP4, MKV, MOV, AVI
+            codec_args = ["-c:v", "libx264", "-c:a", "aac"]
+
         # Build FFmpeg conversion command:
         # -y: Overwrite output file without asking
         # -i: Input file path
-        # -c:v libx264 / -c:a aac: Safe default codecs for universal container compatibility
         cmd = [
             str(ffmpeg_bin),
             "-y",
             "-i",
             str(input_path),
-            "-c:v",
-            "libx264",
-            "-c:a",
-            "aac",
+            *codec_args,
             str(output_path),
         ]
 

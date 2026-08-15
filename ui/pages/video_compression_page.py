@@ -3,7 +3,7 @@ from typing import Callable, Dict
 import flet as ft
 
 from ui.components.io_picker_card import create_clickable_card
-from ui.controllers.conversion_controller import ConversionController
+from ui.controllers.video_compression_controller import VideoCompressionController
 from ui.i18n import t
 from ui.theme import (
     BUTTON_HEIGHT,
@@ -13,19 +13,15 @@ from ui.theme import (
     COLOR_TEXT,
     FORM_WIDTH,
 )
-from ui.utils.conversion_utils import (
-    SUPPORTED_CONVERSION_FORMATS,
-    get_color_options,
-)
 
 
-def create_conversion_page(
+def create_video_compression_page(
     page: ft.Page,
     selected_paths: Dict[str, Path],
     on_navigate: Callable[[str], None],
 ) -> ft.Container:
-    """Builds unified image conversion page layout referencing i18n keys."""
-    controller = ConversionController()
+    """Builds video compression page layout with interactive quality slider."""
+    controller = VideoCompressionController()
 
     lbl_in_path = ft.Text(
         t("lbl_not_selected"),
@@ -44,25 +40,41 @@ def create_conversion_page(
     lbl_status = ft.Text("", size=13, weight=ft.FontWeight.W_600)
     progress_bar = ft.ProgressBar(width=FORM_WIDTH, value=0, visible=False)
 
-    # Setup target format dropdown control
-    dd_format = ft.Dropdown(
-        label=t("lbl_target_format"),
-        value=SUPPORTED_CONVERSION_FORMATS[0],
-        width=385,
-        options=[
-            ft.dropdown.Option(fmt) for fmt in SUPPORTED_CONVERSION_FORMATS
-        ],
+    # Label displaying interactive slider percentage
+    lbl_quality_val = ft.Text(
+        t("lbl_quality_percentage", value=80),
+        size=14,
+        weight=ft.FontWeight.W_600,
+        color=COLOR_TEXT,
     )
 
-    # Setup transparency replacement color dropdown control
-    color_options = get_color_options()
-    dd_color = ft.Dropdown(
-        label=t("lbl_transparency_color"),
-        value=color_options[0][0],
-        width=385,
-        options=[
-            ft.dropdown.Option(key, text=label) for key, label in color_options
+    def on_slider_change(e):
+        lbl_quality_val.value = t("lbl_quality_percentage", value=int(e.control.value))
+        lbl_quality_val.update()
+
+    # Setup Quality Slider (1 - 100%)
+    slider_quality = ft.Slider(
+        min=1,
+        max=100,
+        divisions=99,
+        value=80,
+        label="{value}%",
+        active_color=COLOR_PRIMARY,
+        on_change=on_slider_change,
+    )
+
+    quality_container = ft.Column(
+        [
+            ft.Row(
+                [
+                    ft.Text(t("lbl_quality_title"), size=13, weight=ft.FontWeight.W_500, color=COLOR_TEXT),
+                    lbl_quality_val,
+                ],
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            ),
+            slider_quality,
         ],
+        spacing=2,
     )
 
     # Initialize FilePickers for input and output selection
@@ -108,7 +120,7 @@ def create_conversion_page(
             ),
             items=[
                 ft.PopupMenuItem(
-                    icon=ft.icons.UPLOAD_FILE,
+                    icon=ft.icons.VIDEO_FILE,
                     text=t("lbl_select_file"),
                     on_click=lambda _: controller.open_picker(
                         picker_in_file, allow_directory=False
@@ -146,8 +158,7 @@ def create_conversion_page(
 
     btn_action.on_click = lambda _: controller.handle_action_click(
         page=page,
-        target_format=dd_format.value,
-        selected_color_key=dd_color.value,
+        quality=int(slider_quality.value),
         lbl_status=lbl_status,
         progress_bar=progress_bar,
         btn_action=btn_action,
@@ -165,7 +176,7 @@ def create_conversion_page(
             content=ft.Column(
                 [
                     ft.Text(
-                        t("image_hub_card_conversion_title"),
+                        t("video_hub_card_compression_title"),
                         size=20,
                         weight=ft.FontWeight.W_600,
                         color=COLOR_TEXT,
@@ -177,8 +188,8 @@ def create_conversion_page(
                         spacing=15,
                         wrap=True,
                     ),
-                    dd_format,
-                    dd_color,
+                    ft.Container(height=5),
+                    quality_container,
                     ft.Container(height=5),
                     progress_bar,
                     btn_action,
