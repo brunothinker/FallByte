@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FallByte - Media Optimization Tool</title>
+  <style>
+    :root {
+      --bg-color: #030712;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+
+      --card-bg: rgba(15, 23, 42, 0.65);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover-bg: rgba(30, 41, 59, 0.85);
+      --card-hover-border: rgba(255, 255, 255, 0.22);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 100vh;
+      text-align: center;
+      padding: 40px 24px 24px 24px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Aura de iluminação sutil ao fundo */
+    body::before {
+      content: "";
+      position: absolute;
+      top: 25%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 350px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      width: 100%;
+      max-width: 680px;
+      z-index: 1;
+    }
+
+    h1 {
+      font-size: 5rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      margin-bottom: 1rem;
+      color: #ffffff;
+      line-height: 1;
+    }
+
+    p.subtitle {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      font-weight: 400;
+      line-height: 1.6;
+      max-width: 580px;
+      margin-bottom: 2.5rem;
+    }
+
+    .downloads-section {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .downloads-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: #64748b;
+      margin-bottom: 1rem;
+    }
+
+    .download-cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 1.5rem;
+    }
+
+    .download-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 22px 18px;
+      border-radius: 16px;
+      text-decoration: none;
+      color: #ffffff;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .download-card:hover {
+      transform: translateY(-3px);
+      background: var(--card-hover-bg);
+      border-color: var(--card-hover-border);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .download-card img {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+    }
+
+    .download-card span {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    /* Badge posicionada abaixo dos cards */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 99px;
+      font-size: 0.85rem;
+      color: #38bdf8;
+      backdrop-filter: blur(8px);
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      background-color: #38bdf8;
+      border-radius: 50%;
+    }
+
+    footer {
+      z-index: 1;
+      margin-top: 3rem;
+      font-size: 0.9rem;
+      color: #64748b;
+    }
+
+    footer a {
+      color: #94a3b8;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.2s ease;
+      font-weight: 500;
+    }
+
+    footer a:hover {
+      color: #f8fafc;
+    }
+
+    footer svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    @media (max-width: 520px) {
+      h1 {
+        font-size: 3.5rem;
+      }
+      .download-cards {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <main class="main-content">
+    <h1>FallByte</h1>
+    <p class="subtitle">
+      Otimize vídeos e imagens localmente com máxima performance. Sem upload na nuvem, sem limites e com privacidade total.
+    </p>
+
+    <section class="downloads-section">
+      <div class="downloads-title">Downloads Disponíveis</div>
+      <div class="download-cards">
+        <!-- Card Windows -->
+        <a href="https://github.com/brunothinker/FallByte/releases/download/v1.0.0/FallByte-v1.0.0-windows-x64.zip" class="download-card">
+          <img src="icons/windows.svg" alt="Windows Logo" />
+          <span>Windows</span>
+        </a>
+
+        <!-- Card Ubuntu -->
+        <a href="https://github.com/brunothinker/FallByte/releases/download/v1.0.0/FallByte-v1.0.0-linux-x86_64.zip" class="download-card">
+          <img src="icons/ubuntu.svg" alt="Ubuntu Logo" />
+          <span>Ubuntu</span>
+        </a>
+      </div>
+
+      <!-- Badge de Versão movida para baixo -->
+      <div class="badge">
+        <span class="badge-dot"></span>
+        <span>v1.0.0 • Open Source</span>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <a href="https://github.com/brunothinker/FallByte" target="_blank" rel="noopener noreferrer">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+      </svg>
+      github.com/brunothinker/FallByte
+    </a>
+  </footer>
+
+</body>
+</html>
