@@ -1,8 +1,34 @@
+# Build and compilation output
+build/
+dist/
+*.spec
+
+# Final installer packages
+*.deb
+*.rpm
+*.AppImage
+*.exe
+
+# Build tools and temporary assets
+build/appimagetool
+
+# Python cache and bytecode
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE and editor settings
 .idea/
 .vscode/
-__pycache__/
-*.pyc
-.idea/
-.vscode/
+*.swp
+*.swo
+
+# Operating system metadata
+.DS_Store
+Thumbs.db
