@@ -31,48 +31,33 @@ FallByte comes fully equipped with high-performance engines for both **Images** 
 
 ## OS Support & Download
 
-Download the latest pre-compiled portable packages (.zip) for your operating system directly from the Releases page:
+Choose the appropriate package for your operating system on our official download page or via GitHub Releases:
 
-| Operating System | Status | Package |
+| Operating System | Supported Formats | Status |
 |---|---|---|
-| 🐧 **Linux (x86_64)** | Supported | [Download Portable `.zip`](https://github.com/brunothinker/FallByte/releases/latest) |
-| 🪟 **Windows (x64)** | Supported | [Download Portable `.zip`](https://github.com/brunothinker/FallByte/releases/latest) |
-| 💻 **macOS** | Community Supported | Source execution available |
+| 🐧 **Ubuntu / Debian / Mint** | Native `.deb` Package | Supported |
+| 🎩 **Fedora / RHEL / openSUSE** | Native `.rpm` Package | Supported |
+| 🚀 **Arch / Universal Linux** | Portable `.AppImage` | Supported |
+| 🪟 **Windows (x64)** | Portable `.zip` | Supported |
+| 💻 **macOS** | Source execution only | Community Supported |
 
-> **Note:** Check all version updates and source assets directly on the [FallByte Releases Page](https://github.com/brunothinker/FallByte/releases). For macOS, refer to the [Quick Start](#quick-start-running-from-source) section.
+> 📥 **[Get FallByte for your OS (Official Download Page)](https://brunothinker.github.io/FallByte/)**
+> 
+> *Prefer raw build artifacts? You can also browse all compiled files on the [GitHub Releases Page](https://github.com/brunothinker/FallByte/releases).*
 
 ---
 
-## Quick Start (Running from Source)
+## Development
 
-### Prerequisites
+For local development or running from source:
 
-* **Python 3.13+** (Recommended version: `Python 3.13.x`)
-
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/brunothinker/FallByte.git
-   cd FallByte
-   ```
-
-2. Create and activate a virtual environment:
-   ```bash
-    python3.13 -m venv venv
-    source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. Launch the application:
-   ```bash
-   python test_conversion.py
-   ```
-
+```bash
+git clone https://github.com/brunothinker/FallByte.git
+cd FallByte
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python main.py
+```
 ---
 
 ## Stack
@@ -80,7 +65,7 @@ Download the latest pre-compiled portable packages (.zip) for your operating sys
 * **Language:** Python
 * **UI Framework:** Flet (Flutter for Python)
 * **Image Processing:** Pillow (PIL)
-* **Media Engine (Upcoming):** FFmpeg
+* **Media Engine (Upcoming):** FFmpeg (Static Binaries)
 
 ---
 
