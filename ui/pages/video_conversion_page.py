@@ -56,13 +56,19 @@ def create_video_conversion_page(
 
     # Initialize FilePickers for input and output selection
     picker_in_file = ft.FilePicker(
-        on_result=lambda e: controller.handle_input_result(e, lbl_in_path)
+        on_result=lambda e: controller.handle_input_result(
+            e, lbl_in_path, lbl_status
+        )
     )
     picker_in_dir = ft.FilePicker(
-        on_result=lambda e: controller.handle_input_result(e, lbl_in_path)
+        on_result=lambda e: controller.handle_input_result(
+            e, lbl_in_path, lbl_status
+        )
     )
     picker_out = ft.FilePicker(
-        on_result=lambda e: controller.handle_output_result(e, lbl_out_path)
+        on_result=lambda e: controller.handle_output_result(
+            e, lbl_out_path, lbl_status
+        )
     )
 
     for p in (picker_in_file, picker_in_dir, picker_out):
@@ -133,13 +139,17 @@ def create_video_conversion_page(
         height=BUTTON_HEIGHT,
     )
 
-    btn_action.on_click = lambda _: controller.handle_action_click(
-        page=page,
-        target_format=dd_format.value,
-        lbl_status=lbl_status,
-        progress_bar=progress_bar,
-        btn_action=btn_action,
-    )
+    def on_action_click(_: ft.ControlEvent) -> None:
+        """Handles action button clicks forwarding execution state to controller."""
+        controller.handle_action_click(
+            page=page,
+            target_format=dd_format.value,
+            lbl_status=lbl_status,
+            progress_bar=progress_bar,
+            btn_action=btn_action,
+        )
+
+    btn_action.on_click = on_action_click
 
     return ft.Container(
         expand=True,

@@ -4,10 +4,11 @@ import flet as ft
 
 from ui.i18n import t
 from ui.theme import (
+    COLOR_CARD_BG,
     COLOR_ERROR,
     COLOR_PRIMARY,
-    COLOR_SUCCESS,
     COLOR_SUBTEXT,
+    COLOR_SUCCESS,
     COLOR_TEXT,
 )
 
@@ -16,7 +17,14 @@ logger = logging.getLogger(__name__)
 
 
 def format_size(size_bytes: int) -> str:
-    """Formats byte count into human-readable string representation (KB or MB)."""
+    """Formats byte count into human-readable string representation.
+
+    Args:
+        size_bytes: The total size in bytes to be formatted.
+
+    Returns:
+        Formatted string representing size in KB or MB.
+    """
     kb = size_bytes / 1024
     if kb >= 1024:
         return f"{kb / 1024:.2f} MB"
@@ -24,24 +32,83 @@ def format_size(size_bytes: int) -> str:
 
 
 def show_summary_dialog(page: ft.Page, summary: Dict[str, Any]) -> None:
-    """Displays modal dialog rendering execution metrics, file size stats, and detailed logs."""
-    total = summary.get("total_files", summary.get("total", 0))
+    """Displays modal dialog rendering execution metrics, file size stats, and colored logs.
+
+    Args:
+        page: Active Flet Page instance to present the modal.
+        summary: Dictionary containing process statistics, file lists, and execution logs.
+    """
     success = summary.get("success", summary.get("successful", 0))
     failed = summary.get("failed", 0)
+    total = summary.get("total_files", summary.get("total", success + failed))
     elapsed = summary.get("elapsed_seconds", 0.0)
     errors = summary.get("errors", [])
 
     orig_bytes = summary.get("original_bytes", 0)
     comp_bytes = summary.get("compressed_bytes", 0)
     file_details: List[Dict[str, Any]] = summary.get("files", [])
+    terminal_log: str = summary.get("terminal_log", "").strip()
 
     reduction_pct = 0.0
     if orig_bytes > 0:
         reduction_pct = ((orig_bytes - comp_bytes) / orig_bytes) * 100
 
     log_items: List[ft.Control] = []
+    raw_log_text_list: List[str] = []
 
-    if file_details:
+    # Priority 1: Render raw terminal output line by line with dynamic colors
+    if terminal_log:
+        lines = terminal_log.splitlines()
+        for line in lines:
+            line_str = line.strip()
+            if not line_str:
+                continue
+
+            raw_log_text_list.append(line_str)
+            line_lower = line_str.lower()
+
+            # Match success keywords for green highlighting
+            if any(
+                k in line_lower
+                for k in [
+                    "[ok]",
+                    "success",
+                    "sucesso",
+                    "concluído",
+                    "converted",
+                    "compressed",
+                ]
+            ):
+                text_color = COLOR_SUCCESS
+            # Match failure/error keywords for red highlighting
+            elif any(
+                k in line_lower
+                for k in [
+                    "[fail]",
+                    "[error]",
+                    "falha",
+                    "erro",
+                    "failed",
+                    "exception",
+                    "traceback",
+                ]
+            ):
+                text_color = COLOR_ERROR
+            else:
+                text_color = COLOR_SUBTEXT
+
+            log_items.append(
+                ft.Text(
+                    line_str,
+                    size=11,
+                    color=text_color,
+                    font_family="monospace",
+                    selectable=True,
+                )
+            )
+
+    # Priority 2: Render structured file details list
+    elif file_details:
         for item in file_details:
             fname = item.get("name", "Unknown")
             item_orig = item.get("orig_bytes", 0)
@@ -50,11 +117,14 @@ def show_summary_dialog(page: ft.Page, summary: Dict[str, Any]) -> None:
             item_err = item.get("error", "")
 
             if not item_success:
+                err_line = f"[FAIL] {fname}: {item_err or t('msg_error')}"
+                raw_log_text_list.append(err_line)
                 log_items.append(
                     ft.Text(
-                        f"[FAIL] {fname}: {item_err or t('msg_error')}",
+                        err_line,
                         size=11,
                         color=COLOR_ERROR,
+                        font_family="monospace",
                     )
                 )
             else:
@@ -64,29 +134,99 @@ def show_summary_dialog(page: ft.Page, summary: Dict[str, Any]) -> None:
 
                 orig_str = format_size(item_orig)
                 comp_str = format_size(item_comp)
+                ok_line = f"[OK] {fname:<25} | {orig_str} -> {comp_str} | -{item_pct:.1f}%"
+                raw_log_text_list.append(ok_line)
 
                 log_items.append(
                     ft.Text(
-                        f"[OK] {fname:<25} | {orig_str} -> {comp_str} | -{item_pct:.1f}%",
+                        ok_line,
                         size=11,
                         color=COLOR_SUCCESS,
+                        font_family="monospace",
                     )
                 )
+
+    # Priority 3: Render standalone error logs
     elif errors:
         for err in errors:
             file_name = err.get("file", "Unknown")
             reason = err.get("error", "Unspecified error")
+            err_line = f"[ERROR] {file_name}: {reason}"
+            raw_log_text_list.append(err_line)
             log_items.append(
                 ft.Text(
-                    f"[ERROR] {file_name}: {reason}",
+                    err_line,
                     size=11,
                     color=COLOR_ERROR,
+                    font_family="monospace",
                 )
             )
     else:
+        no_err_line = f"[OK] {t('log_no_errors')}"
+        raw_log_text_list.append(no_err_line)
         log_items.append(
-            ft.Text(f"[OK] {t('log_no_errors')}", size=11, color=COLOR_SUCCESS)
+            ft.Text(no_err_line, size=11, color=COLOR_SUCCESS)
         )
+
+    full_plain_log = "\n".join(raw_log_text_list)
+
+    def copy_log_to_clipboard(_: ft.ControlEvent) -> None:
+        """Copies the accumulated console output to system clipboard.
+
+        Args:
+            _: The trigger control event instance.
+        """
+        if full_plain_log:
+            page.set_clipboard(full_plain_log)
+            page.snack_bar = ft.SnackBar(
+                content=ft.Text(
+                    t("msg_log_copied")
+                    if t("msg_log_copied") != "msg_log_copied"
+                    else "Log copiado para a área de transferência!"
+                ),
+                duration=2000,
+            )
+            page.snack_bar.open = True
+            page.update()
+
+    btn_copy_log = ft.IconButton(
+        icon=ft.icons.COPY,
+        icon_size=16,
+        tooltip=t("btn_copy_log")
+        if t("btn_copy_log") != "btn_copy_log"
+        else "Copiar Log",
+        on_click=copy_log_to_clipboard,
+    )
+
+    def toggle_logs(e: ft.ControlEvent) -> None:
+        """Toggles detail log container visibility.
+
+        Args:
+            e: The trigger control event instance.
+        """
+        log_container.visible = not log_container.visible
+        btn_toggle_log.text = (
+            t("log_btn_hide_logs")
+            if log_container.visible
+            else t("log_btn_view_logs")
+        )
+        dialog.update()
+
+    btn_toggle_log = ft.TextButton(
+        text=t("log_btn_hide_logs"),
+        icon=ft.icons.LIST_ALT,
+        on_click=toggle_logs,
+    )
+
+    # Header controls row containing toggle and copy buttons
+    actions_row = ft.Row(
+        [
+            btn_toggle_log,
+            btn_copy_log,
+        ],
+        alignment=ft.MainAxisAlignment.START,
+        spacing=8,
+    )
 
     log_container = ft.Column(
         controls=[
@@ -98,36 +238,29 @@ def show_summary_dialog(page: ft.Page, summary: Dict[str, Any]) -> None:
             ),
             ft.Container(
                 content=ft.Column(
-                    log_items, scroll=ft.ScrollMode.AUTO, spacing=4
+                    log_items,
+                    scroll=ft.ScrollMode.ALWAYS,
+                    auto_scroll=True,
+                    spacing=2,
+                    expand=True,
                 ),
-                bgcolor=ft.colors.BLACK12,
-                padding=10,
+                bgcolor=ft.colors.BLACK26,
+                padding=12,
                 border_radius=8,
-                height=150,
+                height=180,
+                width=380,
             ),
         ],
-        visible=False,
-        spacing=8,
-    )
-
-    def toggle_logs(e: ft.ControlEvent) -> None:
-        """Toggles detail log container visibility."""
-        log_container.visible = not log_container.visible
-        btn_toggle_log.text = (
-            t("log_btn_hide_logs")
-            if log_container.visible
-            else t("log_btn_view_logs")
-        )
-        dialog.update()
-
-    btn_toggle_log = ft.TextButton(
-        text=t("log_btn_view_logs"),
-        icon=ft.icons.LIST_ALT,
-        on_click=toggle_logs,
+        visible=True,
+        spacing=6,
     )
 
     def close_dialog(e: ft.ControlEvent) -> None:
-        """Closes summary dialog modal."""
+        """Closes summary dialog modal.
+
+        Args:
+            e: The trigger control event instance.
+        """
         dialog.open = False
         page.update()
 
@@ -216,7 +349,7 @@ def show_summary_dialog(page: ft.Page, summary: Dict[str, Any]) -> None:
                 size=12,
                 color=COLOR_SUBTEXT,
             ),
-            btn_toggle_log,
+            actions_row,
             log_container,
         ]
     )
