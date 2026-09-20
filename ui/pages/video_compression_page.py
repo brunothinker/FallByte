@@ -48,8 +48,11 @@ def create_video_compression_page(
         color=COLOR_TEXT,
     )
 
-    def on_slider_change(e):
-        lbl_quality_val.value = t("lbl_quality_percentage", value=int(e.control.value))
+    def on_slider_change(e: ft.ControlEvent) -> None:
+        """Updates quality display label upon slider changes."""
+        lbl_quality_val.value = t(
+            "lbl_quality_percentage", value=int(e.control.value)
+        )
         lbl_quality_val.update()
 
     # Setup Quality Slider (1 - 100%)
@@ -67,7 +70,12 @@ def create_video_compression_page(
         [
             ft.Row(
                 [
-                    ft.Text(t("lbl_quality_title"), size=13, weight=ft.FontWeight.W_500, color=COLOR_TEXT),
+                    ft.Text(
+                        t("lbl_quality_title"),
+                        size=13,
+                        weight=ft.FontWeight.W_500,
+                        color=COLOR_TEXT,
+                    ),
                     lbl_quality_val,
                 ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
@@ -79,13 +87,19 @@ def create_video_compression_page(
 
     # Initialize FilePickers for input and output selection
     picker_in_file = ft.FilePicker(
-        on_result=lambda e: controller.handle_input_result(e, lbl_in_path)
+        on_result=lambda e: controller.handle_input_result(
+            e, lbl_in_path, lbl_status
+        )
     )
     picker_in_dir = ft.FilePicker(
-        on_result=lambda e: controller.handle_input_result(e, lbl_in_path)
+        on_result=lambda e: controller.handle_input_result(
+            e, lbl_in_path, lbl_status
+        )
     )
     picker_out = ft.FilePicker(
-        on_result=lambda e: controller.handle_output_result(e, lbl_out_path)
+        on_result=lambda e: controller.handle_output_result(
+            e, lbl_out_path, lbl_status
+        )
     )
 
     for p in (picker_in_file, picker_in_dir, picker_out):
@@ -156,13 +170,17 @@ def create_video_compression_page(
         height=BUTTON_HEIGHT,
     )
 
-    btn_action.on_click = lambda _: controller.handle_action_click(
-        page=page,
-        quality=int(slider_quality.value),
-        lbl_status=lbl_status,
-        progress_bar=progress_bar,
-        btn_action=btn_action,
-    )
+    def on_action_click(_: ft.ControlEvent) -> None:
+        """Handles action button clicks forwarding execution state to controller."""
+        controller.handle_action_click(
+            page=page,
+            quality=int(slider_quality.value),
+            lbl_status=lbl_status,
+            progress_bar=progress_bar,
+            btn_action=btn_action,
+        )
+
+    btn_action.on_click = on_action_click
 
     return ft.Container(
         expand=True,
