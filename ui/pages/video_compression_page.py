@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Dict
+
 import flet as ft
 
 from ui.components.io_picker_card import create_clickable_card
@@ -17,7 +18,7 @@ from ui.theme import (
 
 def create_video_compression_page(
     page: ft.Page,
-    selected_paths: Dict[str, Path],
+    _selected_paths: dict[str, Path],
     on_navigate: Callable[[str], None],
 ) -> ft.Container:
     """Builds video compression page layout with interactive quality slider."""
@@ -50,8 +51,9 @@ def create_video_compression_page(
 
     def on_slider_change(e: ft.ControlEvent) -> None:
         """Updates quality display label upon slider changes."""
+        raw_val = e.control.value if e.control.value is not None else 80
         lbl_quality_val.value = t(
-            "lbl_quality_percentage", value=int(e.control.value)
+            "lbl_quality_percentage", value=int(raw_val)
         )
         lbl_quality_val.update()
 
@@ -172,9 +174,10 @@ def create_video_compression_page(
 
     def on_action_click(_: ft.ControlEvent) -> None:
         """Handles action button clicks forwarding execution state to controller."""
+        slider_val = slider_quality.value if slider_quality.value is not None else 80
         controller.handle_action_click(
             page=page,
-            quality=int(slider_quality.value),
+            quality=int(slider_val),
             lbl_status=lbl_status,
             progress_bar=progress_bar,
             btn_action=btn_action,

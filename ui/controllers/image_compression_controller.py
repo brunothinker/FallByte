@@ -3,7 +3,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import List, Optional
+
 import flet as ft
 
 from src.image.compression.directory_compression import directory_compressor
@@ -19,7 +19,7 @@ class TextRedirector(logging.Handler):
     def __init__(self) -> None:
         """Initializes buffer and reference variables for standard streams and logger."""
         super().__init__()
-        self._buffer: List[str] = []
+        self._buffer: list[str] = []
         self._stdout = sys.stdout
         self._stderr = sys.stderr
 
@@ -75,12 +75,12 @@ class CompressionController:
 
     def __init__(self) -> None:
         """Initializes state variables for image compression execution and safety guards."""
-        self.selected_input: Optional[Path] = None
-        self.selected_output_dir: Optional[Path] = None
+        self.selected_input: Path | None = None
+        self.selected_output_dir: Path | None = None
         self.is_processing: bool = False
         self.abort_requested: bool = False
         self.picker_active: bool = False
-        self.cancel_dialog: Optional[ft.AlertDialog] = None
+        self.cancel_dialog: ft.AlertDialog | None = None
 
     def open_picker(
         self, picker: ft.FilePicker, allow_directory: bool = False
@@ -102,7 +102,7 @@ class CompressionController:
         self,
         e: ft.FilePickerResultEvent,
         lbl_path: ft.Text,
-        lbl_status: Optional[ft.Text] = None,
+        lbl_status: ft.Text | None = None,
     ) -> None:
         """Handles selection result from input image file or directory picker.
 
@@ -132,7 +132,7 @@ class CompressionController:
         self,
         e: ft.FilePickerResultEvent,
         lbl_path: ft.Text,
-        lbl_status: Optional[ft.Text] = None,
+        lbl_status: ft.Text | None = None,
     ) -> None:
         """Handles selection result from output directory picker.
 
@@ -233,6 +233,9 @@ class CompressionController:
             progress_bar: ProgressBar control rendering active execution progress.
             btn_action: Primary process trigger button control.
         """
+        if not self.selected_input or not self.selected_output_dir:
+            return
+
         self.is_processing = True
         self.abort_requested = False
 
@@ -345,6 +348,9 @@ class CompressionController:
             progress_bar: ProgressBar control rendering active execution progress.
             btn_action: Primary process trigger button control.
         """
+        if not self.selected_input or not self.selected_output_dir:
+            return
+
         self.is_processing = True
         self.abort_requested = False
 

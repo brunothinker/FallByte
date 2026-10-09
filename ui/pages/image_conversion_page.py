@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Dict
+
 import flet as ft
 
 from ui.components.io_picker_card import create_clickable_card
@@ -21,7 +22,7 @@ from ui.utils.conversion_utils import (
 
 def create_conversion_page(
     page: ft.Page,
-    selected_paths: Dict[str, Path],
+    _selected_paths: dict[str, Path],
     on_navigate: Callable[[str], None],
 ) -> ft.Container:
     """Builds unified image conversion page layout referencing i18n keys."""
@@ -154,8 +155,8 @@ def create_conversion_page(
         """Handles action button clicks forwarding execution state to controller."""
         controller.handle_action_click(
             page=page,
-            target_format=dd_format.value,
-            selected_color_key=dd_color.value,
+            target_format=dd_format.value or SUPPORTED_CONVERSION_FORMATS[0],
+            selected_color_key=dd_color.value or color_options[0][0],
             lbl_status=lbl_status,
             progress_bar=progress_bar,
             btn_action=btn_action,

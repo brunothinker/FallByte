@@ -1,7 +1,8 @@
 import logging
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from src.image.compression.file_compression import file_compressor
 from src.image.utils.image_cleanup import safe_cleanup_session_files
@@ -16,26 +17,32 @@ def directory_compressor(
     input_dir: Path,
     output_dir: Path,
     quality: int = 80,
-    progress_callback: Optional[Callable[[ProgressInfo], None]] = None,
-) -> Dict[str, Any]:
-    """Scans an input directory for image files, compresses each file, and saves them to output_dir.
+    progress_callback: Callable[[ProgressInfo], None] | None = None,
+) -> dict[str, Any]:
+    """Scans an input directory for image files and compresses each file to output_dir.
 
-    Supports real-time progress callbacks, user cancellation, and cleanup of
-    generated files.
+    Preserves directory tree hierarchy relative to input_dir, dispatches real-time
+    progress updates to caller callbacks, handles cancellation signals, and performs
+    cleanup of generated session files.
 
     Args:
         input_dir (Path): Path to the source directory containing images.
         output_dir (Path): Path to the destination directory where compressed
-          images will be saved.
-        quality (int, optional): Compression quality percentage (1-100). Defaults
-          to 80.
-        progress_callback (Callable[[ProgressInfo], None], optional): Callback
-          function invoked after processing each file, receiving a ProgressInfo
-          instance. Defaults to None.
+            images will be saved.
+        quality (int, optional): Compression quality percentage (1-100).
+            Defaults to 80.
+        progress_callback (Callable[[ProgressInfo], None] | None, optional): Callback
+            function invoked after processing each file. Defaults to None.
 
     Returns:
-        Dict[str, Any]: A summary dictionary containing compression
-        statistics, byte sizes, elapsed time, and cancellation state.
+        dict[str, Any]: Summary dictionary containing compression metrics:
+            - success (int): Count of successfully compressed files.
+            - failed (int): Count of files that failed compression.
+            - elapsed_seconds (float): Total elapsed processing duration in seconds.
+            - original_bytes (int): Total size of input files in bytes.
+            - compressed_bytes (int): Total size of output compressed files in bytes.
+            - cancelled (bool): True if operation was interrupted by user.
+            - cleaned_files_count (int): Count of files deleted during cancellation cleanup.
     """
     stats = {
         "success": 0,
@@ -47,7 +54,7 @@ def directory_compressor(
         "cleaned_files_count": 0,
     }
     start_time = time.perf_counter()
-    created_destination_files: List[Path] = []
+    created_destination_files: list[Path] = []
 
     try:
         # Scan input directory for valid image files
@@ -114,7 +121,7 @@ def directory_compressor(
         stats["elapsed_seconds"] = round(time.perf_counter() - start_time, 2)
         return stats
 
-    except Exception as e:
+    except OSError as e:
         logger.error(
             f"Failed to compress directory '{input_dir}': {e}", exc_info=True
         )

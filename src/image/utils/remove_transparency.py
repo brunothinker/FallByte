@@ -1,4 +1,5 @@
 import logging
+
 from PIL import Image
 
 # Setup module logger
@@ -12,11 +13,9 @@ NON_ALPHA_FORMATS = {"JPEG", "JPG", "BMP", "PPO", "PPM", "PDF", "GIF"}
 
 
 def remove_transparency(
-        image: Image.Image,
-        background_color: str = "#FFFFFF"
+    image: Image.Image, background_color: str = "#FFFFFF"
 ) -> Image.Image:
-    """
-    Replaces alpha transparency in an image with a solid background color.
+    """Replaces alpha transparency in an image with a solid background color.
 
     Args:
         image (Image.Image): Source PIL Image object.
@@ -40,11 +39,15 @@ def remove_transparency(
             # Paste source image onto background using the alpha mask
             background.paste(rgba_image, mask=alpha_mask)
 
-            logger.debug(f"Successfully replaced transparency with background color '{background_color}'.")
+            logger.debug(
+                f"Successfully replaced transparency with background color '{background_color}'."
+            )
             return background
 
-        except Exception as e:
-            logger.error(f"Failed to remove transparency from image: {e}", exc_info=True)
+        except (ValueError, OSError) as e:
+            logger.error(
+                f"Failed to remove transparency from image: {e}", exc_info=True
+            )
             # Fallback to standard RGB conversion if pasting fails
             return image.convert("RGB")
 

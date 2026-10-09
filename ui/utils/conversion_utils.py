@@ -1,5 +1,4 @@
 import logging
-from typing import Dict, List, Tuple
 
 from ui.i18n import t
 
@@ -7,7 +6,7 @@ from ui.i18n import t
 logger = logging.getLogger(__name__)
 
 # Supported target formats for image conversion operations
-SUPPORTED_CONVERSION_FORMATS: List[str] = [
+SUPPORTED_CONVERSION_FORMATS: list[str] = [
     "JPEG",
     "PNG",
     "WEBP",
@@ -20,7 +19,7 @@ SUPPORTED_CONVERSION_FORMATS: List[str] = [
 ]
 
 # Internal mapping of translation keys to hexadecimal color strings
-COLOR_HEX_MAP: Dict[str, str] = {
+COLOR_HEX_MAP: dict[str, str] = {
     "color_white": "#FFFFFF",
     "color_black": "#000000",
     "color_light_gray": "#D3D3D3",
@@ -32,9 +31,9 @@ COLOR_HEX_MAP: Dict[str, str] = {
 }
 
 
-def get_color_options() -> List[Tuple[str, str]]:
+def get_color_options() -> list[tuple[str, str]]:
     """Returns a list of tuples containing translation keys and localized display names."""
-    return [(key, t(key)) for key in COLOR_HEX_MAP.keys()]
+    return [(key, t(key)) for key in COLOR_HEX_MAP]
 
 
 def resolve_color_key_to_hex(color_key: str, default: str = "#FFFFFF") -> str:

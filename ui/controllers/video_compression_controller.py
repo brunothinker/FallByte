@@ -3,7 +3,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import List, Optional, Set
+
 import flet as ft
 
 from src.video.compression.directory_compression import directory_compressor
@@ -12,7 +12,7 @@ from ui.components.dialog_utils import show_summary_dialog
 from ui.i18n import t
 from ui.theme import COLOR_ERROR, COLOR_PRIMARY, COLOR_SUCCESS, COLOR_TEXT
 
-SUPPORTED_VIDEO_EXTS: Set[str] = {
+SUPPORTED_VIDEO_EXTS: set[str] = {
     "mp4",
     "mkv",
     "webm",
@@ -28,7 +28,7 @@ class TextRedirector(logging.Handler):
     def __init__(self) -> None:
         """Initializes buffer and reference variables for standard streams and logger."""
         super().__init__()
-        self._buffer: List[str] = []
+        self._buffer: list[str] = []
         self._stdout = sys.stdout
         self._stderr = sys.stderr
 
@@ -84,15 +84,15 @@ class VideoCompressionController:
 
     def __init__(self) -> None:
         """Initializes state variables for video compression execution and safety guards."""
-        self.selected_input: Optional[Path] = None
-        self.selected_output_dir: Optional[Path] = None
+        self.selected_input: Path | None = None
+        self.selected_output_dir: Path | None = None
         self.is_processing: bool = False
         self.abort_requested: bool = False
         self.picker_active: bool = False
-        self.cancel_dialog: Optional[ft.AlertDialog] = None
+        self.cancel_dialog: ft.AlertDialog | None = None
 
     def open_picker(
-            self, picker: ft.FilePicker, allow_directory: bool = False
+        self, picker: ft.FilePicker, allow_directory: bool = False
     ) -> None:
         """Opens file or directory picker preventing concurrent window spawns.
 
@@ -108,10 +108,10 @@ class VideoCompressionController:
                 picker.pick_files(allow_multiple=False)
 
     def handle_input_result(
-            self,
-            e: ft.FilePickerResultEvent,
-            lbl_path: ft.Text,
-            lbl_status: Optional[ft.Text] = None,
+        self,
+        e: ft.FilePickerResultEvent,
+        lbl_path: ft.Text,
+        lbl_status: ft.Text | None = None,
     ) -> None:
         """Handles selection result from input file or directory picker.
 
@@ -128,7 +128,7 @@ class VideoCompressionController:
 
         if self.selected_input:
             lbl_path.value = (
-                    self.selected_input.name or str(self.selected_input)
+                self.selected_input.name or str(self.selected_input)
             )
             lbl_path.color = COLOR_TEXT
             lbl_path.update()
@@ -138,10 +138,10 @@ class VideoCompressionController:
                 lbl_status.update()
 
     def handle_output_result(
-            self,
-            e: ft.FilePickerResultEvent,
-            lbl_path: ft.Text,
-            lbl_status: Optional[ft.Text] = None,
+        self,
+        e: ft.FilePickerResultEvent,
+        lbl_path: ft.Text,
+        lbl_status: ft.Text | None = None,
     ) -> None:
         """Handles selection result from output directory picker.
 
@@ -154,7 +154,7 @@ class VideoCompressionController:
         if e.path:
             self.selected_output_dir = Path(e.path)
             lbl_path.value = (
-                    self.selected_output_dir.name or str(self.selected_output_dir)
+                self.selected_output_dir.name or str(self.selected_output_dir)
             )
             lbl_path.color = COLOR_TEXT
             lbl_path.update()
@@ -164,12 +164,12 @@ class VideoCompressionController:
                 lbl_status.update()
 
     def handle_action_click(
-            self,
-            page: ft.Page,
-            quality: int,
-            lbl_status: ft.Text,
-            progress_bar: ft.ProgressBar,
-            btn_action: ft.ElevatedButton,
+        self,
+        page: ft.Page,
+        quality: int,
+        lbl_status: ft.Text,
+        progress_bar: ft.ProgressBar,
+        btn_action: ft.ElevatedButton,
     ) -> None:
         """Routes trigger button click to execute process or request cancellation.
 
@@ -190,12 +190,12 @@ class VideoCompressionController:
             )
 
     def prepare_and_execute(
-            self,
-            page: ft.Page,
-            quality: int,
-            lbl_status: ft.Text,
-            progress_bar: ft.ProgressBar,
-            btn_action: ft.ElevatedButton,
+        self,
+        page: ft.Page,
+        quality: int,
+        lbl_status: ft.Text,
+        progress_bar: ft.ProgressBar,
+        btn_action: ft.ElevatedButton,
     ) -> None:
         """Analyzes input extensions and executes single-file or batch compression.
 
@@ -224,12 +224,12 @@ class VideoCompressionController:
             )
 
     def _execute_single_file(
-            self,
-            page: ft.Page,
-            quality: int,
-            lbl_status: ft.Text,
-            progress_bar: ft.ProgressBar,
-            btn_action: ft.ElevatedButton,
+        self,
+        page: ft.Page,
+        quality: int,
+        lbl_status: ft.Text,
+        progress_bar: ft.ProgressBar,
+        btn_action: ft.ElevatedButton,
     ) -> None:
         """Executes single-file video compression flow and displays summary dialog.
 
@@ -240,6 +240,9 @@ class VideoCompressionController:
             progress_bar: ProgressBar control rendering active execution progress.
             btn_action: Primary process trigger button control.
         """
+        if not self.selected_input or not self.selected_output_dir:
+            return
+
         self.is_processing = True
         self.abort_requested = False
 
@@ -288,7 +291,9 @@ class VideoCompressionController:
             redirector.stop()
 
         elapsed = time.time() - start_time
-        comp_bytes = out_file.stat().st_size if success and out_file.exists() else 0
+        comp_bytes = (
+            out_file.stat().st_size if success and out_file.exists() else 0
+        )
 
         if self.cancel_dialog and self.cancel_dialog.open:
             self.cancel_dialog.open = False
@@ -317,7 +322,12 @@ class VideoCompressionController:
                 "terminal_log": redirector.get_logs(),
                 "errors": []
                 if success
-                else [{"file": self.selected_input.name, "error": t("msg_error")}],
+                else [
+                    {
+                        "file": self.selected_input.name,
+                        "error": t("msg_error"),
+                    }
+                ],
             }
             show_summary_dialog(page, summary)
         else:
@@ -338,12 +348,12 @@ class VideoCompressionController:
         lbl_status.update()
 
     def _preflight_batch_execution(
-            self,
-            page: ft.Page,
-            quality: int,
-            lbl_status: ft.Text,
-            progress_bar: ft.ProgressBar,
-            btn_action: ft.ElevatedButton,
+        self,
+        page: ft.Page,
+        quality: int,
+        lbl_status: ft.Text,
+        progress_bar: ft.ProgressBar,
+        btn_action: ft.ElevatedButton,
     ) -> None:
         """Checks batch directory for unsupported extensions before execution.
 
@@ -354,14 +364,15 @@ class VideoCompressionController:
             progress_bar: ProgressBar control rendering active execution progress.
             btn_action: Primary process trigger button control.
         """
-        all_files = [
-            f for f in self.selected_input.rglob("*") if f.is_file()
-        ]
-        supported_files: List[Path] = []
-        unsupported_files: List[Path] = []
+        if not self.selected_input:
+            return
+
+        all_files = [f for f in self.selected_input.rglob("*") if f.is_file()]
+        supported_files: list[Path] = []
+        unsupported_files: list[Path] = []
 
         for f in all_files:
-            if f.suffix.lower() in SUPPORTED_VIDEO_EXTS:
+            if f.suffix.lower().lstrip(".") in SUPPORTED_VIDEO_EXTS:
                 supported_files.append(f)
             else:
                 unsupported_files.append(f)
@@ -426,11 +437,11 @@ class VideoCompressionController:
             ).start()
 
     def _confirm_cancel_process(
-            self,
-            page: ft.Page,
-            lbl_status: ft.Text,
-            progress_bar: ft.ProgressBar,
-            btn_action: ft.ElevatedButton,
+        self,
+        page: ft.Page,
+        lbl_status: ft.Text,
+        progress_bar: ft.ProgressBar,
+        btn_action: ft.ElevatedButton,
     ) -> None:
         """Displays modal confirming execution abort and session cleanup.
 
@@ -480,12 +491,12 @@ class VideoCompressionController:
         page.update()
 
     def _run_batch_compression(
-            self,
-            page: ft.Page,
-            quality: int,
-            lbl_status: ft.Text,
-            progress_bar: ft.ProgressBar,
-            btn_action: ft.ElevatedButton,
+        self,
+        page: ft.Page,
+        quality: int,
+        lbl_status: ft.Text,
+        progress_bar: ft.ProgressBar,
+        btn_action: ft.ElevatedButton,
     ) -> None:
         """Executes batch directory video compression and updates progress indicators.
 
@@ -496,6 +507,9 @@ class VideoCompressionController:
             progress_bar: ProgressBar control rendering active execution progress.
             btn_action: Primary process trigger button control.
         """
+        if not self.selected_input or not self.selected_output_dir:
+            return
+
         self.is_processing = True
         self.abort_requested = False
 
@@ -560,7 +574,9 @@ class VideoCompressionController:
                 progress_bar.update()
 
                 successful_count = summary.get("success", 0)
-                total_count = summary.get("success", 0) + summary.get("failed", 0)
+                total_count = summary.get("success", 0) + summary.get(
+                    "failed", 0
+                )
 
                 lbl_status.value = t(
                     "msg_success_summary",

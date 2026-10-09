@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict
+from typing import Any
 
 # Setup module logger
 logger = logging.getLogger(__name__)
@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 CURRENT_LANG: str = "pt"
 
 # Centralized translation dictionary mapping language codes to key-value strings
-TRANSLATIONS: Dict[str, Dict[str, str]] = {
+TRANSLATIONS: dict[str, dict[str, str]] = {
     "pt": {
         # General & Application Navigation
         "app_title": "FallByte - Media Suite",

@@ -1,5 +1,7 @@
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict, List
+from typing import Any
+
 import flet as ft
 
 from ui.i18n import t
@@ -15,24 +17,23 @@ from ui.theme import (
 
 def create_media_hub_page(
     page: ft.Page,
-    selected_paths: Dict[str, Path],
+    selected_paths: dict[str, Path],
     on_navigate: Callable[[str], None],
     main_icon: str,
     heading_key: str,
     subheading_key: str,
-    options: List[Dict[str, Any]],
+    options: list[dict[str, Any]],
 ) -> ft.Container:
-    """
-    Generic polymorphic hub page builder for media modules (Images, Videos, etc.).
+    """Generic polymorphic hub page builder for media modules (Images, Videos, etc.).
 
     Args:
         page (ft.Page): Current Flet window page instance.
-        selected_paths (Dict[str, Path]): Context dictionary holding shared global paths.
+        selected_paths (dict[str, Path]): Context dictionary holding shared global paths.
         on_navigate (Callable[[str], None]): Navigation callback function for route transitions.
         main_icon (str): Top header Flet icon identifier string.
         heading_key (str): i18n translation key for main module heading.
         subheading_key (str): i18n translation key for module subtitle.
-        options (List[Dict[str, Any]]): List of option dictionary configurations for tool cards.
+        options (list[dict[str, Any]]): List of option dictionary configurations for tool cards.
 
     Returns:
         ft.Container: Centered container layout housing tool selection cards.
@@ -52,7 +53,7 @@ def create_media_hub_page(
                     ft.Text(
                         t(title_key),
                         size=18,
-                        weight="bold",
+                        weight=ft.FontWeight.BOLD,
                         color=COLOR_TEXT,
                     ),
                     ft.Text(
@@ -80,7 +81,6 @@ def create_media_hub_page(
             or e.control.update(),
         )
 
-    # Return fully centered container expanding across available screen space
     return ft.Container(
         expand=True,
         alignment=ft.alignment.center,
@@ -91,7 +91,7 @@ def create_media_hub_page(
                 ft.Text(
                     t(heading_key),
                     size=26,
-                    weight="bold",
+                    weight=ft.FontWeight.BOLD,
                     color=COLOR_TEXT,
                 ),
                 ft.Text(t(subheading_key), color=COLOR_SUBTEXT),
@@ -99,10 +99,10 @@ def create_media_hub_page(
                 ft.Row(
                     [
                         build_option_card(
-                            title_key=opt["title_key"],
-                            description_key=opt["desc_key"],
-                            icon=opt["icon"],
-                            route_key=opt["route_key"],
+                            title_key=str(opt.get("title_key", "")),
+                            description_key=str(opt.get("desc_key", "")),
+                            icon=str(opt.get("icon", "")),
+                            route_key=str(opt.get("route_key", "")),
                         )
                         for opt in options
                     ],

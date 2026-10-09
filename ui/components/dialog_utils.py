@@ -1,10 +1,10 @@
 import logging
-from typing import Any, Dict, List
+from typing import Any
+
 import flet as ft
 
 from ui.i18n import t
 from ui.theme import (
-    COLOR_CARD_BG,
     COLOR_ERROR,
     COLOR_PRIMARY,
     COLOR_SUBTEXT,
@@ -31,7 +31,7 @@ def format_size(size_bytes: int) -> str:
     return f"{kb:.1f} KB"
 
 
-def show_summary_dialog(page: ft.Page, summary: Dict[str, Any]) -> None:
+def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
     """Displays modal dialog rendering execution metrics, file size stats, and colored logs.
 
     Args:
@@ -46,15 +46,15 @@ def show_summary_dialog(page: ft.Page, summary: Dict[str, Any]) -> None:
 
     orig_bytes = summary.get("original_bytes", 0)
     comp_bytes = summary.get("compressed_bytes", 0)
-    file_details: List[Dict[str, Any]] = summary.get("files", [])
+    file_details: list[dict[str, Any]] = summary.get("files", [])
     terminal_log: str = summary.get("terminal_log", "").strip()
 
     reduction_pct = 0.0
     if orig_bytes > 0:
         reduction_pct = ((orig_bytes - comp_bytes) / orig_bytes) * 100
 
-    log_items: List[ft.Control] = []
-    raw_log_text_list: List[str] = []
+    log_items: list[ft.Control] = []
+    raw_log_text_list: list[str] = []
 
     # Priority 1: Render raw terminal output line by line with dynamic colors
     if terminal_log:
@@ -264,7 +264,7 @@ def show_summary_dialog(page: ft.Page, summary: Dict[str, Any]) -> None:
         dialog.open = False
         page.update()
 
-    summary_info: List[ft.Control] = [
+    summary_info: list[ft.Control] = [
         ft.Row(
             [
                 ft.Column(

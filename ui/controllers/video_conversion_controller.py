@@ -3,7 +3,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import List, Optional
+
 import flet as ft
 
 from src.video.conversion.directory_conversion import directory_converter
@@ -12,7 +12,7 @@ from ui.components.dialog_utils import show_summary_dialog
 from ui.i18n import t
 from ui.theme import COLOR_ERROR, COLOR_PRIMARY, COLOR_SUCCESS, COLOR_TEXT
 
-SUPPORTED_VIDEO_CONVERSION_FORMATS: List[str] = [
+SUPPORTED_VIDEO_CONVERSION_FORMATS: list[str] = [
     "mp4",
     "mkv",
     "webm",
@@ -28,7 +28,7 @@ class TextRedirector(logging.Handler):
     def __init__(self) -> None:
         """Initializes buffer and reference variables for standard streams and logger."""
         super().__init__()
-        self._buffer: List[str] = []
+        self._buffer: list[str] = []
         self._stdout = sys.stdout
         self._stderr = sys.stderr
 
@@ -84,12 +84,12 @@ class VideoConversionController:
 
     def __init__(self) -> None:
         """Initializes state variables for video conversion execution and safety guards."""
-        self.selected_input: Optional[Path] = None
-        self.selected_output_dir: Optional[Path] = None
+        self.selected_input: Path | None = None
+        self.selected_output_dir: Path | None = None
         self.is_processing: bool = False
         self.abort_requested: bool = False
         self.picker_active: bool = False
-        self.cancel_dialog: Optional[ft.AlertDialog] = None
+        self.cancel_dialog: ft.AlertDialog | None = None
 
     def open_picker(
         self, picker: ft.FilePicker, allow_directory: bool = False
@@ -111,7 +111,7 @@ class VideoConversionController:
         self,
         e: ft.FilePickerResultEvent,
         lbl_path: ft.Text,
-        lbl_status: Optional[ft.Text] = None,
+        lbl_status: ft.Text | None = None,
     ) -> None:
         """Handles selection result from input video file or directory picker.
 
@@ -141,7 +141,7 @@ class VideoConversionController:
         self,
         e: ft.FilePickerResultEvent,
         lbl_path: ft.Text,
-        lbl_status: Optional[ft.Text] = None,
+        lbl_status: ft.Text | None = None,
     ) -> None:
         """Handles selection result from output directory picker.
 
@@ -258,6 +258,9 @@ class VideoConversionController:
             progress_bar: ProgressBar control rendering active execution progress.
             btn_action: Primary process trigger button control.
         """
+        if not self.selected_input or not self.selected_output_dir:
+            return
+
         self.is_processing = True
         self.abort_requested = False
 
@@ -375,6 +378,9 @@ class VideoConversionController:
             progress_bar: ProgressBar control rendering active execution progress.
             btn_action: Primary process trigger button control.
         """
+        if not self.selected_input or not self.selected_output_dir:
+            return
+
         self.is_processing = True
         self.abort_requested = False
 

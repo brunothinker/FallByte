@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Dict
+
 import flet as ft
 
 from ui.components.io_picker_card import create_clickable_card
@@ -18,7 +19,7 @@ from ui.theme import (
 
 def create_compression_page(
     page: ft.Page,
-    selected_paths: Dict[str, Path],
+    selected_paths: dict[str, Path],
     on_navigate: Callable[[str], None],
 ) -> ft.Container:
     """Builds unified image compression page layout referencing i18n keys."""

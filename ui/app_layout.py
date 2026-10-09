@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Dict, List
+
 import flet as ft
 
 from ui.i18n import t
@@ -12,11 +12,11 @@ logger = logging.getLogger(__name__)
 
 
 def create_app_layout(
-    page: ft.Page, selected_paths: Dict[str, Path]
+    page: ft.Page, selected_paths: dict[str, Path]
 ) -> ft.Container:
     """Creates main application frame containing top header bar and scrollable centered view."""
     # Track route history for backward navigation
-    navigation_stack: List[str] = ["home"]
+    navigation_stack: list[str] = ["home"]
 
     # Define top header navigation controls
     btn_back = ft.IconButton(
@@ -30,7 +30,7 @@ def create_app_layout(
     lbl_page_title = ft.Text(
         value="",
         size=18,
-        weight="bold",
+        weight=ft.FontWeight.BOLD,
         color=COLOR_TEXT,
         text_align=ft.TextAlign.CENTER,
     )

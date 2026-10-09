@@ -1,20 +1,28 @@
 import logging
 from pathlib import Path
-from typing import List, Set
 
 # Setup module logger
 logger = logging.getLogger(__name__)
 
 # Supported image extensions (normalized to lowercase with leading dot)
-SUPPORTED_IMAGE_EXTENSIONS: Set[str] = {
-    ".jpg", ".jpeg", ".png", ".webp", ".bmp",
-    ".tiff", ".tif", ".gif", ".ppm", ".ico"
+SUPPORTED_IMAGE_EXTENSIONS: set[str] = {
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp",
+    ".bmp",
+    ".tiff",
+    ".tif",
+    ".gif",
+    ".ppm",
+    ".ico",
 }
 
 
-def scan_image_files(directory_path: Path, recursive: bool = True) -> List[Path]:
-    """
-    Scans a directory for supported image files.
+def scan_image_files(
+    directory_path: Path, recursive: bool = True
+) -> list[Path]:
+    """Scans a directory for supported image files.
 
     Args:
         directory_path (Path): Path to the target directory to scan.
@@ -22,13 +30,15 @@ def scan_image_files(directory_path: Path, recursive: bool = True) -> List[Path]
             Defaults to True.
 
     Returns:
-        List[Path]: A list of Path objects representing valid discovered image files.
+        list[Path]: A list of Path objects representing valid discovered image files.
     """
-    discovered_images: List[Path] = []
+    discovered_images: list[Path] = []
 
     try:
         if not directory_path.exists() or not directory_path.is_dir():
-            logger.warning(f"Invalid directory path provided for scanning: '{directory_path}'")
+            logger.warning(
+                f"Invalid directory path provided for scanning: '{directory_path}'"
+            )
             return discovered_images
 
         # Select scanning method based on recursion preference
@@ -36,7 +46,10 @@ def scan_image_files(directory_path: Path, recursive: bool = True) -> List[Path]
 
         # Iterate over directory items and filter by supported extension
         for item in directory_path.glob(pattern):
-            if item.is_file() and item.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS:
+            if (
+                item.is_file()
+                and item.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS
+            ):
                 discovered_images.append(item)
 
         # Sort paths alphabetically for consistent batch processing
@@ -48,6 +61,9 @@ def scan_image_files(directory_path: Path, recursive: bool = True) -> List[Path]
         )
         return discovered_images
 
-    except Exception as e:
-        logger.error(f"Error occurred while scanning directory '{directory_path}': {e}", exc_info=True)
+    except OSError as e:
+        logger.error(
+            f"Error occurred while scanning directory '{directory_path}': {e}",
+            exc_info=True,
+        )
         return discovered_images

@@ -1,6 +1,8 @@
 import logging
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict
+from typing import Any
+
 import flet as ft
 
 from ui.i18n import t
@@ -15,7 +17,7 @@ from ui.pages.video_conversion_page import create_video_conversion_page
 logger = logging.getLogger(__name__)
 
 # Centralized router registry mapping application routes to title keys and view builders
-ROUTE_REGISTRY: Dict[str, Dict[str, Any]] = {
+ROUTE_REGISTRY: dict[str, dict[str, Any]] = {
     "home": {
         "title_key": "home_header_title",
         "builder": create_home_page,
@@ -92,7 +94,7 @@ ROUTE_REGISTRY: Dict[str, Dict[str, Any]] = {
 def build_page_view(
     route_key: str,
     page: ft.Page,
-    selected_paths: Dict[str, Path],
+    selected_paths: dict[str, Path],
     on_navigate: Callable[[str], None],
 ) -> ft.Control:
     """Constructs and returns the view component corresponding to a given route key."""

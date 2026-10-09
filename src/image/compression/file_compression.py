@@ -1,20 +1,33 @@
 import logging
 from pathlib import Path
+from typing import Any
+
 from PIL import Image, ImageOps
 
 from src.image.utils.remove_transparency import NON_ALPHA_FORMATS
 
+# Setup module logger
 logger = logging.getLogger(__name__)
 
 
 def file_compressor(
     input_path: Path, output_path: Path, quality: int = 80
 ) -> bool:
-    """Compresses a single image file while strictly maintaining its ORIGINAL format.
+    """Compresses a single image file while strictly maintaining its original format.
 
-    Fails explicitly if the image contains transparency but the target format
-    doesn't support it. Uses PNG color quantization (TinyPNG style) when quality
-    < 90.
+    Uses format-specific optimizations such as quality levels for JPEG/WEBP,
+    pngquant-style color palette quantization for PNG (when quality < 90),
+    tiff_deflate compression for TIFF, and auto-rotation from EXIF metadata.
+    Refuses execution if the file contains alpha transparency but target format
+    lacks alpha support.
+
+    Args:
+        input_path (Path): Path to the source image file.
+        output_path (Path): Destination path where compressed image will be written.
+        quality (int, optional): Compression quality percentage (1-100). Defaults to 80.
+
+    Returns:
+        bool: True if compression succeeded, False otherwise.
     """
     try:
         quality = max(1, min(100, quality))
@@ -39,7 +52,7 @@ def file_compressor(
                 return False
 
             final_img = ImageOps.exif_transpose(img)
-            save_kwargs = {"optimize": True}
+            save_kwargs: dict[str, Any] = {"optimize": True}
 
             if fmt in ("JPEG", "WEBP"):
                 save_kwargs["quality"] = quality
@@ -61,7 +74,7 @@ def file_compressor(
                                 colors=max_colors,
                                 method=Image.Quantize.MEDIANCUT,
                             )
-                    except Exception as quant_err:
+                    except (ValueError, OSError) as quant_err:
                         logger.warning(
                             f"Quantization skipped for '{input_path.name}': {quant_err}"
                         )
@@ -83,7 +96,7 @@ def file_compressor(
             )
             return True
 
-    except Exception as e:
+    except (ValueError, OSError) as e:
         logger.error(
             f"Failed to compress '{input_path.name}': {e}", exc_info=True
         )

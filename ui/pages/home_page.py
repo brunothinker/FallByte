@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Dict
+
 import flet as ft
 
 from ui.i18n import t
@@ -14,7 +15,7 @@ from ui.theme import (
 
 def create_home_page(
     page: ft.Page,
-    selected_paths: Dict[str, Path],
+    selected_paths: dict[str, Path],
     on_navigate: Callable[[str], None],
 ) -> ft.Container:
     """FallByte Home Page displaying main feature modules in cards."""

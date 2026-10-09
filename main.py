@@ -1,6 +1,6 @@
 import logging
-from typing import Dict
 from pathlib import Path
+
 import flet as ft
 
 # Imports targeting the clean ui architecture
@@ -33,7 +33,7 @@ def main(page: ft.Page) -> None:
     page.window_center()
 
     # Context dictionary holding shared global paths across views
-    selected_paths: Dict[str, Path] = {}
+    selected_paths: dict[str, Path] = {}
 
     # Render root application frame
     page.add(create_app_layout(page, selected_paths))

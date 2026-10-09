@@ -1,7 +1,8 @@
 import logging
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from src.image.conversion.file_conversion import file_converter
 from src.image.utils.image_cleanup import safe_cleanup_session_files
@@ -17,26 +18,33 @@ def directory_converter(
     output_dir: Path,
     target_format: str,
     transparency_replacement_color: str = "#FFFFFF",
-    progress_callback: Optional[Callable[[ProgressInfo], None]] = None,
-) -> Dict[str, Any]:
-    """Scans an input directory for image files, converts each file to the target format, and saves them to output_dir.
+    progress_callback: Callable[[ProgressInfo], None] | None = None,
+) -> dict[str, Any]:
+    """Scans an input directory for image files and converts each file to target format.
 
-    Supports real-time progress callbacks, user cancellation, and cleanup of
-    generated files.
+    Preserves directory tree hierarchy relative to input_dir, dispatches real-time
+    progress updates to caller callbacks, handles cancellation signals, and performs
+    cleanup of generated session files.
 
     Args:
         input_dir (Path): Path to the source directory containing images.
         output_dir (Path): Path to the destination directory where converted
-          images will be saved.
+            images will be saved.
         target_format (str): Desired output format (e.g., 'jpeg', 'png', 'webp').
         transparency_replacement_color (str, optional): Hex color used to replace
-          transparency if target format lacks alpha support. Defaults to "#FFFFFF".
-        progress_callback (Callable[[ProgressInfo], None], optional): Callback
-          function invoked after processing each file. Defaults to None.
+            transparency if target format lacks alpha support. Defaults to "#FFFFFF".
+        progress_callback (Callable[[ProgressInfo], None] | None, optional): Callback
+            function invoked after processing each file. Defaults to None.
 
     Returns:
-        Dict[str, Any]: A summary dictionary containing conversion
-        statistics, byte sizes, elapsed time, and cancellation state.
+        dict[str, Any]: Summary dictionary containing conversion statistics:
+            - success (int): Count of successfully converted files.
+            - failed (int): Count of files that failed processing.
+            - elapsed_seconds (float): Total elapsed processing duration in seconds.
+            - original_bytes (int): Total size of input files in bytes.
+            - compressed_bytes (int): Total size of output converted files in bytes.
+            - cancelled (bool): True if operation was interrupted by user.
+            - cleaned_files_count (int): Count of files deleted during cancellation cleanup.
     """
     stats = {
         "success": 0,
@@ -48,7 +56,7 @@ def directory_converter(
         "cleaned_files_count": 0,
     }
     start_time = time.perf_counter()
-    created_destination_files: List[Path] = []
+    created_destination_files: list[Path] = []
 
     try:
         # Scan input directory for valid image files
@@ -65,7 +73,9 @@ def directory_converter(
         for index, file_path in enumerate(image_files, start=1):
             # Preserve directory structure relative to input_dir and change extension
             relative_path = file_path.relative_to(input_dir)
-            destination_path = (output_dir / relative_path).with_suffix(f".{target_fmt}")
+            destination_path = (output_dir / relative_path).with_suffix(
+                f".{target_fmt}"
+            )
 
             orig_size = file_path.stat().st_size
             stats["original_bytes"] += orig_size
@@ -118,7 +128,7 @@ def directory_converter(
         stats["elapsed_seconds"] = round(time.perf_counter() - start_time, 2)
         return stats
 
-    except Exception as e:
+    except OSError as e:
         logger.error(
             f"Failed to convert directory '{input_dir}': {e}", exc_info=True
         )
