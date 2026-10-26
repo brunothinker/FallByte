@@ -97,7 +97,7 @@ def create_home_page(
                     alignment=ft.MainAxisAlignment.CENTER,
                     spacing=20,
                     wrap=True,
-                )
+                ),
             ],
             alignment=ft.MainAxisAlignment.CENTER,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
