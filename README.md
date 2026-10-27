@@ -38,8 +38,8 @@ Choose the appropriate package for your operating system on our official downloa
 | 🐧 **Ubuntu / Debian / Mint** | Native `.deb` Package | Supported |
 | 🎩 **Fedora / RHEL / openSUSE** | Native `.rpm` Package | Supported |
 | 🚀 **Arch / Universal Linux** | Portable `.AppImage` | Supported |
-| 🪟 **Windows (x64)** | Portable `.zip` | Supported |
-| 💻 **macOS** | Source execution only | Community Supported |
+| 🪟 **Windows (x64)** | Portable `.zip` | Temporarily Discontinued |
+| 💻 **macOS** | Source execution only | Not Tested |
 
 > 📥 **[Get FallByte for your OS (Official Download Page)](https://brunothinker.github.io/FallByte/)**
 > 
