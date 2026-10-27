@@ -4,13 +4,7 @@ from pathlib import Path
 import flet as ft
 
 from ui.i18n import t
-from ui.theme import (
-    COLOR_CARD_BG,
-    COLOR_CARD_HOVER,
-    COLOR_PRIMARY,
-    COLOR_SUBTEXT,
-    COLOR_TEXT,
-)
+from ui.theme import get_color
 
 
 def create_home_page(
@@ -28,7 +22,7 @@ def create_home_page(
             width=220,
             height=160,
             padding=16,
-            bgcolor=COLOR_CARD_BG,
+            bgcolor=get_color("card_bg"),
             border=ft.border.all(1, ft.colors.OUTLINE_VARIANT),
             border_radius=12,
             ink=True,
@@ -36,23 +30,23 @@ def create_home_page(
             on_hover=lambda e: setattr(
                 e.control,
                 "bgcolor",
-                COLOR_CARD_HOVER if e.data == "true" else COLOR_CARD_BG,
+                get_color("card_hover") if e.data == "true" else get_color("card_bg"),
             )
             or e.control.update(),
             content=ft.Column(
                 [
-                    ft.Icon(icon, size=36, color=COLOR_PRIMARY),
+                    ft.Icon(icon, size=36, color=get_color("primary")),
                     ft.Text(
                         title,
                         size=15,
                         weight=ft.FontWeight.W_600,
-                        color=COLOR_TEXT,
+                        color=get_color("text"),
                         text_align=ft.TextAlign.CENTER,
                     ),
                     ft.Text(
                         description,
                         size=11,
-                        color=COLOR_SUBTEXT,
+                        color=get_color("subtext"),
                         text_align=ft.TextAlign.CENTER,
                         overflow=ft.TextOverflow.ELLIPSIS,
                         max_lines=2,

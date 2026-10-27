@@ -4,13 +4,7 @@ from typing import Any
 import flet as ft
 
 from ui.i18n import t
-from ui.theme import (
-    COLOR_ERROR,
-    COLOR_PRIMARY,
-    COLOR_SUBTEXT,
-    COLOR_SUCCESS,
-    COLOR_TEXT,
-)
+from ui.theme import get_color
 
 # Setup module logger
 logger = logging.getLogger(__name__)
@@ -79,7 +73,7 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
                     "compressed",
                 ]
             ):
-                text_color = COLOR_SUCCESS
+                text_color = get_color("success")
             # Match failure/error keywords for red highlighting
             elif any(
                 k in line_lower
@@ -93,9 +87,9 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
                     "traceback",
                 ]
             ):
-                text_color = COLOR_ERROR
+                text_color = get_color("error")
             else:
-                text_color = COLOR_SUBTEXT
+                text_color = get_color("subtext")
 
             log_items.append(
                 ft.Text(
@@ -123,7 +117,7 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
                     ft.Text(
                         err_line,
                         size=11,
-                        color=COLOR_ERROR,
+                        color=get_color("error"),
                         font_family="monospace",
                     )
                 )
@@ -141,7 +135,7 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
                     ft.Text(
                         ok_line,
                         size=11,
-                        color=COLOR_SUCCESS,
+                        color=get_color("success"),
                         font_family="monospace",
                     )
                 )
@@ -157,7 +151,7 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
                 ft.Text(
                     err_line,
                     size=11,
-                    color=COLOR_ERROR,
+                    color=get_color("error"),
                     font_family="monospace",
                 )
             )
@@ -165,7 +159,7 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
         no_err_line = f"[OK] {t('log_no_errors')}"
         raw_log_text_list.append(no_err_line)
         log_items.append(
-            ft.Text(no_err_line, size=11, color=COLOR_SUCCESS)
+            ft.Text(no_err_line, size=11, color=get_color("success"))
         )
 
     full_plain_log = "\n".join(raw_log_text_list)
@@ -234,7 +228,7 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
                 t("log_detail_title"),
                 size=12,
                 weight=ft.FontWeight.BOLD,
-                color=COLOR_TEXT,
+                color=get_color("text"),
             ),
             ft.Container(
                 content=ft.Column(
@@ -270,13 +264,13 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
                 ft.Column(
                     [
                         ft.Text(
-                            t("log_summary_total"), size=11, color=COLOR_SUBTEXT
+                            t("log_summary_total"), size=11, color=get_color("subtext")
                         ),
                         ft.Text(
                             str(total),
                             size=16,
                             weight=ft.FontWeight.BOLD,
-                            color=COLOR_TEXT,
+                            color=get_color("text"),
                         ),
                     ],
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -286,13 +280,13 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
                         ft.Text(
                             t("log_summary_success"),
                             size=11,
-                            color=COLOR_SUBTEXT,
+                            color=get_color("subtext"),
                         ),
                         ft.Text(
                             str(success),
                             size=16,
                             weight=ft.FontWeight.BOLD,
-                            color=COLOR_SUCCESS,
+                            color=get_color("success"),
                         ),
                     ],
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -300,13 +294,13 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
                 ft.Column(
                     [
                         ft.Text(
-                            t("log_summary_failed"), size=11, color=COLOR_SUBTEXT
+                            t("log_summary_failed"), size=11, color=get_color("subtext")
                         ),
                         ft.Text(
                             str(failed),
                             size=16,
                             weight=ft.FontWeight.BOLD,
-                            color=COLOR_ERROR if failed > 0 else COLOR_TEXT,
+                            color=get_color("error") if failed > 0 else get_color("text"),
                         ),
                     ],
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -314,7 +308,7 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
             ],
             alignment=ft.MainAxisAlignment.SPACE_AROUND,
         ),
-        ft.Divider(height=10, color=COLOR_SUBTEXT),
+        ft.Divider(height=10, color=get_color("subtext")),
     ]
 
     if orig_bytes > 0:
@@ -328,13 +322,13 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
                             comp=format_size(comp_bytes),
                         ),
                         size=12,
-                        color=COLOR_TEXT,
+                        color=get_color("text"),
                         weight=ft.FontWeight.W_500,
                     ),
                     ft.Text(
                         t("log_reduction_stat", pct=reduction_pct),
                         size=12,
-                        color=COLOR_SUCCESS,
+                        color=get_color("success"),
                         weight=ft.FontWeight.BOLD,
                     ),
                 ],
@@ -347,7 +341,7 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
             ft.Text(
                 f"{t('log_summary_time')}: {elapsed:.2f}s",
                 size=12,
-                color=COLOR_SUBTEXT,
+                color=get_color("subtext"),
             ),
             actions_row,
             log_container,
@@ -358,12 +352,12 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
         modal=True,
         title=ft.Row(
             [
-                ft.Icon(ft.icons.ASSESSMENT, color=COLOR_PRIMARY),
+                ft.Icon(ft.icons.ASSESSMENT, color=get_color("primary")),
                 ft.Text(
                     t("log_dialog_title"),
                     size=18,
                     weight=ft.FontWeight.BOLD,
-                    color=COLOR_TEXT,
+                    color=get_color("text"),
                 ),
             ],
             spacing=10,
@@ -380,8 +374,8 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
         actions=[
             ft.ElevatedButton(
                 t("btn_ok"),
-                bgcolor=COLOR_PRIMARY,
-                color=COLOR_TEXT,
+                bgcolor=get_color("primary"),
+                color=get_color("text"),
                 on_click=close_dialog,
             )
         ],

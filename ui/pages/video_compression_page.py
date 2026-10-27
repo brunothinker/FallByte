@@ -8,11 +8,8 @@ from ui.controllers.video_compression_controller import VideoCompressionControll
 from ui.i18n import t
 from ui.theme import (
     BUTTON_HEIGHT,
-    COLOR_CARD_BG,
-    COLOR_PRIMARY,
-    COLOR_SUBTEXT,
-    COLOR_TEXT,
     FORM_WIDTH,
+    get_color,
 )
 
 
@@ -27,14 +24,14 @@ def create_video_compression_page(
     lbl_in_path = ft.Text(
         t("lbl_not_selected"),
         size=11,
-        color=COLOR_SUBTEXT,
+        color=get_color("subtext"),
         overflow=ft.TextOverflow.ELLIPSIS,
         max_lines=1,
     )
     lbl_out_path = ft.Text(
         t("lbl_not_selected"),
         size=11,
-        color=COLOR_SUBTEXT,
+        color=get_color("subtext"),
         overflow=ft.TextOverflow.ELLIPSIS,
         max_lines=1,
     )
@@ -46,7 +43,7 @@ def create_video_compression_page(
         t("lbl_quality_percentage", value=80),
         size=14,
         weight=ft.FontWeight.W_600,
-        color=COLOR_TEXT,
+        color=get_color("text"),
     )
 
     def on_slider_change(e: ft.ControlEvent) -> None:
@@ -64,7 +61,7 @@ def create_video_compression_page(
         divisions=99,
         value=80,
         label="{value}%",
-        active_color=COLOR_PRIMARY,
+        active_color=get_color("primary"),
         on_change=on_slider_change,
     )
 
@@ -76,7 +73,7 @@ def create_video_compression_page(
                         t("lbl_quality_title"),
                         size=13,
                         weight=ft.FontWeight.W_500,
-                        color=COLOR_TEXT,
+                        color=get_color("text"),
                     ),
                     lbl_quality_val,
                 ],
@@ -112,7 +109,7 @@ def create_video_compression_page(
     card_in = ft.Container(
         width=185,
         height=125,
-        bgcolor=COLOR_CARD_BG,
+        bgcolor=get_color("card_bg"),
         border=ft.border.all(1, ft.colors.OUTLINE_VARIANT),
         border_radius=12,
         padding=10,
@@ -120,12 +117,12 @@ def create_video_compression_page(
         content=ft.PopupMenuButton(
             content=ft.Column(
                 [
-                    ft.Icon(ft.icons.FOLDER_OPEN, size=28, color=COLOR_PRIMARY),
+                    ft.Icon(ft.icons.FOLDER_OPEN, size=28, color=get_color("primary")),
                     ft.Text(
                         t("lbl_source"),
                         size=12,
                         weight=ft.FontWeight.W_600,
-                        color=COLOR_TEXT,
+                        color=get_color("text"),
                         text_align=ft.TextAlign.CENTER,
                     ),
                     lbl_in_path,
@@ -166,8 +163,8 @@ def create_video_compression_page(
     btn_action = ft.ElevatedButton(
         t("btn_process"),
         icon=ft.icons.PLAY_ARROW,
-        bgcolor=COLOR_PRIMARY,
-        color=COLOR_TEXT,
+        bgcolor=get_color("primary"),
+        color=get_color("text"),
         width=FORM_WIDTH,
         height=BUTTON_HEIGHT,
     )
@@ -192,7 +189,8 @@ def create_video_compression_page(
         content=ft.Container(
             width=FORM_WIDTH,
             padding=25,
-            bgcolor=COLOR_CARD_BG,
+            bgcolor=get_color("card_bg"),
+            border=ft.border.all(1, ft.colors.OUTLINE_VARIANT),
             border_radius=12,
             content=ft.Column(
                 [
@@ -200,9 +198,9 @@ def create_video_compression_page(
                         t("video_hub_card_compression_title"),
                         size=20,
                         weight=ft.FontWeight.W_600,
-                        color=COLOR_TEXT,
+                        color=get_color("text"),
                     ),
-                    ft.Divider(height=15, color=COLOR_SUBTEXT),
+                    ft.Divider(height=15, color=get_color("subtext")),
                     ft.Row(
                         [card_in, card_out],
                         alignment=ft.MainAxisAlignment.CENTER,

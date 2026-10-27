@@ -10,7 +10,7 @@ from src.video.compression.directory_compression import directory_compressor
 from src.video.compression.file_compression import file_compressor
 from ui.components.dialog_utils import show_summary_dialog
 from ui.i18n import t
-from ui.theme import COLOR_ERROR, COLOR_PRIMARY, COLOR_SUCCESS, COLOR_TEXT
+from ui.theme import get_color
 
 SUPPORTED_VIDEO_EXTS: set[str] = {
     "mp4",
@@ -130,7 +130,7 @@ class VideoCompressionController:
             lbl_path.value = (
                 self.selected_input.name or str(self.selected_input)
             )
-            lbl_path.color = COLOR_TEXT
+            lbl_path.color = get_color("text")
             lbl_path.update()
 
             if lbl_status:
@@ -156,7 +156,7 @@ class VideoCompressionController:
             lbl_path.value = (
                 self.selected_output_dir.name or str(self.selected_output_dir)
             )
-            lbl_path.color = COLOR_TEXT
+            lbl_path.color = get_color("text")
             lbl_path.update()
 
             if lbl_status:
@@ -208,7 +208,7 @@ class VideoCompressionController:
         """
         if not self.selected_input or not self.selected_output_dir:
             lbl_status.value = t("msg_select_required")
-            lbl_status.color = COLOR_ERROR
+            lbl_status.color = get_color("error")
             lbl_status.update()
             return
 
@@ -248,7 +248,7 @@ class VideoCompressionController:
 
         btn_action.text = t("btn_stop_process")
         btn_action.icon = ft.icons.STOP
-        btn_action.bgcolor = COLOR_ERROR
+        btn_action.bgcolor = get_color("error")
         btn_action.update()
 
         progress_bar.visible = True
@@ -264,7 +264,7 @@ class VideoCompressionController:
             total=1,
             filename=self.selected_input.name,
         )
-        lbl_status.color = COLOR_TEXT
+        lbl_status.color = get_color("text")
         lbl_status.update()
 
         redirector = TextRedirector()
@@ -306,10 +306,10 @@ class VideoCompressionController:
         if not self.abort_requested:
             if success:
                 lbl_status.value = t("msg_success")
-                lbl_status.color = COLOR_SUCCESS
+                lbl_status.color = get_color("success")
             else:
                 lbl_status.value = t("msg_error")
-                lbl_status.color = COLOR_ERROR
+                lbl_status.color = get_color("error")
             lbl_status.update()
 
             summary = {
@@ -337,13 +337,13 @@ class VideoCompressionController:
                 except OSError:
                     pass
             lbl_status.value = t("msg_process_cancelled", count=1)
-            lbl_status.color = COLOR_ERROR
+            lbl_status.color = get_color("error")
 
         self.is_processing = False
         self.abort_requested = False
         btn_action.text = t("btn_process")
         btn_action.icon = ft.icons.PLAY_ARROW
-        btn_action.bgcolor = COLOR_PRIMARY
+        btn_action.bgcolor = get_color("primary")
         btn_action.update()
         lbl_status.update()
 
@@ -418,8 +418,8 @@ class VideoCompressionController:
                     ft.TextButton(t("btn_cancel"), on_click=close_dialog),
                     ft.ElevatedButton(
                         t("btn_continue"),
-                        bgcolor=COLOR_PRIMARY,
-                        color=COLOR_TEXT,
+                        bgcolor=get_color("primary"),
+                        color=get_color("text"),
                         on_click=confirm_and_run,
                     ),
                 ],
@@ -465,7 +465,7 @@ class VideoCompressionController:
             if self.is_processing:
                 self.abort_requested = True
                 lbl_status.value = t("msg_cancelling")
-                lbl_status.color = COLOR_ERROR
+                lbl_status.color = get_color("error")
                 lbl_status.update()
 
         self.cancel_dialog = ft.AlertDialog(
@@ -478,8 +478,8 @@ class VideoCompressionController:
                 ft.TextButton(t("btn_keep_running"), on_click=close_dialog),
                 ft.ElevatedButton(
                     t("btn_stop_and_delete"),
-                    bgcolor=COLOR_ERROR,
-                    color=COLOR_TEXT,
+                    bgcolor=get_color("error"),
+                    color=get_color("text"),
                     on_click=stop_and_cleanup,
                 ),
             ],
@@ -515,7 +515,7 @@ class VideoCompressionController:
 
         btn_action.text = t("btn_stop_process")
         btn_action.icon = ft.icons.STOP
-        btn_action.bgcolor = COLOR_ERROR
+        btn_action.bgcolor = get_color("error")
         btn_action.update()
 
         progress_bar.visible = True
@@ -584,7 +584,7 @@ class VideoCompressionController:
                     successful=successful_count,
                     total=total_count,
                 )
-                lbl_status.color = COLOR_SUCCESS
+                lbl_status.color = get_color("success")
 
                 summary["terminal_log"] = redirector.get_logs()
                 show_summary_dialog(page, summary)
@@ -608,12 +608,12 @@ class VideoCompressionController:
                 lbl_status.value = t(
                     "msg_process_cancelled", count=cleaned_count
                 )
-                lbl_status.color = COLOR_ERROR
+                lbl_status.color = get_color("error")
 
             self.is_processing = False
             self.abort_requested = False
             btn_action.text = t("btn_process")
             btn_action.icon = ft.icons.PLAY_ARROW
-            btn_action.bgcolor = COLOR_PRIMARY
+            btn_action.bgcolor = get_color("primary")
             btn_action.update()
             lbl_status.update()

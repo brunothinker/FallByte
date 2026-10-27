@@ -10,12 +10,9 @@ from src.utils.config_manager import set_config_value
 from ui.i18n import AVAILABLE_LANGUAGES, TRANSLATIONS, set_language, t
 from ui.router import build_page_view
 from ui.theme import (
-    COLOR_BACKGROUND,
-    COLOR_CARD_BG,
-    COLOR_CARD_HOVER,
-    COLOR_PRIMARY,
-    COLOR_SUBTEXT,
-    COLOR_TEXT,
+    THEME_PRESETS,
+    get_color,
+    set_active_theme,
 )
 
 # Setup module logger
@@ -33,7 +30,7 @@ def create_app_layout(
         expand=True,
         padding=20,
         alignment=ft.alignment.center,
-        bgcolor=COLOR_BACKGROUND,
+        bgcolor=get_color("background"),
     )
 
     def cleanup_page_overlays() -> None:
@@ -44,7 +41,7 @@ def create_app_layout(
         page.overlay.clear()
 
     def update_view() -> None:
-        """Clears overlays and renders active route view."""
+        """Clears overlays and renders active route view with refreshed theme colors."""
         current_route = navigation_stack[-1]
 
         view_control = build_page_view(
@@ -57,14 +54,19 @@ def create_app_layout(
         if isinstance(view_control, ft.Control):
             view_control.expand = False
 
-        # Botão de voltar com ícone e texto traduzido via i18n
+        # Botão de voltar estilizado com as cores dinâmicas do tema
         btn_back = ft.ElevatedButton(
             text=t("header_back_tooltip"),
             icon=ft.icons.ARROW_BACK,
+            bgcolor=get_color("card_bg"),
+            color=get_color("text"),
+            icon_color=get_color("primary"),
             on_click=lambda _: go_back(),
             visible=len(navigation_stack) > 1,
         )
 
+        page.bgcolor = get_color("background")
+        content_area.bgcolor = get_color("background")
         content_area.content = ft.Column(
             controls=[
                 view_control,
@@ -98,13 +100,123 @@ def create_app_layout(
             cleanup_page_overlays()
             update_view()
 
-    def change_language(lang_code: str) -> None:
-        """Updates active language, persists user preset to YAML, and refreshes UI."""
-        set_language(lang_code)
-        set_config_value("language", lang_code)
-        page.title = t("app_title")
-        update_sidebar_labels()
-        update_view()
+    def open_theme_dialog() -> None:
+        """Opens a dialog with categorized Dark and Light presets, feedback progress, and persistence."""
+
+        def select_theme(key: str) -> None:
+            txt_dialog_title.value = t("lbl_theme")
+            txt_processing.value = t("msg_processing")
+
+            theme_options_column.visible = False
+            progress_container.visible = True
+            theme_dialog.update()
+
+            def process_theme_change() -> None:
+                time.sleep(0.4)
+
+                set_active_theme(key)
+                set_config_value("theme", key)
+
+                page.theme_mode = (
+                    ft.ThemeMode.LIGHT
+                    if key.endswith("_light")
+                    else ft.ThemeMode.DARK
+                )
+
+                theme_dialog.open = False
+                page.update()
+
+                time.sleep(0.15)
+                page.dialog = None
+
+                update_sidebar_labels()
+                update_sidebar_active_states()
+                update_view()
+
+            threading.Thread(target=process_theme_change, daemon=True).start()
+
+        dark_keys = [k for k in THEME_PRESETS if k.endswith("_dark")]
+        light_keys = [k for k in THEME_PRESETS if k.endswith("_light")]
+
+        dark_buttons = [
+            ft.TextButton(
+                text=t(f"theme_{k}"),
+                style=ft.ButtonStyle(color=get_color("text")),
+                on_click=lambda _, key=k: select_theme(key),
+            )
+            for k in dark_keys
+        ]
+
+        light_buttons = [
+            ft.TextButton(
+                text=t(f"theme_{k}"),
+                style=ft.ButtonStyle(color=get_color("text")),
+                on_click=lambda _, key=k: select_theme(key),
+            )
+            for k in light_keys
+        ]
+
+        theme_options_column = ft.Column(
+            [
+                ft.Text(
+                    t("theme_section_dark"),
+                    size=12,
+                    weight=ft.FontWeight.BOLD,
+                    color=get_color("subtext"),
+                ),
+                *dark_buttons,
+                ft.Divider(height=10, color=ft.colors.OUTLINE_VARIANT),
+                ft.Text(
+                    t("theme_section_light"),
+                    size=12,
+                    weight=ft.FontWeight.BOLD,
+                    color=get_color("subtext"),
+                ),
+                *light_buttons,
+            ],
+            tight=True,
+            spacing=2,
+        )
+
+        txt_dialog_title = ft.Text(
+            t("lbl_select_theme"),
+            size=16,
+            weight=ft.FontWeight.BOLD,
+            color=get_color("text"),
+        )
+        txt_processing = ft.Text(
+            t("msg_processing"), size=13, color=get_color("subtext")
+        )
+
+        progress_container = ft.Column(
+            [
+                txt_processing,
+                ft.ProgressBar(width=200, color=get_color("primary")),
+            ],
+            visible=False,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=10,
+            tight=True,
+        )
+
+        theme_dialog = ft.AlertDialog(
+            bgcolor=get_color("card_bg"),
+            title=txt_dialog_title,
+            content=ft.Container(
+                content=ft.Column(
+                    [
+                        theme_options_column,
+                        progress_container,
+                    ],
+                    tight=True,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+                padding=10,
+            ),
+        )
+        page.dialog = theme_dialog
+        theme_dialog.open = True
+        page.update()
 
     def open_language_dialog() -> None:
         """Opens a dialog listing the available languages with progress feedback and auto-close."""
@@ -123,7 +235,7 @@ def create_app_layout(
             language_dialog.update()
 
             def process_change() -> None:
-                time.sleep(2.0)
+                time.sleep(0.4)
 
                 set_language(code)
                 set_config_value("language", code)
@@ -144,6 +256,7 @@ def create_app_layout(
             [
                 ft.TextButton(
                     text=label,
+                    style=ft.ButtonStyle(color=get_color("text")),
                     on_click=lambda _, code=code: select_language(code),
                 )
                 for code, label in AVAILABLE_LANGUAGES.items()
@@ -152,14 +265,19 @@ def create_app_layout(
         )
 
         txt_dialog_title = ft.Text(
-            t("lbl_language"), size=16, weight=ft.FontWeight.BOLD
+            t("lbl_language"),
+            size=16,
+            weight=ft.FontWeight.BOLD,
+            color=get_color("text"),
         )
-        txt_processing = ft.Text(t("msg_processing"), size=13, color=COLOR_SUBTEXT)
+        txt_processing = ft.Text(
+            t("msg_processing"), size=13, color=get_color("subtext")
+        )
 
         progress_container = ft.Column(
             [
                 txt_processing,
-                ft.ProgressBar(width=200, color=COLOR_PRIMARY),
+                ft.ProgressBar(width=200, color=get_color("primary")),
             ],
             visible=False,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -168,6 +286,7 @@ def create_app_layout(
         )
 
         language_dialog = ft.AlertDialog(
+            bgcolor=get_color("card_bg"),
             title=txt_dialog_title,
             content=ft.Container(
                 content=ft.Column(
@@ -190,7 +309,7 @@ def create_app_layout(
         "FallByte",
         size=20,
         weight=ft.FontWeight.BOLD,
-        color=COLOR_TEXT,
+        color=get_color("text"),
         text_align=ft.TextAlign.CENTER,
     )
 
@@ -222,13 +341,13 @@ def create_app_layout(
         icon_control = ft.Icon(
             data["icon"],
             size=20,
-            color=COLOR_PRIMARY if is_active else COLOR_SUBTEXT,
+            color=get_color("primary") if is_active else get_color("subtext"),
         )
 
         btn_text = ft.Text(
             t(data["title_key"]),
             size=13,
-            color=COLOR_TEXT if is_active else COLOR_SUBTEXT,
+            color=get_color("text") if is_active else get_color("subtext"),
             weight=ft.FontWeight.W_600 if is_active else ft.FontWeight.NORMAL,
         )
 
@@ -242,14 +361,14 @@ def create_app_layout(
             ),
             padding=ft.padding.symmetric(vertical=10, horizontal=15),
             border_radius=8,
-            bgcolor=COLOR_CARD_HOVER if is_active else ft.colors.TRANSPARENT,
+            bgcolor=get_color("card_hover") if is_active else ft.colors.TRANSPARENT,
             ink=True,
             tooltip=None,
             on_click=lambda _: navigate_to(route),
             on_hover=lambda e: setattr(
                 e.control,
                 "bgcolor",
-                COLOR_CARD_HOVER if e.data == "true" or is_active else ft.colors.TRANSPARENT,
+                get_color("card_hover") if e.data == "true" or is_active else ft.colors.TRANSPARENT,
             )
             or e.control.update(),
         )
@@ -272,15 +391,15 @@ def create_app_layout(
                 is_active = current_route == route or (
                     route != "home" and current_route.startswith(route.split("_")[0])
                 )
-                btn.bgcolor = COLOR_CARD_HOVER if is_active else ft.colors.TRANSPARENT
+                btn.bgcolor = get_color("card_hover") if is_active else ft.colors.TRANSPARENT
 
                 icon_ctrl = btn.data["icon_control"]
                 text_ctrl = btn.data["text_control"]
 
                 if isinstance(icon_ctrl, ft.Icon):
-                    icon_ctrl.color = COLOR_PRIMARY if is_active else COLOR_SUBTEXT
+                    icon_ctrl.color = get_color("primary") if is_active else get_color("subtext")
                 if isinstance(text_ctrl, ft.Text):
-                    text_ctrl.color = COLOR_TEXT if is_active else COLOR_SUBTEXT
+                    text_ctrl.color = get_color("text") if is_active else get_color("subtext")
                     text_ctrl.weight = ft.FontWeight.W_600 if is_active else ft.FontWeight.NORMAL
                 if btn.page:
                     btn.update()
@@ -293,21 +412,51 @@ def create_app_layout(
                     text_ctrl.value = t(btn.data["title_key"])
                 if btn.page:
                     btn.update()
-        lbl_lang_text.value = t("lbl_language")
-        if lbl_lang_text.page:
-            lbl_lang_text.update()
-        lbl_github_text.value = t("lbl_github_repo")
-        if lbl_github_text.page:
-            lbl_github_text.update()
 
-    # Footer Controls (Language Selector & GitHub Repository link)
-    lbl_lang_text = ft.Text(t("lbl_language"), size=12, color=COLOR_SUBTEXT)
-    lbl_github_text = ft.Text(t("lbl_github_repo"), size=12, color=COLOR_SUBTEXT)
+        sidebar.bgcolor = get_color("sidebar_bg")
+        lbl_brand.color = get_color("text")
+        lbl_theme_text.value = t("lbl_theme")
+        lbl_theme_text.color = get_color("subtext")
+        lbl_lang_text.value = t("lbl_language")
+        lbl_lang_text.color = get_color("subtext")
+        lbl_github_text.value = t("lbl_github_repo")
+        lbl_github_text.color = get_color("subtext")
+
+        icon_theme.color = get_color("primary")
+        icon_lang.color = get_color("primary")
+        icon_github.color = get_color("subtext")
+
+        if sidebar.page:
+            sidebar.update()
+
+    # Footer Controls (Theme Selector, Language Selector & GitHub Repository link)
+    lbl_theme_text = ft.Text(t("lbl_theme"), size=12, color=get_color("subtext"))
+    lbl_lang_text = ft.Text(t("lbl_language"), size=12, color=get_color("subtext"))
+    lbl_github_text = ft.Text(t("lbl_github_repo"), size=12, color=get_color("subtext"))
+
+    icon_theme = ft.Icon(ft.icons.PALETTE_OUTLINED, size=18, color=get_color("primary"))
+    icon_lang = ft.Icon(ft.icons.LANGUAGE, size=18, color=get_color("primary"))
+    icon_github = ft.Icon(ft.icons.CODE, size=18, color=get_color("subtext"))
+
+    btn_theme_menu = ft.Container(
+        content=ft.Row(
+            [
+                icon_theme,
+                lbl_theme_text,
+            ],
+            spacing=10,
+        ),
+        padding=ft.padding.symmetric(vertical=8, horizontal=15),
+        border_radius=8,
+        ink=True,
+        tooltip=None,
+        on_click=lambda _: open_theme_dialog(),
+    )
 
     btn_language_menu = ft.Container(
         content=ft.Row(
             [
-                ft.Icon(ft.icons.LANGUAGE, size=18, color=COLOR_PRIMARY),
+                icon_lang,
                 lbl_lang_text,
             ],
             spacing=10,
@@ -322,7 +471,7 @@ def create_app_layout(
     btn_github_link = ft.Container(
         content=ft.Row(
             [
-                ft.Icon(ft.icons.CODE, size=18, color=COLOR_SUBTEXT),
+                icon_github,
                 lbl_github_text,
             ],
             spacing=10,
@@ -334,9 +483,11 @@ def create_app_layout(
         on_click=lambda _: webbrowser.open("https://github.com/brunothinker/FallByte"),
     )
 
+    # Footer Container com o botão Tema posicionado ACIMA de Idioma
     footer_container = ft.Container(
         content=ft.Column(
             [
+                btn_theme_menu,
                 btn_language_menu,
                 btn_github_link,
             ],
@@ -357,7 +508,7 @@ def create_app_layout(
 
     sidebar = ft.Container(
         width=230,
-        bgcolor=COLOR_CARD_BG,
+        bgcolor=get_color("sidebar_bg"),
         padding=ft.padding.symmetric(horizontal=10),
         content=ft.Column(
             controls=sidebar_controls,

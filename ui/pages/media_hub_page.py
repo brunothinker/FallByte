@@ -5,14 +5,7 @@ from typing import Any
 import flet as ft
 
 from ui.i18n import t
-from ui.theme import (
-    COLOR_CARD_BG,
-    COLOR_CARD_HOVER,
-    COLOR_ICON,
-    COLOR_PRIMARY,
-    COLOR_SUBTEXT,
-    COLOR_TEXT,
-)
+from ui.theme import get_color
 
 
 def create_media_hub_page(
@@ -49,17 +42,17 @@ def create_media_hub_page(
         return ft.Container(
             content=ft.Column(
                 [
-                    ft.Icon(icon, size=40, color=COLOR_PRIMARY),
+                    ft.Icon(icon, size=40, color=get_color("primary")),
                     ft.Text(
                         t(title_key),
                         size=18,
                         weight=ft.FontWeight.BOLD,
-                        color=COLOR_TEXT,
+                        color=get_color("text"),
                     ),
                     ft.Text(
                         t(description_key),
                         size=12,
-                        color=COLOR_SUBTEXT,
+                        color=get_color("subtext"),
                         text_align=ft.TextAlign.CENTER,
                     ),
                 ],
@@ -69,14 +62,15 @@ def create_media_hub_page(
             width=260,
             height=190,
             padding=20,
-            bgcolor=COLOR_CARD_BG,
+            bgcolor=get_color("card_bg"),
+            border=ft.border.all(1, ft.colors.OUTLINE_VARIANT),
             border_radius=12,
             ink=True,
             on_click=lambda _: on_navigate(route_key),
             on_hover=lambda e: setattr(
                 e.control,
                 "bgcolor",
-                COLOR_CARD_HOVER if e.data == "true" else COLOR_CARD_BG,
+                get_color("card_hover") if e.data == "true" else get_color("card_bg"),
             )
             or e.control.update(),
         )
@@ -87,14 +81,14 @@ def create_media_hub_page(
         padding=25,
         content=ft.Column(
             [
-                ft.Icon(main_icon, size=50, color=COLOR_ICON),
+                ft.Icon(main_icon, size=50, color=get_color("icon")),
                 ft.Text(
                     t(heading_key),
                     size=26,
                     weight=ft.FontWeight.BOLD,
-                    color=COLOR_TEXT,
+                    color=get_color("text"),
                 ),
-                ft.Text(t(subheading_key), color=COLOR_SUBTEXT),
+                ft.Text(t(subheading_key), color=get_color("subtext")),
                 ft.Container(height=20),
                 ft.Row(
                     [

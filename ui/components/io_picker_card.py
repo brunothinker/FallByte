@@ -2,7 +2,7 @@ from collections.abc import Callable
 
 import flet as ft
 
-from ui.theme import COLOR_CARD_BG, COLOR_PRIMARY, COLOR_TEXT
+from ui.theme import get_color
 
 
 def create_clickable_card(
@@ -23,7 +23,7 @@ def create_clickable_card(
     return ft.Container(
         width=185,
         height=125,
-        bgcolor=COLOR_CARD_BG,
+        bgcolor=get_color("card_bg"),
         border=ft.border.all(1, ft.colors.OUTLINE_VARIANT),
         border_radius=12,
         padding=10,
@@ -31,12 +31,12 @@ def create_clickable_card(
         on_click=on_click_action,
         content=ft.Column(
             [
-                ft.Icon(icon, size=28, color=COLOR_PRIMARY),
+                ft.Icon(icon, size=28, color=get_color("primary")),
                 ft.Text(
                     title,
                     size=12,
                     weight=ft.FontWeight.W_600,
-                    color=COLOR_TEXT,
+                    color=get_color("text"),
                     text_align=ft.TextAlign.CENTER,
                 ),
                 lbl_text,

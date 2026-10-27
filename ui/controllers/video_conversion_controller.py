@@ -10,7 +10,7 @@ from src.video.conversion.directory_conversion import directory_converter
 from src.video.conversion.file_conversion import file_converter
 from ui.components.dialog_utils import show_summary_dialog
 from ui.i18n import t
-from ui.theme import COLOR_ERROR, COLOR_PRIMARY, COLOR_SUCCESS, COLOR_TEXT
+from ui.theme import get_color
 
 SUPPORTED_VIDEO_CONVERSION_FORMATS: list[str] = [
     "mp4",
@@ -130,7 +130,7 @@ class VideoConversionController:
             lbl_path.value = (
                 self.selected_input.name or str(self.selected_input)
             )
-            lbl_path.color = COLOR_TEXT
+            lbl_path.color = get_color("text")
             lbl_path.update()
 
             if lbl_status:
@@ -156,7 +156,7 @@ class VideoConversionController:
             lbl_path.value = (
                 self.selected_output_dir.name or str(self.selected_output_dir)
             )
-            lbl_path.color = COLOR_TEXT
+            lbl_path.color = get_color("text")
             lbl_path.update()
 
             if lbl_status:
@@ -212,7 +212,7 @@ class VideoConversionController:
         """
         if not self.selected_input or not self.selected_output_dir:
             lbl_status.value = t("msg_select_required")
-            lbl_status.color = COLOR_ERROR
+            lbl_status.color = get_color("error")
             lbl_status.update()
             return
 
@@ -266,7 +266,7 @@ class VideoConversionController:
 
         btn_action.text = t("btn_stop_process")
         btn_action.icon = ft.icons.STOP
-        btn_action.bgcolor = COLOR_ERROR
+        btn_action.bgcolor = get_color("error")
         btn_action.update()
 
         progress_bar.visible = True
@@ -285,7 +285,7 @@ class VideoConversionController:
             total=1,
             filename=self.selected_input.name,
         )
-        lbl_status.color = COLOR_TEXT
+        lbl_status.color = get_color("text")
         lbl_status.update()
 
         redirector = TextRedirector()
@@ -325,10 +325,10 @@ class VideoConversionController:
         if not self.abort_requested:
             if success:
                 lbl_status.value = t("msg_success")
-                lbl_status.color = COLOR_SUCCESS
+                lbl_status.color = get_color("success")
             else:
                 lbl_status.value = t("msg_error")
-                lbl_status.color = COLOR_ERROR
+                lbl_status.color = get_color("error")
             lbl_status.update()
 
             summary = {
@@ -351,13 +351,13 @@ class VideoConversionController:
                 except OSError:
                     pass
             lbl_status.value = t("msg_process_cancelled", count=1)
-            lbl_status.color = COLOR_ERROR
+            lbl_status.color = get_color("error")
 
         self.is_processing = False
         self.abort_requested = False
         btn_action.text = t("btn_process")
         btn_action.icon = ft.icons.PLAY_ARROW
-        btn_action.bgcolor = COLOR_PRIMARY
+        btn_action.bgcolor = get_color("primary")
         btn_action.update()
         lbl_status.update()
 
@@ -386,7 +386,7 @@ class VideoConversionController:
 
         btn_action.text = t("btn_stop_process")
         btn_action.icon = ft.icons.STOP
-        btn_action.bgcolor = COLOR_ERROR
+        btn_action.bgcolor = get_color("error")
         btn_action.update()
 
         progress_bar.visible = True
@@ -455,7 +455,7 @@ class VideoConversionController:
                     successful=success_cnt,
                     total=total_cnt,
                 )
-                lbl_status.color = COLOR_SUCCESS
+                lbl_status.color = get_color("success")
                 lbl_status.update()
 
                 summary["terminal_log"] = redirector.get_logs()
@@ -480,13 +480,13 @@ class VideoConversionController:
                 lbl_status.value = t(
                     "msg_process_cancelled", count=cleaned_count
                 )
-                lbl_status.color = COLOR_ERROR
+                lbl_status.color = get_color("error")
 
             self.is_processing = False
             self.abort_requested = False
             btn_action.text = t("btn_process")
             btn_action.icon = ft.icons.PLAY_ARROW
-            btn_action.bgcolor = COLOR_PRIMARY
+            btn_action.bgcolor = get_color("primary")
             btn_action.update()
             lbl_status.update()
 
@@ -519,7 +519,7 @@ class VideoConversionController:
             if self.is_processing:
                 self.abort_requested = True
                 lbl_status.value = t("msg_cancelling")
-                lbl_status.color = COLOR_ERROR
+                lbl_status.color = get_color("error")
                 lbl_status.update()
 
         self.cancel_dialog = ft.AlertDialog(
@@ -532,8 +532,8 @@ class VideoConversionController:
                 ft.TextButton(t("btn_keep_running"), on_click=close_dialog),
                 ft.ElevatedButton(
                     t("btn_stop_and_delete"),
-                    bgcolor=COLOR_ERROR,
-                    color=COLOR_TEXT,
+                    bgcolor=get_color("error"),
+                    color=get_color("text"),
                     on_click=stop_and_cleanup,
                 ),
             ],

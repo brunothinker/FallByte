@@ -1,6 +1,6 @@
 import flet as ft
 
-from ui.theme import COLOR_TEXT
+from ui.theme import get_color
 from ui.utils.compression_utils import validate_quality_value
 
 
@@ -47,7 +47,7 @@ class QualitySelector(ft.Column):
                 ft.Text(
                     label_text,
                     size=13,
-                    color=COLOR_TEXT,
+                    color=get_color("text"),
                     weight=ft.FontWeight.W_600,
                 ),
                 ft.Row(
