@@ -1,13 +1,50 @@
 import logging
+import shutil
 from pathlib import Path
 from typing import Any
 
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageSequence
 
-from src.image.utils.remove_transparency import NON_ALPHA_FORMATS
+from src.image.utils.analysis import UNCOMPRESSIBLE_FORMATS
+from src.image.utils.remove_transparency import has_transparency
 
 # Setup module logger
 logger = logging.getLogger(__name__)
+
+FORMAT_ALIASES = {"JPG": "JPEG", "MPO": "JPEG", "JFIF": "JPEG", "TIF": "TIFF"}
+
+
+def _normalize_format(raw_format: str | None, path: Path) -> str:
+    """Resolves the real image format, mapping aliases (JPG/MPO -> JPEG)."""
+    fmt = (raw_format or path.suffix.lstrip(".")).upper()
+    return FORMAT_ALIASES.get(fmt, fmt)
+
+
+def _quantize_png(img: Image.Image, quality: int) -> Image.Image:
+    """Reduces a PNG's palette (TinyPNG style). Returns the input if unsupported."""
+    if img.mode not in ("RGB", "RGBA", "P"):
+        # L / LA / 16-bit grayscale are left untouched to avoid damaging them.
+        return img
+
+    max_colors = max(32, int((quality / 100) * 256))
+    try:
+        if has_transparency(img):
+            return img.convert("RGBA").quantize(
+                colors=max_colors, method=Image.Quantize.FASTOCTREE
+            )
+        return img.convert("RGB").quantize(
+            colors=max_colors, method=Image.Quantize.MEDIANCUT
+        )
+    except (ValueError, OSError) as quant_err:
+        logger.warning(f"Quantization skipped: {quant_err}")
+        return img
+
+
+def _keep_original(input_path: Path, output_path: Path, reason: str) -> bool:
+    """Copies the source file untouched to the destination."""
+    shutil.copy2(input_path, output_path)
+    logger.info(f"'{input_path.name}' kept as-is: {reason}.")
+    return True
 
 
 def file_compressor(
@@ -15,11 +52,14 @@ def file_compressor(
 ) -> bool:
     """Compresses a single image file while strictly maintaining its original format.
 
-    Uses format-specific optimizations such as quality levels for JPEG/WEBP,
-    pngquant-style color palette quantization for PNG (when quality < 90),
-    tiff_deflate compression for TIFF, and auto-rotation from EXIF metadata.
-    Refuses execution if the file contains alpha transparency but target format
-    lacks alpha support.
+    Uses format-specific optimizations: quality levels for JPEG/WEBP,
+    pngquant-style palette quantization for PNG (when quality < 90),
+    deflate for TIFF. EXIF orientation is applied; ICC profile and EXIF
+    metadata are preserved where the format allows.
+
+    Formats that cannot be re-encoded safely (BMP, PPM, GIF, ICO) and animated
+    PNGs are copied unchanged. If the compressed result is not smaller than the
+    original, the original file is kept as the output.
 
     Args:
         input_path (Path): Path to the source image file.
@@ -30,74 +70,88 @@ def file_compressor(
         bool: True if compression succeeded, False otherwise.
     """
     try:
-        quality = max(1, min(100, quality))
+        quality = max(1, min(100, int(quality)))
+
+        if input_path.resolve() == output_path.resolve():
+            logger.error(
+                f"Refusing to compress '{input_path.name}': output path is the source file."
+            )
+            return False
+
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         with Image.open(input_path) as img:
-            fmt = (img.format or input_path.suffix.lstrip(".")).upper()
-            if fmt == "JPG":
-                fmt = "JPEG"
+            fmt = _normalize_format(img.format, input_path)
+            n_frames = getattr(img, "n_frames", 1)
 
-            has_alpha = img.mode in ("RGBA", "LA") or (
-                img.mode == "P" and "transparency" in img.info
-            )
-
-            # Refuse to compress if alpha channel exists but format lacks support
-            if has_alpha and fmt in NON_ALPHA_FORMATS:
-                logger.warning(
-                    f"Compression skipped for '{input_path.name}': "
-                    f"Format '{fmt}' does not support transparency. "
-                    f"Please use Converter module first."
+            if fmt in UNCOMPRESSIBLE_FORMATS:
+                return _keep_original(
+                    input_path, output_path, f"{fmt} cannot be compressed safely"
                 )
-                return False
+            if fmt == "PNG" and n_frames > 1:
+                return _keep_original(
+                    input_path, output_path, "animated PNG would lose its frames"
+                )
 
-            final_img = ImageOps.exif_transpose(img)
-            save_kwargs: dict[str, Any] = {"optimize": True}
+            icc = img.info.get("icc_profile")
+            save_kwargs: dict[str, Any] = {}
+            multi = n_frames > 1 and fmt in ("WEBP", "TIFF")
 
-            if fmt in ("JPEG", "WEBP"):
+            if multi:
+                frames = [f.copy() for f in ImageSequence.Iterator(img)]
+                if fmt == "WEBP":
+                    save_kwargs["duration"] = [
+                        f.info.get("duration", 100) for f in frames
+                    ]
+                    save_kwargs["loop"] = img.info.get("loop", 0)
+                    frames = [f.convert("RGBA") for f in frames]
+                final_img = frames[0]
+                save_kwargs["save_all"] = True
+                save_kwargs["append_images"] = frames[1:]
+            else:
+                final_img = ImageOps.exif_transpose(img)
+
+            exif = final_img.info.get("exif")
+
+            if fmt == "JPEG":
+                save_kwargs.update(
+                    quality=quality, optimize=True, progressive=True
+                )
+                if exif:
+                    save_kwargs["exif"] = exif
+            elif fmt == "WEBP":
                 save_kwargs["quality"] = quality
-
+                if exif:
+                    save_kwargs["exif"] = exif
             elif fmt == "PNG":
-                save_kwargs["compress_level"] = 9
-
-                # Color quantization for PNG (TinyPNG style)
+                save_kwargs.update(optimize=True, compress_level=9)
                 if quality < 90:
-                    max_colors = max(32, int((quality / 100) * 256))
-                    try:
-                        if has_alpha:
-                            final_img = final_img.quantize(
-                                colors=max_colors,
-                                method=Image.Quantize.FASTOCTREE,
-                            )
-                        else:
-                            final_img = final_img.convert("RGB").quantize(
-                                colors=max_colors,
-                                method=Image.Quantize.MEDIANCUT,
-                            )
-                    except (ValueError, OSError) as quant_err:
-                        logger.warning(
-                            f"Quantization skipped for '{input_path.name}': {quant_err}"
-                        )
-
+                    final_img = _quantize_png(final_img, quality)
             elif fmt == "TIFF":
                 save_kwargs["compression"] = "tiff_deflate"
 
-            if fmt == "ICO" and (
-                final_img.width > 256 or final_img.height > 256
-            ):
-                final_img = final_img.copy()
-                final_img.thumbnail((256, 256), Image.Resampling.LANCZOS)
+            if icc and fmt in ("JPEG", "PNG", "WEBP", "TIFF"):
+                save_kwargs["icc_profile"] = icc
 
             final_img.save(output_path, format=fmt, **save_kwargs)
 
-            logger.info(
-                f"Successfully compressed '{input_path.name}' "
-                f"[Format: {fmt} | Quality: {quality}%]."
+        original_size = input_path.stat().st_size
+        if output_path.stat().st_size >= original_size:
+            return _keep_original(
+                input_path,
+                output_path,
+                f"compressed result was not smaller at {quality}% quality",
             )
-            return True
 
-    except (ValueError, OSError) as e:
+        logger.info(
+            f"Successfully compressed '{input_path.name}' "
+            f"[Format: {fmt} | Quality: {quality}%]."
+        )
+        return True
+
+    except Exception as e:
         logger.error(
             f"Failed to compress '{input_path.name}': {e}", exc_info=True
         )
+        output_path.unlink(missing_ok=True)
         return False

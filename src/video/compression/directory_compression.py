@@ -21,7 +21,8 @@ def directory_compressor(
     """Scans an input directory for video files, compresses each file, and saves them to output_dir.
 
     Supports real-time progress callbacks, user cancellation, and cleanup of
-    generated files. Maintains original container formats.
+    generated files. Maintains original container formats. A failure on one
+    file never aborts the batch.
 
     Args:
         input_dir (Path): Path to the source directory containing videos.
@@ -64,10 +65,13 @@ def directory_compressor(
             relative_path = file_path.relative_to(input_dir)
             destination_path = output_dir / relative_path
 
-            orig_size = file_path.stat().st_size
+            try:
+                orig_size = file_path.stat().st_size
+            except OSError:
+                orig_size = 0
             stats["original_bytes"] += orig_size
 
-            # Execute single file compression
+            # Execute single file compression (never raises)
             success = file_compressor(
                 input_path=file_path,
                 output_path=destination_path,
@@ -118,4 +122,5 @@ def directory_compressor(
         logger.error(
             f"Failed to compress directory '{input_dir}': {e}", exc_info=True
         )
+        stats["elapsed_seconds"] = round(time.perf_counter() - start_time, 2)
         return stats

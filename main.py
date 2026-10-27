@@ -6,7 +6,7 @@ import flet as ft
 from src.utils.config_manager import load_config
 from ui.app_layout import create_app_layout
 from ui.i18n import TRANSLATIONS, set_language, t
-from ui.theme import get_color, set_active_theme
+from ui.theme import build_flet_theme, get_color, set_active_theme
 
 # Setup module logger
 logger = logging.getLogger(__name__)
@@ -39,10 +39,11 @@ def main(page: ft.Page) -> None:
     # Set native page background color to match active theme
     page.bgcolor = get_color("background")
 
-    page.theme = ft.Theme(
-        font_family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
-        use_material3=True,
-    )
+    # Flet-drawn controls (popup menus, dropdowns, sliders...) follow the
+    # active preset. Both themes are set because the mode switches between
+    # LIGHT and DARK depending on the selected preset.
+    page.theme = build_flet_theme()
+    page.dark_theme = build_flet_theme()
 
     # Configure standard desktop application window dimensions
     page.window_width = 1100

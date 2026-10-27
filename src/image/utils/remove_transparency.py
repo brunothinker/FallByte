@@ -9,7 +9,18 @@ logger = logging.getLogger(__name__)
 ALPHA_SUPPORTED_FORMATS = {"PNG", "WEBP", "TIFF", "ICO"}
 
 # Formats known to lack proper alpha channel (transparency) support
-NON_ALPHA_FORMATS = {"JPEG", "JPG", "BMP", "PPO", "PPM", "PDF", "GIF"}
+NON_ALPHA_FORMATS = {"JPEG", "JPG", "BMP", "PPM", "PDF", "GIF"}
+
+_ALPHA_MODES = {"RGBA", "LA", "PA", "RGBa", "La"}
+
+
+def has_transparency(image: Image.Image) -> bool:
+    """Checks whether an image carries any transparency information.
+
+    Covers alpha-channel modes and images (palette, grayscale or RGB) that
+    declare a transparent color/index through the ``transparency`` info key.
+    """
+    return image.mode in _ALPHA_MODES or "transparency" in image.info
 
 
 def remove_transparency(
@@ -23,32 +34,25 @@ def remove_transparency(
             the alpha channel. Defaults to "#FFFFFF" (White).
 
     Returns:
-        Image.Image: A new RGB PIL Image with transparency flattened over
-            the chosen background color. Returns original image if no alpha channel exists.
+        Image.Image: A new RGB image with transparency flattened over the
+            chosen background color, or the original image unchanged if it
+            has no transparency.
     """
-    # Check if image actually has an alpha channel or palette with transparency
-    if image.mode in ("RGBA", "LA", "P"):
-        try:
-            # Create a solid color background image matching source dimensions
-            background = Image.new("RGB", image.size, background_color)
+    if not has_transparency(image):
+        return image
 
-            # Ensure image is in RGBA mode to safely extract the alpha channel mask
-            rgba_image = image.convert("RGBA")
-            alpha_mask = rgba_image.split()[3]
+    try:
+        rgba_image = image.convert("RGBA")
+        background = Image.new("RGB", image.size, background_color)
+        background.paste(rgba_image, mask=rgba_image.getchannel("A"))
+        logger.debug(
+            f"Successfully replaced transparency with background color '{background_color}'."
+        )
+        return background
 
-            # Paste source image onto background using the alpha mask
-            background.paste(rgba_image, mask=alpha_mask)
-
-            logger.debug(
-                f"Successfully replaced transparency with background color '{background_color}'."
-            )
-            return background
-
-        except (ValueError, OSError) as e:
-            logger.error(
-                f"Failed to remove transparency from image: {e}", exc_info=True
-            )
-            # Fallback to standard RGB conversion if pasting fails
-            return image.convert("RGB")
-
-    return image
+    except (ValueError, OSError) as e:
+        logger.error(
+            f"Failed to remove transparency from image: {e}", exc_info=True
+        )
+        # Fallback to standard RGB conversion if pasting fails
+        return image.convert("RGB")

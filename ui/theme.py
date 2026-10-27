@@ -1,5 +1,7 @@
 """Theme management module providing dynamic palette lookup and active preset configurations."""
 
+import inspect
+
 import flet as ft
 
 # Color palette presets divided between Dark and Light mode variations
@@ -115,6 +117,9 @@ CURRENT_THEME_KEY: str = "blue_dark"
 FORM_WIDTH = 550
 BUTTON_HEIGHT = 45
 
+# Font stack shared by the Flet theme
+FONT_FAMILY = "system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+
 
 def set_active_theme(theme_key: str) -> None:
     """Sets active theme preset key globally across application context.
@@ -149,3 +154,37 @@ def get_color(color_key: str) -> str:
         "warning": ft.colors.AMBER_600,
     }
     return static_colors.get(color_key, "#FFFFFF")
+
+
+def build_flet_theme() -> ft.Theme:
+    """Builds a Flet Theme whose color scheme follows the active preset.
+
+    Controls that Flet paints on its own (popup menus, dropdown menus, sliders,
+    text fields, dialogs) read their colors from this scheme, so without it
+    they fall back to the default Material blue instead of the app theme.
+    """
+    wanted = {
+        "primary": get_color("primary"),
+        "on_primary": "#FFFFFF",
+        "secondary": get_color("primary"),
+        "surface": get_color("card_bg"),
+        "on_surface": get_color("text"),
+        "surface_container": get_color("card_bg"),
+        "surface_container_high": get_color("card_hover"),
+        "surface_variant": get_color("card_hover"),
+        "on_surface_variant": get_color("subtext"),
+        "background": get_color("background"),
+        "on_background": get_color("text"),
+    }
+
+    # Keep only the ColorScheme fields supported by the installed Flet version.
+    valid_fields = inspect.signature(ft.ColorScheme).parameters
+    scheme = ft.ColorScheme(
+        **{key: value for key, value in wanted.items() if key in valid_fields}
+    )
+
+    return ft.Theme(
+        font_family=FONT_FAMILY,
+        use_material3=True,
+        color_scheme=scheme,
+    )

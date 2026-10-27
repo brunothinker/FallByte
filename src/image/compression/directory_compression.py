@@ -23,7 +23,7 @@ def directory_compressor(
 
     Preserves directory tree hierarchy relative to input_dir, dispatches real-time
     progress updates to caller callbacks, handles cancellation signals, and performs
-    cleanup of generated session files.
+    cleanup of generated session files. A failure on one file never aborts the batch.
 
     Args:
         input_dir (Path): Path to the source directory containing images.
@@ -71,10 +71,13 @@ def directory_compressor(
             relative_path = file_path.relative_to(input_dir)
             destination_path = output_dir / relative_path
 
-            orig_size = file_path.stat().st_size
+            try:
+                orig_size = file_path.stat().st_size
+            except OSError:
+                orig_size = 0
             stats["original_bytes"] += orig_size
 
-            # Execute single file compression
+            # Execute single file compression (never raises)
             success = file_compressor(
                 input_path=file_path,
                 output_path=destination_path,
@@ -121,8 +124,9 @@ def directory_compressor(
         stats["elapsed_seconds"] = round(time.perf_counter() - start_time, 2)
         return stats
 
-    except OSError as e:
+    except Exception as e:
         logger.error(
             f"Failed to compress directory '{input_dir}': {e}", exc_info=True
         )
+        stats["elapsed_seconds"] = round(time.perf_counter() - start_time, 2)
         return stats

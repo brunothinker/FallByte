@@ -2,6 +2,7 @@
 build/
 dist/
 *.spec
+repomix-output.xml
 
 # Final installer packages
 *.deb

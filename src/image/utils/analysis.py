@@ -1,7 +1,10 @@
 from pathlib import Path
 from typing import Any
 
-UNCOMPRESSIBLE_FORMATS = {"BMP", "PPM", "GIF"}
+# Formats whose compression is skipped (original file is kept as-is):
+# BMP/PPM are raw, GIF/ICO cannot be safely re-encoded without losing
+# animation frames or embedded icon sizes.
+UNCOMPRESSIBLE_FORMATS = {"BMP", "PPM", "GIF", "ICO"}
 
 
 def analyze_compression_eligibility(file_paths: list[Path]) -> dict[str, Any]:

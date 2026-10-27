@@ -5,31 +5,14 @@ from typing import List, Set
 # Setup module logger
 logger = logging.getLogger(__name__)
 
-# Broad set of video formats supported natively by FFmpeg
+# Video formats officially supported by the app (same list offered in the UI).
 SUPPORTED_VIDEO_EXTENSIONS: Set[str] = {
-    # Mainstream & Web Video
     ".mp4",
     ".mkv",
     ".webm",
-    ".avi",
     ".mov",
-    ".flv",
+    ".avi",
     ".wmv",
-    ".m4v",
-    # Legacy & High Compression Video Formats
-    ".mpg",
-    ".mpeg",
-    ".m2ts",
-    ".ts",
-    ".mts",
-    ".3gp",
-    ".3g2",
-    ".ogv",
-    ".vob",
-    ".divx",
-    ".asf",
-    ".rm",
-    ".rmvb",
 }
 
 
