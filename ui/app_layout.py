@@ -11,6 +11,7 @@ from ui.i18n import AVAILABLE_LANGUAGES, TRANSLATIONS, set_language, t
 from ui.router import build_page_view
 from ui.theme import (
     THEME_PRESETS,
+    build_flet_theme,
     get_color,
     set_active_theme,
 )
@@ -54,7 +55,7 @@ def create_app_layout(
         if isinstance(view_control, ft.Control):
             view_control.expand = False
 
-        # Botão de voltar estilizado com as cores dinâmicas do tema
+        # Back button styled with the active theme colors
         btn_back = ft.ElevatedButton(
             text=t("header_back_tooltip"),
             icon=ft.icons.ARROW_BACK,
@@ -104,6 +105,7 @@ def create_app_layout(
         """Opens a dialog with categorized Dark and Light presets, feedback progress, and persistence."""
 
         def select_theme(key: str) -> None:
+            """Handles theme selection and displays progress feedback in the dialog."""
             txt_dialog_title.value = t("lbl_theme")
             txt_processing.value = t("msg_processing")
 
@@ -112,10 +114,15 @@ def create_app_layout(
             theme_dialog.update()
 
             def process_theme_change() -> None:
+                """Applies and persists the selected theme, then refreshes sidebar and view."""
                 time.sleep(0.4)
 
                 set_active_theme(key)
                 set_config_value("theme", key)
+
+                # Rebuild the Flet theme from the active preset
+                page.theme = build_flet_theme()
+                page.dark_theme = build_flet_theme()
 
                 page.theme_mode = (
                     ft.ThemeMode.LIGHT
@@ -235,6 +242,7 @@ def create_app_layout(
             language_dialog.update()
 
             def process_change() -> None:
+                """Applies and persists the selected language, then refreshes sidebar and view."""
                 time.sleep(0.4)
 
                 set_language(code)
@@ -332,6 +340,7 @@ def create_app_layout(
     sidebar_buttons: list[ft.Control] = []
 
     def build_nav_button(data: dict) -> ft.Container:
+        """Builds a sidebar navigation button with active-state styling."""
         route = data["route"]
         current_route = navigation_stack[-1]
         is_active = current_route == route or (
@@ -384,6 +393,7 @@ def create_app_layout(
         sidebar_buttons.append(build_nav_button(item))
 
     def update_sidebar_active_states() -> None:
+        """Refreshes sidebar button highlight colors according to the current route."""
         current_route = navigation_stack[-1]
         for btn in sidebar_buttons:
             if isinstance(btn, ft.Container) and isinstance(btn.data, dict):
@@ -405,6 +415,7 @@ def create_app_layout(
                     btn.update()
 
     def update_sidebar_labels() -> None:
+        """Refreshes sidebar texts and colors for the active language and theme."""
         for btn in sidebar_buttons:
             if isinstance(btn, ft.Container) and isinstance(btn.data, dict):
                 text_ctrl = btn.data["text_control"]
@@ -483,7 +494,7 @@ def create_app_layout(
         on_click=lambda _: webbrowser.open("https://github.com/brunothinker/FallByte"),
     )
 
-    # Footer Container com o botão Tema posicionado ACIMA de Idioma
+    # Footer container stacking theme, language and GitHub buttons
     footer_container = ft.Container(
         content=ft.Column(
             [

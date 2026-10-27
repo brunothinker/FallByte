@@ -1,5 +1,5 @@
 # UI Framework
-flet==1.0.5
+flet==0.21.2
 
 # Image Processing Engine
 pillow==12.3.0
