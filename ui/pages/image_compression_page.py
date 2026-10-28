@@ -3,6 +3,7 @@ from pathlib import Path
 
 import flet as ft
 
+from src.image.compression.file_compression import UNCOMPRESSIBLE_FORMATS
 from ui.components.io_picker_card import create_clickable_card
 from ui.components.quality_selector import QualitySelector
 from ui.controllers.image_compression_controller import CompressionController
@@ -128,6 +129,17 @@ def create_compression_page(
         height=BUTTON_HEIGHT,
     )
 
+    all_known = {"JPEG", "JPG", "PNG", "WEBP", "TIFF", "TIF", "JFIF", "MPO", "BMP", "PPM", "GIF", "ICO"}
+    supported_formats = all_known - UNCOMPRESSIBLE_FORMATS
+    supported_img_str = ", ".join(sorted(supported_formats))
+
+    lbl_notice = ft.Text(
+        t("msg_supported_formats_notice", formats=supported_img_str),
+        size=11,
+        color=get_color("subtext"),
+        text_align=ft.TextAlign.CENTER,
+    )
+
     def on_action_click(_: ft.ControlEvent) -> None:
         """Handles action button clicks forwarding execution state to controller."""
         controller.handle_action_click(
@@ -169,6 +181,7 @@ def create_compression_page(
                     ft.Container(height=5),
                     progress_bar,
                     btn_action,
+                    lbl_notice,
                     lbl_status,
                 ],
                 spacing=12,

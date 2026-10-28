@@ -4,7 +4,10 @@ from pathlib import Path
 import flet as ft
 
 from ui.components.io_picker_card import create_clickable_card
-from ui.controllers.video_compression_controller import VideoCompressionController
+from ui.controllers.video_compression_controller import (
+    SUPPORTED_VIDEO_EXTS,
+    VideoCompressionController,
+)
 from ui.i18n import t
 from ui.theme import (
     BUTTON_HEIGHT,
@@ -169,6 +172,15 @@ def create_video_compression_page(
         height=BUTTON_HEIGHT,
     )
 
+    # Formata a lista de extensões de vídeo suportadas
+    supported_video_str = ", ".join(sorted(ext.upper() for ext in SUPPORTED_VIDEO_EXTS))
+    lbl_notice = ft.Text(
+        t("msg_supported_formats_notice", formats=supported_video_str),
+        size=11,
+        color=get_color("subtext"),
+        text_align=ft.TextAlign.CENTER,
+    )
+
     def on_action_click(_: ft.ControlEvent) -> None:
         """Handles action button clicks forwarding execution state to controller."""
         slider_val = slider_quality.value if slider_quality.value is not None else 80
@@ -212,6 +224,7 @@ def create_video_compression_page(
                     ft.Container(height=5),
                     progress_bar,
                     btn_action,
+                    lbl_notice,
                     lbl_status,
                 ],
                 spacing=12,
