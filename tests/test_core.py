@@ -1,0 +1,180 @@
+
+import pytest
+from PIL import Image
+
+from src.image.compression.file_compression import file_compressor
+from src.image.conversion.file_conversion import file_converter
+from src.image.utils.image_cleanup import safe_cleanup_session_files
+from src.video.compression.file_compression import file_compressor as video_compressor
+from src.video.conversion.file_conversion import file_converter as video_converter
+
+IMAGE_TARGET_FORMATS = ["JPEG", "PNG", "WEBP", "BMP", "ICO", "TIFF"]
+
+
+# --- IMAGE ENGINE TESTS ---
+
+@pytest.mark.parametrize("source_mode", ["RGB", "RGBA", "P", "CMYK"])
+@pytest.mark.parametrize("target_fmt", IMAGE_TARGET_FORMATS)
+def test_image_conversion_matrix(
+    tmp_workspace, create_sample_image, source_mode, target_fmt
+):
+    """Tests full image format and color mode conversion matrix."""
+    in_dir, out_dir = tmp_workspace
+    ext = "jpg" if target_fmt == "JPEG" else target_fmt.lower()
+
+    src_fmt = "TIFF" if source_mode == "CMYK" else "PNG"
+    src_ext = "tiff" if source_mode == "CMYK" else "png"
+
+    src_img = in_dir / f"sample_{source_mode}.{src_ext}"
+    if not src_img.exists():
+        create_sample_image(src_img, mode=source_mode, fmt=src_fmt)
+
+    dst_path = out_dir / f"converted_{source_mode}_to_{target_fmt.lower()}.{ext}"
+
+    success = file_converter(
+        src_img,
+        dst_path,
+        target_format=target_fmt,
+        transparency_replacement_color="#FFFFFF",
+    )
+
+    assert success is True
+    assert dst_path.exists()
+    assert dst_path.stat().st_size > 0
+
+
+def test_ico_sizing_clamp(tmp_workspace, create_sample_image):
+    """Verifies that ICO conversion clamps dimensions to maximum allowable 256x256."""
+    in_dir, out_dir = tmp_workspace
+    large_png = in_dir / "large.png"
+    create_sample_image(large_png, mode="RGBA", size=(500, 500), fmt="PNG")
+
+    dst_ico = out_dir / "icon.ico"
+    success = file_converter(large_png, dst_ico, target_format="ICO")
+    assert success is True
+    assert dst_ico.exists()
+
+    with Image.open(dst_ico) as img:
+        assert img.size[0] <= 256
+        assert img.size[1] <= 256
+
+
+def test_image_compression_keep_original_when_uncompressible(
+    tmp_workspace, create_sample_image
+):
+    """Ensures image compression fallback handles formats without compression gains cleanly."""
+    in_dir, out_dir = tmp_workspace
+    src_gif = in_dir / "sample.gif"
+    create_sample_image(src_gif, mode="P", fmt="GIF")
+
+    dst_gif = out_dir / "compressed.gif"
+    success = file_compressor(src_gif, dst_gif, quality=80)
+    assert success is True
+    assert dst_gif.exists()
+
+
+# --- VIDEO ENGINE TESTS ---
+
+@pytest.mark.parametrize("target_format", ["mkv", "avi", "mov", "webm", "mp4"])
+def test_video_conversion_all_formats(
+    tmp_workspace, create_sample_video, target_format
+):
+    """Tests video conversion across all supported container formats."""
+    in_dir, out_dir = tmp_workspace
+    src_mp4 = create_sample_video(in_dir / "input.mp4", duration_sec=1)
+
+    dst_file = out_dir / f"output.{target_format}"
+    success = video_converter(src_mp4, dst_file, target_format=target_format)
+
+    assert success is True
+    assert dst_file.exists()
+    assert dst_file.stat().st_size > 0
+
+
+@pytest.mark.parametrize("quality", [30, 60, 80])
+def test_video_compression_levels(tmp_workspace, create_sample_video, quality):
+    """Tests video compression across multiple quality levels."""
+    in_dir, out_dir = tmp_workspace
+    src_mp4 = create_sample_video(in_dir / "input.mp4", duration_sec=1)
+
+    dst_mp4 = out_dir / f"compressed_q{quality}.mp4"
+    success = video_compressor(src_mp4, dst_mp4, quality=quality)
+
+    assert success is True
+    assert dst_mp4.exists()
+    assert dst_mp4.stat().st_size > 0
+
+
+# --- ADVANCED I/O & EDGE CASES (CASE 1) ---
+
+def test_process_files_with_special_characters_and_spaces(
+    tmp_workspace, create_sample_video, create_sample_image
+):
+    """Ensures file processors handle paths with Unicode characters, spaces, and symbols."""
+    in_dir, out_dir = tmp_workspace
+
+    # Complex folder path with spaces, accents, and special characters
+    special_folder = in_dir / "Vídeos & Imagens de Teste (2026) #1"
+    special_folder.mkdir(parents=True, exist_ok=True)
+
+    special_video = special_folder / "vídeo de teste 100%_ok.mp4"
+    special_image = special_folder / "imagem com acentuação & espaço.png"
+
+    create_sample_video(special_video, duration_sec=1)
+    create_sample_image(special_image, mode="RGB", fmt="PNG")
+
+    out_video = out_dir / "vídeo_convertido_output.mkv"
+    out_image = out_dir / "imagem_convertida_output.jpg"
+
+    video_success = video_converter(special_video, out_video, target_format="mkv")
+    image_success = file_converter(special_image, out_image, target_format="JPEG")
+
+    assert video_success is True
+    assert out_video.exists()
+    assert image_success is True
+    assert out_image.exists()
+
+
+def test_process_non_existent_file_handling(tmp_path):
+    """Verifies that non-existent input paths return False or handle errors gracefully."""
+    fake_input = tmp_path / "ghost_file.mp4"
+    fake_output = tmp_path / "output.mp4"
+
+    video_success = video_converter(fake_input, fake_output, target_format="mp4")
+    assert video_success is False
+    assert not fake_output.exists()
+
+
+def test_process_corrupted_media_file_handling(tmp_path):
+    """Verifies that corrupted media files are handled without crashing the runner."""
+    corrupted_file = tmp_path / "corrupted_media.mp4"
+    corrupted_file.write_bytes(b"NOT_A_VALID_MEDIA_HEADER")
+
+    output_file = tmp_path / "failed_output.mp4"
+
+    video_success = video_converter(corrupted_file, output_file, target_format="mp4")
+    assert video_success is False
+    assert not output_file.exists()
+
+
+# --- CLEANUP TESTS ---
+
+def test_safe_cleanup_preserves_user_files(tmp_workspace):
+    """Verifies that session cleanup removes temporary files without touching user files."""
+    _, out_dir = tmp_workspace
+
+    user_file = out_dir / "important_user_doc.txt"
+    user_file.write_text("user data")
+
+    session_file = out_dir / "subfolder" / "temp_output.png"
+    session_file.parent.mkdir(parents=True, exist_ok=True)
+    session_file.write_text("temporary image data")
+
+    cleaned_count = safe_cleanup_session_files(
+        [session_file], root_output_dir=out_dir
+    )
+
+    assert cleaned_count == 1
+    assert not session_file.exists()
+    assert user_file.exists()
+    assert user_file.read_text() == "user data"

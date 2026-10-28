@@ -120,6 +120,12 @@ def file_converter(
         bool: True if conversion succeeded, False otherwise.
     """
     try:
+        if not input_path.exists() or input_path.stat().st_size == 0:
+            logger.error(
+                f"Refusing to convert '{input_path.name}': file does not exist or is empty."
+            )
+            return False
+
         if is_same_file(input_path, output_path):
             logger.error(
                 f"Refusing to convert '{input_path.name}': output path is the source file."
@@ -132,7 +138,17 @@ def file_converter(
         input_ext = input_path.suffix.lower().lstrip(".")
         target_fmt = target_format.lower().lstrip(".")
 
-        # Bypass FFmpeg re-encoding if extensions match
+        ffmpeg_bin = get_ffmpeg_path()
+        info = probe_streams(ffmpeg_bin, input_path)
+
+        # Ensure the media stream is valid before attempting bypass or conversion
+        if info.video_codec is None and not info.audio_codecs:
+            logger.error(
+                f"Failed to probe media streams for '{input_path.name}': corrupted or unsupported file."
+            )
+            return False
+
+        # Bypass FFmpeg re-encoding if extensions match and media streams are valid
         if input_ext == target_fmt:
             logger.info(
                 f"Skipping re-encoding for '{input_path.name}': already .{target_fmt}. Copying file..."
@@ -140,8 +156,6 @@ def file_converter(
             shutil.copy2(input_path, output_path)
             return True
 
-        ffmpeg_bin = get_ffmpeg_path()
-        info = probe_streams(ffmpeg_bin, input_path)
         video_ok, audio_ok = copy_compatibility(target_fmt, info)
         logger.info(
             f"Detected streams for '{input_path.name}': video={info.video_codec}, "
@@ -160,6 +174,7 @@ def file_converter(
 
         used = run_strategies(strategies, output_path, input_path.name)
         if used is None:
+            output_path.unlink(missing_ok=True)
             return False
 
         logger.info(
@@ -167,9 +182,7 @@ def file_converter(
         )
         return True
 
-    except Exception as e:
-        logger.error(
-            f"Failed to convert '{input_path.name}': {e}", exc_info=True
-        )
-        output_path.unlink(missing_ok=True)
-        return False
+    except Exception:
+            logger.exception(f"Failed to convert '{input_path.name}'.")
+            output_path.unlink(missing_ok=True)
+            return False
