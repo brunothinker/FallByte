@@ -1,8 +1,7 @@
-# Build and compilation output
+# Build and compilation outputs
 build/
 dist/
-*.spec
-repomix-output.xml
+packaging/FallByte.spec
 
 # Final installer packages
 *.deb
@@ -10,10 +9,13 @@ repomix-output.xml
 *.AppImage
 *.exe
 
-# Build tools and temporary assets
-build/appimagetool
+# Build tools cache
+packaging/appimage/appimagetool
 
-# Python cache and bytecode
+# Documentation tools
+repomix-output.xml
+
+# Python bytecode and cache
 __pycache__/
 *.pyc
 *.pyo
@@ -24,7 +26,7 @@ __pycache__/
 venv/
 env/
 
-# IDE and editor settings
+# IDE and editor configurations
 .idea/
 .vscode/
 *.swp

@@ -8,6 +8,8 @@ from ui.app_layout import create_app_layout
 from ui.i18n import TRANSLATIONS, set_language, t
 from ui.theme import build_flet_theme, get_color, set_active_theme
 
+APP_VERSION = "dev"
+
 # Setup module logger
 logger = logging.getLogger(__name__)
 
@@ -19,14 +21,14 @@ def main(page: ft.Page) -> None:
         page (ft.Page): Root Flet page window instance.
     """
     user_config = load_config()
-    saved_lang = user_config.get("language", "pt")
+    saved_lang = user_config.get("language", "en")
     saved_theme = user_config.get("theme", "blue_dark")
 
     # Configure active language setting
     if saved_lang in TRANSLATIONS:
         set_language(saved_lang)
     else:
-        set_language("pt")
+        set_language("en")
 
     # Apply saved theme configuration from persistent storage
     set_active_theme(saved_theme)
@@ -56,7 +58,7 @@ def main(page: ft.Page) -> None:
     selected_paths: dict[str, Path] = {}
 
     # Assemble and mount primary layout frame to root page
-    page.add(create_app_layout(page, selected_paths))
+    page.add(create_app_layout(page, selected_paths, app_version=APP_VERSION))
 
 
 if __name__ == "__main__":

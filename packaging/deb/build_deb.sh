@@ -3,18 +3,18 @@ set -e
 
 APP_NAME="fallbyte"
 APP_TITLE="FallByte"
-VERSION="1.1.0"
 ARCH="amd64"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
+VERSION="${1:-${APP_VERSION:-1.0.0}}"
+ICON_SRC="${2:-${ICON_SRC:-$PROJECT_ROOT/resources/icons/fallbyte_icon.png}}"
+
 BUILD_DIR="$PROJECT_ROOT/build"
 PYINSTALLER_DIR="$BUILD_DIR/pyinstaller/dist/FallByte"
 DEB_STAGING="$BUILD_DIR/deb/${APP_NAME}_${VERSION}_${ARCH}"
 FINAL_DEB="$BUILD_DIR/${APP_NAME}_${VERSION}_${ARCH}.deb"
-
-ICON_SRC="$PROJECT_ROOT/resources/icons/fallbyte_icon.png"
 
 echo "==> [Debian] Starting build pipeline for ${APP_TITLE} v${VERSION}..."
 
@@ -71,7 +71,6 @@ Maintainer: Bruno Henrique <brunothinker@github.com>
 Description: Local-first media optimization tool for images and videos.
 EOF
 
-# Hook de pós-instalação para criar o symlink no diretório global de bibliotecas do sistema
 cat <<'EOF' > "$DEB_STAGING/DEBIAN/postinst"
 #!/bin/sh
 set -e

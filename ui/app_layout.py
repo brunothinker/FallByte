@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_app_layout(
-    page: ft.Page, selected_paths: dict[str, Path]
+    page: ft.Page, selected_paths: dict[str, Path], app_version: str = "dev"
 ) -> ft.Container:
     """Creates main application frame with left sidebar navigation bar and history stack."""
     navigation_stack: list[str] = ["home"]
@@ -426,6 +426,7 @@ def create_app_layout(
 
         sidebar.bgcolor = get_color("sidebar_bg")
         lbl_brand.color = get_color("text")
+        lbl_version.color = get_color("subtext")
         lbl_theme_text.value = t("lbl_theme")
         lbl_theme_text.color = get_color("subtext")
         lbl_lang_text.value = t("lbl_language")
@@ -527,18 +528,34 @@ def create_app_layout(
         ),
     )
 
+    # Version label pinned softly at bottom-right corner without blocking pointer events
+    lbl_version = ft.Text(
+        f"v{app_version}",
+        size=10,
+        weight=ft.FontWeight.W_500,
+        color=get_color("subtext"),
+        right=10,
+        bottom=8,
+    )
+
     # Initialize view
     update_view()
 
     # Main root layout container
     return ft.Container(
         expand=True,
-        content=ft.Row(
+        content=ft.Stack(
             [
-                sidebar,
-                content_area,
+                ft.Row(
+                    [
+                        sidebar,
+                        content_area,
+                    ],
+                    expand=True,
+                    spacing=0,
+                ),
+                lbl_version,
             ],
             expand=True,
-            spacing=0,
         ),
     )

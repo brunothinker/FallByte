@@ -3,30 +3,29 @@ set -e
 
 APP_NAME="fallbyte"
 APP_TITLE="FallByte"
-VERSION="1.1.0"
 ARCH="x86_64"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+VERSION="${1:-${APP_VERSION:-1.0.0}}"
+ICON_SRC="${2:-${ICON_SRC:-$PROJECT_ROOT/resources/icons/fallbyte_icon.png}}"
 
 BUILD_DIR="$PROJECT_ROOT/build"
 PYINSTALLER_DIR="$BUILD_DIR/pyinstaller/dist/FallByte"
 RPM_STAGE_DIR="$BUILD_DIR/rpm/tree"
 FINAL_RPM="$BUILD_DIR/${APP_NAME}_${VERSION}_${ARCH}.rpm"
 
-ICON_SRC="$PROJECT_ROOT/resources/icons/fallbyte_icon.png"
 SPEC_FILE="$PROJECT_ROOT/packaging/rpm/fallbyte.spec"
 
 echo "==> [RPM] Starting build pipeline for ${APP_TITLE} v${VERSION}..."
 
-# Verify PyInstaller build directory
 if [ ! -d "$PYINSTALLER_DIR" ]; then
     echo "ERROR: Compiled binaries not found in $PYINSTALLER_DIR"
     echo "HINT: Run PyInstaller build step before running this packaging script."
     exit 1
 fi
 
-# Verify rpmbuild tool availability
 if ! command -v rpmbuild &> /dev/null; then
     echo "ERROR: 'rpmbuild' command not found."
     echo "HINT: Install it using 'sudo apt install rpm' (Debian/Ubuntu) or 'sudo dnf install rpm-build' (Fedora)."

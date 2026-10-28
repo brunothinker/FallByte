@@ -1,5 +1,5 @@
 Name:           fallbyte
-Version:        1.0.0
+Version:        1.1.2
 Release:        1%{?dist}
 Summary:        Local-first media optimization tool
 
@@ -29,7 +29,7 @@ mkdir -p %{buildroot}%{_datadir}/icons/hicolor/256x256/apps
 
 # Copy compiled PyInstaller build artifacts
 cp -r %{_sourcedir}/FallByte/* %{buildroot}%{_libdir}/%{name}/
-cp %{_sourcedir}/fallbyte_icon.png %{buildroot}%{_datadir}/icons/hicolor/256x256/apps/%{name}.png
+cp %{_sourcedir}/fallbyte_icon.* %{buildroot}%{_datadir}/icons/hicolor/256x256/apps/%{name}.png
 
 # Symlink binary executable into system PATH
 ln -s %{_libdir}/%{name}/FallByte %{buildroot}%{_bindir}/%{name}

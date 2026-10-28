@@ -3,31 +3,31 @@ set -e
 
 APP_NAME="fallbyte"
 APP_TITLE="FallByte"
-VERSION="1.1.0"
 ARCH="x86_64"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+VERSION="${1:-${APP_VERSION:-1.0.0}}"
+ICON_SRC="${2:-${ICON_SRC:-$PROJECT_ROOT/resources/icons/fallbyte_icon.png}}"
 
 BUILD_DIR="$PROJECT_ROOT/build"
 PYINSTALLER_DIR="$BUILD_DIR/pyinstaller/dist/FallByte"
 APPDIR="$BUILD_DIR/appimage/FallByte.AppDir"
 FINAL_APPIMAGE="$BUILD_DIR/${APP_NAME}_${VERSION}_${ARCH}.AppImage"
 
-ICON_SRC="$PROJECT_ROOT/resources/icons/fallbyte_icon.png"
+# Centralize tool location inside packaging/appimage/ instead of build/
+APPIMAGETOOL="$SCRIPT_DIR/appimagetool"
 
 echo "==> [AppImage] Starting build pipeline for ${APP_TITLE} v${VERSION}..."
 
-# Verify PyInstaller build directory
 if [ ! -d "$PYINSTALLER_DIR" ]; then
     echo "ERROR: Compiled binaries not found in $PYINSTALLER_DIR"
     echo "HINT: Run PyInstaller build step before running this packaging script."
     exit 1
 fi
 
-# 1. Fetch reliable appimagetool binary
-APPIMAGETOOL="$BUILD_DIR/appimagetool"
-
+# 1. Fetch reliable appimagetool binary if not cached locally
 if [ -f "$APPIMAGETOOL" ] && [ "$(stat -c%s "$APPIMAGETOOL")" -lt 1000000 ]; then
     rm -f "$APPIMAGETOOL"
 fi
@@ -52,7 +52,7 @@ mkdir -p "$APPDIR/usr/share/icons/hicolor/256x256/apps"
 # Copy PyInstaller compiled binaries
 cp -r "$PYINSTALLER_DIR"/* "$APPDIR/usr/bin/"
 
-# Copy libmpv and ALL its shared dependencies into AppDir
+# Copy libmpv and dependencies
 INTERNAL_DIR="$APPDIR/usr/bin/_internal"
 mkdir -p "$INTERNAL_DIR"
 
@@ -62,14 +62,12 @@ if [ -n "$MPV_PATH" ] && [ -f "$MPV_PATH" ]; then
     echo "--> Bundling $MPV_PATH and its dependencies into AppImage..."
     cp -L "$MPV_PATH" "$APPDIR/usr/bin/libmpv.so.2"
 
-    # Rastreia e copia APENAS bibliotecas .so válidas exigidas pela libmpv (ex: libmujs)
     ldd "$MPV_PATH" | awk '/=>/ {print $3}' | grep "^/" | while read -r LIB; do
         if [ -f "$LIB" ]; then
             cp -L -n "$LIB" "$APPDIR/usr/bin/" 2>/dev/null || true
         fi
     done
 
-    # Symlinks de compatibilidade
     ln -sf "libmpv.so.2" "$APPDIR/usr/bin/libmpv.so.1"
     ln -sf "../libmpv.so.2" "$INTERNAL_DIR/libmpv.so.1"
 else
@@ -77,7 +75,7 @@ else
     ln -sf "libmpv.so.2" "$INTERNAL_DIR/libmpv.so.1"
 fi
 
-# Copy mandatory icons according to XDG / AppImage specifications
+# Copy icons
 cp "$ICON_SRC" "$APPDIR/fallbyte.png"
 cp "$ICON_SRC" "$APPDIR/.DirIcon"
 cp "$ICON_SRC" "$APPDIR/usr/share/icons/hicolor/256x256/apps/fallbyte.png"
