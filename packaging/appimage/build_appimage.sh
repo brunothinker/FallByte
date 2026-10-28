@@ -10,6 +10,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 VERSION="${1:-${APP_VERSION:-1.0.0}}"
 ICON_SRC="${2:-${ICON_SRC:-$PROJECT_ROOT/resources/icons/fallbyte_icon.png}}"
+NOTICES_SRC="$PROJECT_ROOT/THIRD_PARTY_NOTICES.md"
 
 BUILD_DIR="$PROJECT_ROOT/build"
 PYINSTALLER_DIR="$BUILD_DIR/pyinstaller/dist/FallByte"
@@ -48,9 +49,16 @@ echo "--> [2/4] Assembling AppDir structure..."
 rm -rf "$APPDIR"
 mkdir -p "$APPDIR/usr/bin"
 mkdir -p "$APPDIR/usr/share/icons/hicolor/256x256/apps"
+mkdir -p "$APPDIR/usr/share/doc/$APP_NAME"
 
 # Copy PyInstaller compiled binaries
 cp -r "$PYINSTALLER_DIR"/* "$APPDIR/usr/bin/"
+
+# Copy third-party notices
+if [ -f "$NOTICES_SRC" ]; then
+    cp "$NOTICES_SRC" "$APPDIR/usr/bin/"
+    cp "$NOTICES_SRC" "$APPDIR/usr/share/doc/$APP_NAME/"
+fi
 
 # Copy libmpv and dependencies
 INTERNAL_DIR="$APPDIR/usr/bin/_internal"

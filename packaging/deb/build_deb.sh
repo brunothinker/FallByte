@@ -10,6 +10,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 VERSION="${1:-${APP_VERSION:-1.0.0}}"
 ICON_SRC="${2:-${ICON_SRC:-$PROJECT_ROOT/resources/icons/fallbyte_icon.png}}"
+NOTICES_SRC="$PROJECT_ROOT/THIRD_PARTY_NOTICES.md"
 
 BUILD_DIR="$PROJECT_ROOT/build"
 PYINSTALLER_DIR="$BUILD_DIR/pyinstaller/dist/FallByte"
@@ -31,11 +32,17 @@ mkdir -p "$DEB_STAGING/usr/bin"
 mkdir -p "$DEB_STAGING/usr/lib/$APP_NAME"
 mkdir -p "$DEB_STAGING/usr/share/applications"
 mkdir -p "$DEB_STAGING/usr/share/icons/hicolor/256x256/apps"
+mkdir -p "$DEB_STAGING/usr/share/doc/$APP_NAME"
 
 # 2. Copy compiled artifacts
 echo "--> [2/4] Copying compiled binaries and assets..."
 cp -r "$PYINSTALLER_DIR"/* "$DEB_STAGING/usr/lib/$APP_NAME/"
 cp "$ICON_SRC" "$DEB_STAGING/usr/share/icons/hicolor/256x256/apps/$APP_NAME.png"
+
+if [ -f "$NOTICES_SRC" ]; then
+    cp "$NOTICES_SRC" "$DEB_STAGING/usr/share/doc/$APP_NAME/"
+    cp "$NOTICES_SRC" "$DEB_STAGING/usr/lib/$APP_NAME/"
+fi
 
 chmod +x "$DEB_STAGING/usr/lib/$APP_NAME/FallByte"
 ln -s "/usr/lib/$APP_NAME/FallByte" "$DEB_STAGING/usr/bin/$APP_NAME"

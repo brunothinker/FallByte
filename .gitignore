@@ -1,6 +1,7 @@
 # Build and compilation outputs
 build/
 dist/
+*.spec
 packaging/FallByte.spec
 
 # Final installer packages

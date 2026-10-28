@@ -62,13 +62,15 @@ python main.py
 
 ## Stack
 
-* **Language:** Python
-* **UI Framework:** Flet (Flutter for Python)
-* **Image Processing:** Pillow (PIL)
-* **Media Engine (Upcoming):** FFmpeg (Static Binaries)
+- **Language:** Python
+- **UI Framework:** Flet (Flutter for Python)
+- **Image Processing:** Pillow (PIL)
+- **Media Engine:** FFmpeg (Static Binaries)
 
 ---
 
-## License
+## License & Third-Party Notices
 
-Licensed under the **GNU General Public License v3.0**.
+FallByte is licensed under the **GNU General Public License v3.0** (GPLv3).
+
+This project bundles third-party binaries (such as FFmpeg static builds) and depends on open-source libraries (Flet, Pillow, PyYAML). For detailed third-party licensing terms, source code locations, and binary build configurations, please refer to [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

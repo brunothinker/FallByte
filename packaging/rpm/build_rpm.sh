@@ -10,6 +10,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 VERSION="${1:-${APP_VERSION:-1.0.0}}"
 ICON_SRC="${2:-${ICON_SRC:-$PROJECT_ROOT/resources/icons/fallbyte_icon.png}}"
+NOTICES_SRC="$PROJECT_ROOT/THIRD_PARTY_NOTICES.md"
 
 BUILD_DIR="$PROJECT_ROOT/build"
 PYINSTALLER_DIR="$BUILD_DIR/pyinstaller/dist/FallByte"
@@ -42,6 +43,9 @@ mkdir -p "$RPM_STAGE_DIR/SOURCES/FallByte"
 echo "--> [2/4] Staging build artifacts and spec file..."
 cp -r "$PYINSTALLER_DIR"/* "$RPM_STAGE_DIR/SOURCES/FallByte/"
 cp "$ICON_SRC" "$RPM_STAGE_DIR/SOURCES/fallbyte_icon.png"
+if [ -f "$NOTICES_SRC" ]; then
+    cp "$NOTICES_SRC" "$RPM_STAGE_DIR/SOURCES/FallByte/"
+fi
 cp "$SPEC_FILE" "$RPM_STAGE_DIR/SPECS/"
 
 # 3. Build RPM package

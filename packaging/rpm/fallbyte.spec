@@ -1,9 +1,9 @@
 Name:           fallbyte
-Version:        1.1.2
+Version:        1.0.0
 Release:        1%{?dist}
 Summary:        Local-first media optimization tool
 
-License:        MIT
+License:        GPLv3
 URL:            https://github.com/brunothinker/fallbyte
 BuildArch:      x86_64
 
