@@ -395,3 +395,66 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
     page.dialog = dialog
     dialog.open = True
     page.update()
+
+
+def show_no_supported_files_dialog(page: ft.Page, formats: list[str]) -> None:
+    """Warns that the selected folder has no files the operation can process.
+
+    Replaces the success message and the results dialog when a batch finds
+    zero supported files, listing the formats the module accepts.
+
+    Args:
+        page: Active Flet Page instance to present the modal.
+        formats: Upper-case format names accepted by the calling module.
+    """
+
+    def close_dialog(_: ft.ControlEvent) -> None:
+        """Closes the no supported files dialog."""
+        dialog.open = False
+        page.update()
+
+    dialog = ft.AlertDialog(
+        modal=True,
+        title=ft.Row(
+            [
+                ft.Icon(ft.icons.WARNING_AMBER_ROUNDED, color=get_color("warning")),
+                ft.Text(
+                    t("dialog_no_files_title"),
+                    size=18,
+                    weight=ft.FontWeight.BOLD,
+                    color=get_color("text"),
+                ),
+            ],
+            spacing=10,
+        ),
+        content=ft.Container(
+            width=420,
+            content=ft.Column(
+                [
+                    ft.Text(t("dialog_no_files_body"), size=13),
+                    ft.Text(
+                        t("dialog_no_files_formats", formats=", ".join(formats)),
+                        size=12,
+                        weight=ft.FontWeight.W_600,
+                        color=get_color("subtext"),
+                        selectable=True,
+                    ),
+                ],
+                spacing=12,
+                tight=True,
+            ),
+        ),
+        actions=[
+            ft.ElevatedButton(
+                t("btn_ok"),
+                bgcolor=get_color("primary"),
+                color=get_color("text"),
+                on_click=close_dialog,
+            )
+        ],
+        actions_alignment=ft.MainAxisAlignment.END,
+    )
+
+    page.dialog = dialog
+    dialog.open = True
+    page.update()

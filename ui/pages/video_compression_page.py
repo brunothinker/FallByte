@@ -4,16 +4,14 @@ from pathlib import Path
 import flet as ft
 
 from ui.components.io_picker_card import create_clickable_card
-from ui.controllers.video_compression_controller import (
-    SUPPORTED_VIDEO_EXTS,
-    VideoCompressionController,
-)
+from ui.controllers.video_compression_controller import VideoCompressionController
 from ui.i18n import t
 from ui.theme import (
     BUTTON_HEIGHT,
     FORM_WIDTH,
     get_color,
 )
+from ui.utils.format_utils import format_list, video_input_formats
 
 
 def create_video_compression_page(
@@ -172,10 +170,8 @@ def create_video_compression_page(
         height=BUTTON_HEIGHT,
     )
 
-    # Formata a lista de extensões de vídeo suportadas
-    supported_video_str = ", ".join(sorted(ext.upper() for ext in SUPPORTED_VIDEO_EXTS))
     lbl_notice = ft.Text(
-        t("msg_supported_formats_notice", formats=supported_video_str),
+        t("msg_supported_formats_notice", formats=format_list(video_input_formats())),
         size=11,
         color=get_color("subtext"),
         text_align=ft.TextAlign.CENTER,

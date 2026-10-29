@@ -3,7 +3,6 @@ from pathlib import Path
 
 import flet as ft
 
-from src.image.compression.image_file_compression import UNCOMPRESSIBLE_FORMATS
 from ui.components.io_picker_card import create_clickable_card
 from ui.components.quality_selector import QualitySelector
 from ui.controllers.image_compression_controller import CompressionController
@@ -13,6 +12,7 @@ from ui.theme import (
     FORM_WIDTH,
     get_color,
 )
+from ui.utils.format_utils import format_list, image_compression_formats
 
 
 def create_compression_page(
@@ -129,12 +129,8 @@ def create_compression_page(
         height=BUTTON_HEIGHT,
     )
 
-    all_known = {"JPEG", "JPG", "PNG", "WEBP", "TIFF", "TIF", "JFIF", "MPO", "BMP", "PPM", "GIF", "ICO"}
-    supported_formats = all_known - UNCOMPRESSIBLE_FORMATS
-    supported_img_str = ", ".join(sorted(supported_formats))
-
     lbl_notice = ft.Text(
-        t("msg_supported_formats_notice", formats=supported_img_str),
+        t("msg_supported_formats_notice", formats=format_list(image_compression_formats())),
         size=11,
         color=get_color("subtext"),
         text_align=ft.TextAlign.CENTER,

@@ -176,7 +176,8 @@ end
 
 - **QualitySelector (`quality_selector.py`):** Self-contained reactive component inheriting from `ft.Column`. Implements real-time bidirectional synchronization between a `Slider` (1-100) control and a `TextField` with focus-loss validation (`on_blur`).
 - **IOPickerCard (`io_picker_card.py`):** Encapsulates responsive cards with ink ripple effects for click visual feedback and clean display of the selected directory/file path.
-- **DialogUtils (`dialog_utils.py`):** Manages the post-execution summary modal (`show_summary_dialog`), computing overall space reduction statistics (original vs reduced bytes), success/failure counts, and expandable log details with contextual color support.
+- **DialogUtils (`dialog_utils.py`):** Manages the post-execution summary modal (`show_summary_dialog`), computing overall space reduction statistics (original vs reduced bytes), success/failure counts, and expandable log details with contextual color support. It also provides `show_no_supported_files_dialog`, shown instead of the success message and summary when the selected folder has no files the module can process (orchestrators flag this with `no_files` in their stats).
+- **FormatUtils (`utils/format_utils.py`):** Builds the supported-format lists shown in the UI (page notices and the no-files dialog) directly from the scanners' extension sets, so conversion and compression pages never drift out of sync with what is actually processed.
 - **Global Theme (`theme.py`):** Centralizes design tokens maintaining visual consistency (`COLOR_CARD_BG`, `COLOR_PRIMARY`, `COLOR_SUCCESS`, `COLOR_ERROR`, `FORM_WIDTH = 550px`).
 
 ---

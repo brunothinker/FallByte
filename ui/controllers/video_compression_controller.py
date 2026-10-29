@@ -8,17 +8,18 @@ import flet as ft
 
 from src.video.compression.video_directory_compression import directory_compressor
 from src.video.compression.video_file_compression import file_compressor
-from ui.components.dialog_utils import show_summary_dialog
+from src.video.utils.video_scanner import SUPPORTED_VIDEO_EXTENSIONS
+from ui.components.dialog_utils import (
+    show_no_supported_files_dialog,
+    show_summary_dialog,
+)
 from ui.i18n import t
 from ui.theme import get_color
+from ui.utils.format_utils import video_input_formats
 
+# Derived from the scanner so the pre-flight check and the batch scan always agree.
 SUPPORTED_VIDEO_EXTS: set[str] = {
-    "mp4",
-    "mkv",
-    "webm",
-    "mov",
-    "avi",
-    "wmv",
+    ext.lstrip(".") for ext in SUPPORTED_VIDEO_EXTENSIONS
 }
 
 
@@ -260,7 +261,6 @@ class VideoCompressionController:
 
         out_file = self.selected_output_dir / self.selected_input.name
 
-        # Uses identical formatting string as batch progress
         lbl_status.value = t(
             "msg_compressing_progress",
             current=1,
@@ -381,6 +381,13 @@ class VideoCompressionController:
                 supported_files.append(f)
             else:
                 unsupported_files.append(f)
+
+        if len(supported_files) == 0:
+            # Block execution: there is nothing this module can compress.
+            lbl_status.value = ""
+            lbl_status.update()
+            show_no_supported_files_dialog(page, video_input_formats())
+            return
 
         if len(unsupported_files) > 0:
             ext_set = {f.suffix.upper() for f in unsupported_files if f.suffix}
@@ -582,6 +589,15 @@ class VideoCompressionController:
                 self.cancel_dialog = None
 
             if not self.abort_requested:
+                if summary.get("no_files", False):
+                    # Nothing was processed: skip success message and summary dialog.
+                    progress_bar.visible = False
+                    progress_bar.update()
+                    lbl_status.value = ""
+                    lbl_status.update()
+                    show_no_supported_files_dialog(page, video_input_formats())
+                    return
+
                 progress_bar.value = 1.0
                 progress_bar.update()
 

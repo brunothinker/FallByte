@@ -43,6 +43,8 @@ def directory_converter(
     Returns:
         Dict[str, Any]: A summary dictionary containing conversion
         statistics, byte sizes, elapsed time, and cancellation state.
+        When the directory has no supported files, "no_files" is set to True and
+        nothing is processed; callers must not report success in that case.
     """
     stats = {
         "success": 0,
@@ -65,7 +67,8 @@ def directory_converter(
         total_files = len(video_files)
 
         if total_files == 0:
-            logger.warning(f"No valid video files found in '{input_dir}'.")
+            logger.warning(f"No valid files found in '{input_dir}'.")
+            stats["no_files"] = True
             return stats
 
         output_dir = create_unique_output_dir(output_dir, "converted")

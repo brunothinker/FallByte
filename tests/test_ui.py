@@ -3,6 +3,9 @@ from unittest.mock import MagicMock, patch
 import flet as ft
 
 from ui.controllers.image_compression_controller import CompressionController
+from ui.controllers.image_conversion_controller import ConversionController
+from ui.controllers.video_compression_controller import VideoCompressionController
+from ui.controllers.video_conversion_controller import VideoConversionController
 
 
 def test_mock_page_initialization(mock_page):
@@ -141,3 +144,153 @@ def test_processing_state_locks_global_navigation(mock_page):
     mock_page.session.get.return_value = True
 
     assert mock_page.session.get("is_processing") is True
+
+
+def test_video_compression_preflight_empty_supported_files(tmp_workspace, mock_page):
+    """Verifies that preflight stops early when no supported video files exist in the batch directory."""
+    in_dir, out_dir = tmp_workspace
+    (in_dir / "document.pdf").write_bytes(b"pdf data")
+
+    controller = VideoCompressionController()
+    controller.selected_input = in_dir
+    controller.selected_output_dir = out_dir
+
+    lbl_status = MagicMock(spec=ft.Text)
+    progress_bar = MagicMock(spec=ft.ProgressBar)
+    btn_action = MagicMock(spec=ft.ElevatedButton)
+
+    with patch(
+        "ui.controllers.video_compression_controller.show_no_supported_files_dialog"
+    ) as mock_no_files, patch(
+        "ui.controllers.video_compression_controller.threading.Thread"
+    ) as mock_thread:
+        controller._preflight_batch_execution(
+            page=mock_page,
+            quality=80,
+            lbl_status=lbl_status,
+            progress_bar=progress_bar,
+            btn_action=btn_action,
+        )
+
+        mock_no_files.assert_called_once()
+        formats = mock_no_files.call_args.args[1]
+        assert "MP4" in formats and "PDF" not in formats
+        # Execution must be blocked: no worker thread started.
+        mock_thread.assert_not_called()
+
+
+def test_image_compression_batch_no_supported_files(tmp_workspace, mock_page):
+    """Verifies image compression controller handles empty/unsupported batch directories gracefully."""
+    in_dir, out_dir = tmp_workspace
+    (in_dir / "text.txt").write_bytes(b"text data")
+
+    controller = CompressionController()
+    controller.selected_input = in_dir
+    controller.selected_output_dir = out_dir
+
+    lbl_status = MagicMock(spec=ft.Text)
+    progress_bar = MagicMock(spec=ft.ProgressBar)
+    btn_action = MagicMock(spec=ft.ElevatedButton)
+
+    with patch("ui.controllers.image_compression_controller.show_summary_dialog") as mock_summary, patch(
+        "ui.controllers.image_compression_controller.show_no_supported_files_dialog"
+    ) as mock_no_files:
+        controller._run_batch_compression(
+            page=mock_page,
+            quality=80,
+            lbl_status=lbl_status,
+            progress_bar=progress_bar,
+            btn_action=btn_action,
+        )
+
+        mock_summary.assert_not_called()
+        mock_no_files.assert_called_once()
+        assert "JPG" in mock_no_files.call_args.args[1]
+        assert progress_bar.visible is False
+
+
+def test_image_conversion_batch_no_supported_files(tmp_workspace, mock_page):
+    """Verifies image conversion controller handles empty/unsupported batch directories gracefully."""
+    in_dir, out_dir = tmp_workspace
+    (in_dir / "text.txt").write_bytes(b"text data")
+
+    controller = ConversionController()
+    controller.selected_input = in_dir
+    controller.selected_output_dir = out_dir
+
+    lbl_status = MagicMock(spec=ft.Text)
+    progress_bar = MagicMock(spec=ft.ProgressBar)
+    btn_action = MagicMock(spec=ft.ElevatedButton)
+
+    with patch("ui.controllers.image_conversion_controller.show_summary_dialog") as mock_summary, patch(
+        "ui.controllers.image_conversion_controller.show_no_supported_files_dialog"
+    ) as mock_no_files:
+        controller._execute_batch_directory(
+            page=mock_page,
+            target_format="webp",
+            selected_color_key="transparent",
+            lbl_status=lbl_status,
+            progress_bar=progress_bar,
+            btn_action=btn_action,
+        )
+
+        mock_summary.assert_not_called()
+        mock_no_files.assert_called_once()
+        assert "BMP" in mock_no_files.call_args.args[1]
+        assert progress_bar.visible is False
+
+
+def test_video_conversion_batch_no_supported_files(tmp_workspace, mock_page):
+    """Verifies video conversion controller handles empty/unsupported batch directories gracefully."""
+    in_dir, out_dir = tmp_workspace
+    (in_dir / "text.txt").write_bytes(b"text data")
+
+    controller = VideoConversionController()
+    controller.selected_input = in_dir
+    controller.selected_output_dir = out_dir
+
+    lbl_status = MagicMock(spec=ft.Text)
+    progress_bar = MagicMock(spec=ft.ProgressBar)
+    btn_action = MagicMock(spec=ft.ElevatedButton)
+
+    with patch("ui.controllers.video_conversion_controller.show_summary_dialog") as mock_summary, patch(
+        "ui.controllers.video_conversion_controller.show_no_supported_files_dialog"
+    ) as mock_no_files:
+        controller._execute_batch_directory(
+            page=mock_page,
+            target_format="mp4",
+            lbl_status=lbl_status,
+            progress_bar=progress_bar,
+            btn_action=btn_action,
+        )
+
+        mock_summary.assert_not_called()
+        mock_no_files.assert_called_once()
+        assert "MKV" in mock_no_files.call_args.args[1]
+        assert progress_bar.visible is False
+
+def test_format_utils_lists_follow_scanners():
+    """Format lists shown in the UI must come from the scanners and not drift."""
+    from ui.utils.format_utils import (
+        image_compression_formats,
+        image_input_formats,
+        video_input_formats,
+    )
+
+    assert {"JPG", "PNG", "WEBP", "BMP", "GIF"} <= set(image_input_formats())
+    # Scanned-but-uncompressible formats are not advertised for compression.
+    assert not {"BMP", "PPM", "GIF", "ICO"} & set(image_compression_formats())
+    assert {"JPG", "PNG", "WEBP"} <= set(image_compression_formats())
+    assert set(video_input_formats()) == {"MP4", "MKV", "WEBM", "MOV", "AVI", "WMV"}
+
+
+def test_no_supported_files_dialog_lists_formats(mock_page):
+    """The dialog must be opened on the page and mention the accepted formats."""
+    from ui.components.dialog_utils import show_no_supported_files_dialog
+
+    show_no_supported_files_dialog(mock_page, ["MP4", "MKV"])
+
+    dialog = mock_page.dialog
+    assert dialog is not None and dialog.open is True
+    texts = [c.value for c in dialog.content.content.controls]
+    assert any("MP4, MKV" in text for text in texts)

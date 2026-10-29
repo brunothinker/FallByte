@@ -113,6 +113,10 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "lbl_quality_percentage": "Qualidade: {value}%",
         "msg_uncompressible_notice": "Nota: Formatos brutos ou especiais ({formats}) não suportam compressão direta e serão mantidos intactos.",
         "msg_supported_formats_notice": "Formatos suportados para compressão: {formats}",
+        "msg_supported_formats_notice_conversion": "Formatos suportados para conversão: {formats}",
+        "dialog_no_files_title": "Nenhum Arquivo Suportado",
+        "dialog_no_files_body": "A pasta selecionada não contém arquivos compatíveis com esta operação.",
+        "dialog_no_files_formats": "Formatos suportados: {formats}",
     },
     "en": {
         # Navigation & Sidebar
@@ -217,6 +221,10 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "lbl_quality_percentage": "Quality: {value}%",
         "msg_uncompressible_notice": "Note: Raw or special formats ({formats}) do not support direct compression and will be kept intact.",
         "msg_supported_formats_notice": "Supported formats for compression: {formats}",
+        "msg_supported_formats_notice_conversion": "Supported formats for conversion: {formats}",
+        "dialog_no_files_title": "No Supported Files",
+        "dialog_no_files_body": "The selected folder has no files compatible with this operation.",
+        "dialog_no_files_formats": "Supported formats: {formats}",
     },
     "es": {
         # Navigation & Sidebar
@@ -321,6 +329,10 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "lbl_quality_percentage": "Calidad: {value}%",
         "msg_uncompressible_notice": "Nota: Los formatos brutos o especiales ({formats}) no admiten compresión directa y se mantendrán intactos.",
         "msg_supported_formats_notice": "Formatos compatibles para compresión: {formats}",
+        "msg_supported_formats_notice_conversion": "Formatos compatibles para conversión: {formats}",
+        "dialog_no_files_title": "Ningún Archivo Compatible",
+        "dialog_no_files_body": "La carpeta seleccionada no contiene archivos compatibles con esta operación.",
+        "dialog_no_files_formats": "Formatos compatibles: {formats}",
     },
 }
 

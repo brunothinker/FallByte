@@ -14,6 +14,7 @@ from ui.theme import (
     FORM_WIDTH,
     get_color,
 )
+from ui.utils.format_utils import format_list, video_input_formats
 
 
 def create_video_conversion_page(
@@ -137,6 +138,13 @@ def create_video_conversion_page(
         height=BUTTON_HEIGHT,
     )
 
+    lbl_notice = ft.Text(
+        t("msg_supported_formats_notice_conversion", formats=format_list(video_input_formats())),
+        size=11,
+        color=get_color("subtext"),
+        text_align=ft.TextAlign.CENTER,
+    )
+
     def on_action_click(_: ft.ControlEvent) -> None:
         """Handles action button clicks forwarding execution state to controller."""
         controller.handle_action_click(
@@ -179,6 +187,7 @@ def create_video_conversion_page(
                     ft.Container(height=5),
                     progress_bar,
                     btn_action,
+                    lbl_notice,
                     lbl_status,
                 ],
                 spacing=12,

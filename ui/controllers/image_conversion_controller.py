@@ -9,10 +9,14 @@ import flet as ft
 from src.image.conversion.image_directory_conversion import directory_converter
 from src.image.conversion.image_file_conversion import file_converter
 from src.utils.output_naming import unique_conversion_output_path
-from ui.components.dialog_utils import show_summary_dialog
+from ui.components.dialog_utils import (
+    show_no_supported_files_dialog,
+    show_summary_dialog,
+)
 from ui.i18n import t
 from ui.theme import get_color
 from ui.utils.conversion_utils import resolve_color_key_to_hex
+from ui.utils.format_utils import image_input_formats
 
 
 class TextRedirector(logging.Handler):
@@ -454,6 +458,15 @@ class ConversionController:
                 self.cancel_dialog = None
 
             if not self.abort_requested:
+                if summary.get("no_files", False):
+                    # Nothing was processed: skip success message and summary dialog.
+                    progress_bar.visible = False
+                    progress_bar.update()
+                    lbl_status.value = ""
+                    lbl_status.update()
+                    show_no_supported_files_dialog(page, image_input_formats())
+                    return
+
                 progress_bar.value = 1.0
                 progress_bar.update()
 

@@ -48,6 +48,8 @@ def directory_converter(
             - compressed_bytes (int): Total size of output converted files in bytes.
             - cancelled (bool): True if operation was interrupted by user.
             - cleaned_files_count (int): Count of files deleted during cancellation cleanup.
+            - no_files (bool): Only present (True) when the directory has no supported
+                files; nothing was processed and callers must not report success.
     """
     stats = {
         "success": 0,
@@ -69,7 +71,8 @@ def directory_converter(
         total_files = len(image_files)
 
         if total_files == 0:
-            logger.warning(f"No valid image files found in '{input_dir}'.")
+            logger.warning(f"No valid files found in '{input_dir}'.")
+            stats["no_files"] = True
             return stats
 
         output_dir = create_unique_output_dir(output_dir, "converted")
