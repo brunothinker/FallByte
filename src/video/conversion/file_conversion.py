@@ -1,5 +1,6 @@
 import logging
 import shutil
+import threading
 from pathlib import Path
 
 from src.video.utils.binary_manager import get_ffmpeg_path
@@ -96,6 +97,7 @@ def file_converter(
     input_path: Path,
     output_path: Path,
     target_format: str,
+    cancel_event: threading.Event | None = None,
 ) -> bool:
     """Converts a video file to the specified target format using FFmpeg.
 
@@ -115,9 +117,14 @@ def file_converter(
         output_path (Path): Path where the converted video will be saved.
         target_format (str): Desired output extension/format (e.g., 'mp4',
           'mkv', 'webm', 'mov', 'avi', 'wmv').
+        cancel_event (threading.Event, optional): Event that, when set,
+          terminates the running FFmpeg process. Defaults to None.
 
     Returns:
         bool: True if conversion succeeded, False otherwise.
+
+    Raises:
+        InterruptedError: If cancellation was requested via cancel_event.
     """
     try:
         if not input_path.exists() or input_path.stat().st_size == 0:
@@ -172,7 +179,9 @@ def file_converter(
             audio_ok,
         )
 
-        used = run_strategies(strategies, output_path, input_path.name)
+        used = run_strategies(
+            strategies, output_path, input_path.name, cancel_event
+        )
         if used is None:
             output_path.unlink(missing_ok=True)
             return False
@@ -181,6 +190,10 @@ def file_converter(
             f"Successfully converted '{input_path.name}' to '{target_fmt}'."
         )
         return True
+
+    except InterruptedError:
+        output_path.unlink(missing_ok=True)
+        raise
 
     except Exception:
             logger.exception(f"Failed to convert '{input_path.name}'.")

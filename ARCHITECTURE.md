@@ -150,6 +150,7 @@ actor User as User
 participant Controller as Controller
 participant Dialog as Abort Modal
 participant Engine as Batch Engine (src)
+participant FFmpeg as FFmpeg Process (video only)
 participant Cleanup as safe_cleanup_session_files
 
 User->>Controller: Clicks Stop Process
@@ -157,9 +158,10 @@ Controller->>Dialog: Renders Confirmation Modal
 
 alt User confirms abort
     User->>Dialog: Clicks Stop and Delete
-    Dialog->>Controller: Sets abort_requested = True
-    Engine->>Controller: Progress Callback
-    Controller-->>Engine: Raises InterruptedError
+    Dialog->>Controller: Sets abort_requested = True and cancel_event
+    Controller-->>Engine: cancel_event signals the running file
+    Engine->>FFmpeg: terminate(), then kill() after timeout
+    Engine->>Engine: Removes partial output and raises InterruptedError
     Engine->>Cleanup: Purges created files and empty subfolders
     Cleanup-->>Engine: Returns total cleaned
     Engine-->>Controller: Returns stats with cancelled=True
@@ -278,9 +280,12 @@ loop For each file
     
     alt User Clicks Cancel
         User->>Worker: Abort Session
-        Worker->>DirOrch: Raises InterruptedError
+        Worker->>FileProc: cancel_event.set()
+        Note over FileProc: Terminates FFmpeg and removes the partial output
+        FileProc-->>DirOrch: Raises InterruptedError
         DirOrch->>Cleanup: safe_cleanup_session_files
         Note over Cleanup: Purges ONLY created destination files and empty subfolders
+        DirOrch->>DirOrch: Removes the session folder if it is empty
         Cleanup-->>DirOrch: Returns cleaned file count
         DirOrch-->>Worker: Returns stats with cancelled=True
     end
@@ -312,6 +317,14 @@ The cleanup utilities (`image_cleanup.py` and `video_cleanup.py`) guarantee that
 1. **Restricted Scope:** Only instances present in `created_destination_files` are targeted for deletion.
 2. **Root Protection:** The check `dst_file.parent != root_output_dir` prevents the root output directory selected by the user from being removed.
 3. **Clean Recursive Cleanup:** Only subdirectories created in the current session that remain completely empty after file removal are deleted.
+4. **Session Folder Removal:** The unique session folder (`compressed`/`converted`) created for a cancelled video batch is removed with `rmdir()`, which only succeeds when it is empty.
+
+### F. FFmpeg Cancellation and Process Lifecycle (`ffmpeg_utils.py`)
+
+1. **Cancel Signal:** Controllers own a `threading.Event` (`cancel_event`) that is cleared when a run starts and set when the user confirms the abort. It is forwarded through the directory processors and file processors to `run_strategies()`.
+2. **Non-Blocking Execution:** `run_strategies()` launches FFmpeg with `subprocess.Popen` and polls the cancel event while the process runs, instead of blocking until it finishes.
+3. **Termination:** On cancellation the process receives `terminate()` and, after a grace period, `kill()`. The partial output file is deleted, no further strategies are attempted, and `InterruptedError` is raised so the existing batch cleanup flow keeps working. The file processors re-raise it instead of reporting a regular failure.
+4. **Exit Hook:** Running processes are tracked in a registry together with their output files. `terminate_active_processes()` is registered with `atexit` to avoid orphan FFmpeg processes and partial outputs when the application closes during an encode.
 
 ---
 

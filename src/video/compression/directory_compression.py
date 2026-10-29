@@ -1,4 +1,5 @@
 import logging
+import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -20,6 +21,7 @@ def directory_compressor(
     output_dir: Path,
     quality: int = 80,
     progress_callback: Callable[[VideoProgressInfo], None] | None = None,
+    cancel_event: threading.Event | None = None,
 ) -> dict[str, Any]:
     """Scans an input directory for video files, compresses each file, and saves them to output_dir.
 
@@ -36,6 +38,9 @@ def directory_compressor(
         progress_callback (Callable[[VideoProgressInfo], None], optional): Callback
           function invoked after processing each file, receiving a
           VideoProgressInfo instance. Defaults to None.
+        cancel_event (threading.Event, optional): Event that, when set,
+          terminates the running FFmpeg process and cancels the batch.
+          Defaults to None.
 
     Returns:
         Dict[str, Any]: A summary dictionary containing compression
@@ -52,6 +57,7 @@ def directory_compressor(
     }
     start_time = time.perf_counter()
     created_destination_files: list[Path] = []
+    session_dir: Path | None = None
 
     try:
         # Scan input directory for valid video files
@@ -63,6 +69,7 @@ def directory_compressor(
             return stats
 
         output_dir = create_unique_output_dir(output_dir, "compressed")
+        session_dir = output_dir
 
         # Iterate over discovered files and execute compression
         for index, file_path in enumerate(video_files, start=1):
@@ -76,11 +83,12 @@ def directory_compressor(
                 orig_size = 0
             stats["original_bytes"] += orig_size
 
-            # Execute single file compression (never raises)
+            # Execute single file compression (raises InterruptedError on cancel)
             success = file_compressor(
                 input_path=file_path,
                 output_path=destination_path,
                 quality=quality,
+                cancel_event=cancel_event,
             )
 
             comp_size = 0
@@ -118,6 +126,13 @@ def directory_compressor(
         cleaned_count = safe_cleanup_video_session_files(
             created_files=created_destination_files, root_output_dir=output_dir
         )
+
+        # Remove the session folder only if cancellation left it empty
+        if session_dir is not None:
+            try:
+                session_dir.rmdir()
+            except OSError:
+                pass
 
         stats["cleaned_files_count"] = cleaned_count
         stats["elapsed_seconds"] = round(time.perf_counter() - start_time, 2)

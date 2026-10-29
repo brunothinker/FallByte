@@ -6,12 +6,15 @@ same way on unusual files (10-bit, odd dimensions, extra subtitle/data
 streams, exotic audio codecs, broken timestamps, etc.).
 """
 
+import atexit
 import logging
 import re
 import subprocess
 import sys
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import cast
 
 # Setup module logger
 logger = logging.getLogger(__name__)
@@ -49,6 +52,11 @@ SAFE_VIDEO_FILTER: list[str] = [
 ]
 # Input options that help with damaged files / broken timestamps.
 RESCUE_INPUT_ARGS: list[str] = ["-fflags", "+genpts", "-err_detect", "ignore_err"]
+
+# Polling interval (seconds) used to check for cancellation while FFmpeg runs.
+CANCEL_POLL_INTERVAL = 0.2
+# Grace period (seconds) before a terminated FFmpeg process is force-killed.
+TERMINATE_TIMEOUT = 3.0
 
 _STREAM_RE = re.compile(r"Stream #\d+:\d+.*?: (Video|Audio): (\w+)")
 _STANDARD_PIX_FMT_RE = re.compile(r"\byuvj?420p\b")
@@ -193,22 +201,90 @@ def get_codec_args(target_fmt: str, quality: int | None = None) -> list[str]:
     ]
 
 
+# FFmpeg processes currently running, mapped to the output file they write.
+_active_processes: dict[subprocess.Popen[bytes], Path] = {}
+_active_lock = threading.Lock()
+
+
+def terminate_active_processes() -> None:
+    """Kills every running FFmpeg process and removes its partial output file."""
+    with _active_lock:
+        active = list(_active_processes.items())
+
+    for process, output_path in active:
+        if process.poll() is None:
+            process.kill()
+            process.wait()
+        output_path.unlink(missing_ok=True)
+
+
+# Prevents orphan FFmpeg processes when the application window is closed.
+atexit.register(terminate_active_processes)
+
+
+def _terminate_process(process: subprocess.Popen[bytes]) -> None:
+    """Terminates a running process, escalating to kill if it does not exit in time."""
+    process.terminate()
+    try:
+        process.communicate(timeout=TERMINATE_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.communicate()
+
+
 def run_strategies(
     strategies: list[tuple[str, list[str]]],
     output_path: Path,
     display_name: str,
+    cancel_event: threading.Event | None = None,
 ) -> str | None:
     """Runs FFmpeg strategies in order until one produces a valid output file.
 
     Partial outputs from failed attempts are removed before the next attempt.
+    If cancel_event is set while FFmpeg is running, the process is terminated
+    and the partial output is removed.
+
+    Args:
+        strategies: Ordered (label, command) pairs to attempt.
+        output_path: Destination file produced by the commands.
+        display_name: Source file name used in log messages.
+        cancel_event: Optional event signaling a user cancellation request.
 
     Returns:
         str | None: Label of the successful strategy, or None if all failed.
+
+    Raises:
+        InterruptedError: If cancellation was requested.
     """
     for label, cmd in strategies:
-        result = subprocess.run(cmd, **_subprocess_kwargs())
+        if cancel_event is not None and cancel_event.is_set():
+            raise InterruptedError("CANCELLED_BY_USER")
+
+        process = cast(
+            "subprocess.Popen[bytes]",
+            subprocess.Popen(cmd, **_subprocess_kwargs()),
+        )
+        with _active_lock:
+            _active_processes[process] = output_path
+
+        try:
+            while True:
+                try:
+                    _, stderr_data = process.communicate(
+                        timeout=CANCEL_POLL_INTERVAL
+                    )
+                    break
+                except subprocess.TimeoutExpired:
+                    if cancel_event is not None and cancel_event.is_set():
+                        _terminate_process(process)
+                        output_path.unlink(missing_ok=True)
+                        raise InterruptedError("CANCELLED_BY_USER")
+        finally:
+            with _active_lock:
+                _active_processes.pop(process, None)
+
         if (
-            result.returncode == 0
+            process.returncode == 0
             and output_path.exists()
             and output_path.stat().st_size > 0
         ):
@@ -217,7 +293,7 @@ def run_strategies(
 
         output_path.unlink(missing_ok=True)
         stderr_tail = "\n".join(
-            result.stderr.decode("utf-8", errors="ignore").strip().splitlines()[-4:]
+            (stderr_data or b"").decode("utf-8", errors="ignore").strip().splitlines()[-4:]
         )
         logger.warning(
             f"Strategy '{label}' failed for '{display_name}': {stderr_tail}"

@@ -1,5 +1,6 @@
 import logging
 import shutil
+import threading
 from pathlib import Path
 
 from src.video.utils.binary_manager import get_ffmpeg_path
@@ -75,7 +76,10 @@ def _build_strategies(
 
 
 def file_compressor(
-    input_path: Path, output_path: Path, quality: int = 80
+    input_path: Path,
+    output_path: Path,
+    quality: int = 80,
+    cancel_event: threading.Event | None = None,
 ) -> bool:
     """Compresses a single video file while strictly maintaining its original format.
 
@@ -90,9 +94,14 @@ def file_compressor(
         output_path (Path): Path where the compressed video will be saved.
         quality (int, optional): Quality level percentage (1-100). Higher is
           better quality. Defaults to 80.
+        cancel_event (threading.Event, optional): Event that, when set,
+          terminates the running FFmpeg process. Defaults to None.
 
     Returns:
         bool: True if compression succeeded, False otherwise.
+
+    Raises:
+        InterruptedError: If cancellation was requested via cancel_event.
     """
     try:
         quality = max(1, min(100, int(quality)))
@@ -110,7 +119,9 @@ def file_compressor(
         strategies = _build_strategies(
             ffmpeg_bin, input_path, output_path, target_ext, quality
         )
-        used = run_strategies(strategies, output_path, input_path.name)
+        used = run_strategies(
+            strategies, output_path, input_path.name, cancel_event
+        )
         if used is None:
             return False
 
@@ -128,6 +139,10 @@ def file_compressor(
                 f"[Format: {input_path.suffix.upper()} | Quality: {quality}%]."
             )
         return True
+
+    except InterruptedError:
+        output_path.unlink(missing_ok=True)
+        raise
 
     except Exception as e:
         logger.error(

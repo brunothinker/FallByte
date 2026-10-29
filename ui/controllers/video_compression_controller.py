@@ -88,6 +88,7 @@ class VideoCompressionController:
         self.selected_output_dir: Path | None = None
         self.is_processing: bool = False
         self.abort_requested: bool = False
+        self.cancel_event: threading.Event = threading.Event()
         self.picker_active: bool = False
         self.cancel_dialog: ft.AlertDialog | None = None
 
@@ -245,6 +246,7 @@ class VideoCompressionController:
 
         self.is_processing = True
         self.abort_requested = False
+        self.cancel_event.clear()
         page.session.set("is_processing", True)
 
         btn_action.text = t("btn_stop_process")
@@ -280,6 +282,7 @@ class VideoCompressionController:
                 input_path=self.selected_input,
                 output_path=out_file,
                 quality=quality,
+                cancel_event=self.cancel_event,
             )
             if success:
                 print(f"[OK] {self.selected_input.name}")
@@ -466,6 +469,7 @@ class VideoCompressionController:
             close_dialog(_)
             if self.is_processing:
                 self.abort_requested = True
+                self.cancel_event.set()
                 lbl_status.value = t("msg_cancelling")
                 lbl_status.color = get_color("error")
                 lbl_status.update()
@@ -514,6 +518,7 @@ class VideoCompressionController:
 
         self.is_processing = True
         self.abort_requested = False
+        self.cancel_event.clear()
         page.session.set("is_processing", True)
 
         btn_action.text = t("btn_stop_process")
@@ -565,6 +570,7 @@ class VideoCompressionController:
                 output_dir=self.selected_output_dir,
                 quality=quality,
                 progress_callback=update_progress,
+                cancel_event=self.cancel_event,
             )
 
             if summary.get("cancelled", False):
