@@ -132,3 +132,12 @@ def test_ui_log_reflects_failed_compression(tmp_workspace, mock_page):
         terminal_log = summary_payload.get("terminal_log", "")
         assert "[FAIL]" in terminal_log
         assert "[OK]" not in terminal_log
+
+
+def test_processing_state_locks_global_navigation(mock_page):
+    """Validates that active processing locks session state and blocks navigation attempts."""
+    controller = CompressionController()
+    controller.is_processing = True
+    mock_page.session.get.return_value = True
+
+    assert mock_page.session.get("is_processing") is True

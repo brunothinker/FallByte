@@ -1,3 +1,4 @@
+# app_layout.py
 import logging
 import threading
 import time
@@ -87,6 +88,8 @@ def create_app_layout(
 
     def navigate_to(target_route: str) -> None:
         """Pushes target route to stack and triggers view re-render."""
+        if page.session.get("is_processing"):
+            return
         if navigation_stack[-1] != target_route:
             navigation_stack.append(target_route)
         update_sidebar_active_states()
@@ -95,6 +98,8 @@ def create_app_layout(
 
     def go_back() -> None:
         """Pops active route from stack and returns to previous view."""
+        if page.session.get("is_processing"):
+            return
         if len(navigation_stack) > 1:
             navigation_stack.pop()
             update_sidebar_active_states()
@@ -103,6 +108,8 @@ def create_app_layout(
 
     def open_theme_dialog() -> None:
         """Opens a dialog with categorized Dark and Light presets, feedback progress, and persistence."""
+        if page.session.get("is_processing"):
+            return
 
         def select_theme(key: str) -> None:
             """Handles theme selection and displays progress feedback in the dialog."""
@@ -227,6 +234,8 @@ def create_app_layout(
 
     def open_language_dialog() -> None:
         """Opens a dialog listing the available languages with progress feedback and auto-close."""
+        if page.session.get("is_processing"):
+            return
 
         def select_language(code: str) -> None:
             """Handles language selection, displays progress bar, and closes dialog automatically."""

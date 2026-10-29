@@ -245,6 +245,7 @@ class VideoCompressionController:
 
         self.is_processing = True
         self.abort_requested = False
+        page.session.set("is_processing", True)
 
         btn_action.text = t("btn_stop_process")
         btn_action.icon = ft.icons.STOP
@@ -341,6 +342,7 @@ class VideoCompressionController:
 
         self.is_processing = False
         self.abort_requested = False
+        page.session.set("is_processing", False)
         btn_action.text = t("btn_process")
         btn_action.icon = ft.icons.PLAY_ARROW
         btn_action.bgcolor = get_color("primary")
@@ -512,6 +514,7 @@ class VideoCompressionController:
 
         self.is_processing = True
         self.abort_requested = False
+        page.session.set("is_processing", True)
 
         btn_action.text = t("btn_stop_process")
         btn_action.icon = ft.icons.STOP
@@ -615,6 +618,7 @@ class VideoCompressionController:
 
             self.is_processing = False
             self.abort_requested = False
+            page.session.set("is_processing", False)
             btn_action.text = t("btn_process")
             btn_action.icon = ft.icons.PLAY_ARROW
             btn_action.bgcolor = get_color("primary")
