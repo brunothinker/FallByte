@@ -41,7 +41,7 @@ Choose the appropriate package for your operating system on our official downloa
 | 🪟 **Windows (x64)** | Portable `.zip` | Temporarily Discontinued |
 | 💻 **macOS** | Source execution only | Not Tested |
 
-> 📥 **[Get FallByte for your OS (Official Download Page)](https://brunothinker.github.io/FallByte/)**
+> 📥 **[Get FallByte for your OS (Official Download Page)](https://brunothinker.github.io/page/)**
 > 
 > *Prefer raw build artifacts? You can also browse all compiled files on the [GitHub Releases Page](https://github.com/brunothinker/FallByte/releases).*
 
