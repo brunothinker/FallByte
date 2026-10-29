@@ -1,8 +1,11 @@
 import logging
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
+from src.utils.output_directory import create_unique_output_dir
+from src.utils.output_naming import unique_conversion_output_path
 from src.video.conversion.file_conversion import file_converter
 from src.video.utils.video_cleanup import safe_cleanup_video_session_files
 from src.video.utils.video_progress import VideoProgressInfo
@@ -12,12 +15,13 @@ from src.video.utils.video_scanner import scan_video_files
 logger = logging.getLogger(__name__)
 
 
+
 def directory_converter(
     input_dir: Path,
     output_dir: Path,
     target_format: str,
-    progress_callback: Optional[Callable[[VideoProgressInfo], None]] = None,
-) -> Dict[str, Any]:
+    progress_callback: Callable[[VideoProgressInfo], None] | None = None,
+) -> dict[str, Any]:
     """Scans an input directory for video files, converts each file to the target format, and saves them to output_dir.
 
     Supports real-time progress callbacks, user cancellation, and cleanup of
@@ -45,26 +49,37 @@ def directory_converter(
         "cleaned_files_count": 0,
     }
     start_time = time.perf_counter()
-    created_destination_files: List[Path] = []
+    created_destination_files: list[Path] = []
 
     try:
         # Scan input directory for valid video files
-        video_files = scan_video_files(input_dir)
+        video_files = sorted(
+            scan_video_files(input_dir), key=lambda path: path.as_posix().casefold()
+        )
         total_files = len(video_files)
 
         if total_files == 0:
             logger.warning(f"No valid video files found in '{input_dir}'.")
             return stats
 
+        output_dir = create_unique_output_dir(output_dir, "converted")
         target_fmt = target_format.lower().lstrip(".")
+
+        reserved_paths: set[str] = set()
+        destination_paths = {
+            file_path: unique_conversion_output_path(
+                input_path=file_path,
+                output_dir=output_dir,
+                target_format=target_fmt,
+                reserved_paths=reserved_paths,
+                relative_path=file_path.relative_to(input_dir),
+            )
+            for file_path in video_files
+        }
 
         # Iterate over discovered files and execute conversion
         for index, file_path in enumerate(video_files, start=1):
-            # Preserve directory structure relative to input_dir and change extension
-            relative_path = file_path.relative_to(input_dir)
-            destination_path = (output_dir / relative_path).with_suffix(
-                f".{target_fmt}"
-            )
+            destination_path = destination_paths[file_path]
 
             try:
                 orig_size = file_path.stat().st_size

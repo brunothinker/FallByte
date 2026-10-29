@@ -1,8 +1,10 @@
 import logging
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
+from src.utils.output_directory import create_unique_output_dir
 from src.video.compression.file_compression import file_compressor
 from src.video.utils.video_cleanup import safe_cleanup_video_session_files
 from src.video.utils.video_progress import VideoProgressInfo
@@ -12,12 +14,13 @@ from src.video.utils.video_scanner import scan_video_files
 logger = logging.getLogger(__name__)
 
 
+
 def directory_compressor(
     input_dir: Path,
     output_dir: Path,
     quality: int = 80,
-    progress_callback: Optional[Callable[[VideoProgressInfo], None]] = None,
-) -> Dict[str, Any]:
+    progress_callback: Callable[[VideoProgressInfo], None] | None = None,
+) -> dict[str, Any]:
     """Scans an input directory for video files, compresses each file, and saves them to output_dir.
 
     Supports real-time progress callbacks, user cancellation, and cleanup of
@@ -48,7 +51,7 @@ def directory_compressor(
         "cleaned_files_count": 0,
     }
     start_time = time.perf_counter()
-    created_destination_files: List[Path] = []
+    created_destination_files: list[Path] = []
 
     try:
         # Scan input directory for valid video files
@@ -58,6 +61,8 @@ def directory_compressor(
         if total_files == 0:
             logger.warning(f"No valid video files found in '{input_dir}'.")
             return stats
+
+        output_dir = create_unique_output_dir(output_dir, "compressed")
 
         # Iterate over discovered files and execute compression
         for index, file_path in enumerate(video_files, start=1):

@@ -8,6 +8,7 @@ import flet as ft
 
 from src.image.conversion.directory_conversion import directory_converter
 from src.image.conversion.file_conversion import file_converter
+from src.utils.output_naming import unique_conversion_output_path
 from ui.components.dialog_utils import show_summary_dialog
 from ui.i18n import t
 from ui.theme import get_color
@@ -277,9 +278,10 @@ class ConversionController:
 
         target_fmt = target_format.lower()
         clean_color = resolve_color_key_to_hex(selected_color_key)
-        out_file = (
-            self.selected_output_dir
-            / f"{self.selected_input.stem}_converted.{target_fmt}"
+        out_file = unique_conversion_output_path(
+            input_path=self.selected_input,
+            output_dir=self.selected_output_dir,
+            target_format=target_fmt,
         )
 
         lbl_status.value = t(

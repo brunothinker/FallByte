@@ -1,11 +1,12 @@
-
 import pytest
 from PIL import Image
 
 from src.image.compression.file_compression import file_compressor
+from src.image.conversion import directory_conversion as image_directory_conversion
 from src.image.conversion.file_conversion import file_converter
 from src.image.utils.image_cleanup import safe_cleanup_session_files
 from src.video.compression.file_compression import file_compressor as video_compressor
+from src.video.conversion import directory_conversion as video_directory_conversion
 from src.video.conversion.file_conversion import file_converter as video_converter
 
 IMAGE_TARGET_FORMATS = ["JPEG", "PNG", "WEBP", "BMP", "ICO", "TIFF"]
@@ -51,6 +52,7 @@ def test_ico_sizing_clamp(tmp_workspace, create_sample_image):
 
     dst_ico = out_dir / "icon.ico"
     success = file_converter(large_png, dst_ico, target_format="ICO")
+
     assert success is True
     assert dst_ico.exists()
 
@@ -69,6 +71,7 @@ def test_image_compression_keep_original_when_uncompressible(
 
     dst_gif = out_dir / "compressed.gif"
     success = file_compressor(src_gif, dst_gif, quality=80)
+
     assert success is True
     assert dst_gif.exists()
 
@@ -84,7 +87,9 @@ def test_video_conversion_all_formats(
     src_mp4 = create_sample_video(in_dir / "input.mp4", duration_sec=1)
 
     dst_file = out_dir / f"output.{target_format}"
-    success = video_converter(src_mp4, dst_file, target_format=target_format)
+    success = video_converter(
+        src_mp4, dst_file, target_format=target_format
+    )
 
     assert success is True
     assert dst_file.exists()
@@ -105,6 +110,118 @@ def test_video_compression_levels(tmp_workspace, create_sample_video, quality):
     assert dst_mp4.stat().st_size > 0
 
 
+# --- BATCH CONVERSION TESTS ---
+
+def test_image_batch_conversion_avoids_output_name_collisions(
+    tmp_workspace, monkeypatch
+):
+    """Ensures image batch conversion creates distinct outputs for matching stems."""
+    in_dir, out_dir = tmp_workspace
+    (in_dir / "photo.png").write_bytes(b"png source")
+    (in_dir / "photo.jpg").write_bytes(b"jpg source")
+
+    def fake_converter(
+        input_path, output_path, target_format, transparency_replacement_color
+    ):
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_bytes(input_path.read_bytes())
+        return True
+
+    monkeypatch.setattr(
+        image_directory_conversion, "file_converter", fake_converter
+    )
+
+    stats = image_directory_conversion.directory_converter(
+        in_dir, out_dir, target_format="webp"
+    )
+
+    outputs = list((out_dir / "converted").glob("*.webp"))
+
+    assert stats["success"] == 2
+    assert stats["failed"] == 0
+    assert len(outputs) == 2
+    assert len({path.name for path in outputs}) == 2
+    assert {path.read_bytes() for path in outputs} == {
+        b"png source",
+        b"jpg source",
+    }
+    assert stats["compressed_bytes"] == sum(
+        path.stat().st_size for path in outputs
+    )
+
+
+def test_video_batch_conversion_avoids_output_name_collisions(
+    tmp_workspace, monkeypatch
+):
+    """Ensures video batch conversion creates distinct outputs for matching stems."""
+    in_dir, out_dir = tmp_workspace
+    (in_dir / "clip.avi").write_bytes(b"avi source")
+    (in_dir / "clip.mov").write_bytes(b"mov source")
+
+    def fake_converter(input_path, output_path, target_format):
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_bytes(input_path.read_bytes())
+        return True
+
+    monkeypatch.setattr(
+        video_directory_conversion, "file_converter", fake_converter
+    )
+
+    stats = video_directory_conversion.directory_converter(
+        in_dir, out_dir, target_format="mp4"
+    )
+
+    outputs = list((out_dir / "converted").glob("*.mp4"))
+
+    assert stats["success"] == 2
+    assert stats["failed"] == 0
+    assert len(outputs) == 2
+    assert len({path.name for path in outputs}) == 2
+    assert {path.read_bytes() for path in outputs} == {
+        b"avi source",
+        b"mov source",
+    }
+    assert stats["compressed_bytes"] == sum(
+        path.stat().st_size for path in outputs
+    )
+
+
+def test_image_batch_conversion_preserves_existing_output(
+    tmp_workspace, monkeypatch
+):
+    """Ensures image batch conversion does not overwrite an existing destination."""
+    in_dir, out_dir = tmp_workspace
+    (in_dir / "photo.png").write_bytes(b"png source")
+
+    previous_session = out_dir / "converted"
+    previous_session.mkdir(parents=True)
+
+    existing_output = previous_session / "photo_converted.webp"
+    existing_output.write_bytes(b"existing user data")
+
+    def fake_converter(
+        input_path, output_path, target_format, transparency_replacement_color
+    ):
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_bytes(input_path.read_bytes())
+        return True
+
+    monkeypatch.setattr(
+        image_directory_conversion, "file_converter", fake_converter
+    )
+
+    stats = image_directory_conversion.directory_converter(
+        in_dir, out_dir, target_format="webp"
+    )
+
+    assert stats["success"] == 1
+    assert existing_output.read_bytes() == b"existing user data"
+
+    new_session = out_dir / "converted_1"
+    assert new_session.is_dir()
+    assert len(list(out_dir.rglob("*.webp"))) == 2
+
+
 # --- ADVANCED I/O & EDGE CASES (CASE 1) ---
 
 def test_process_files_with_special_characters_and_spaces(
@@ -113,7 +230,6 @@ def test_process_files_with_special_characters_and_spaces(
     """Ensures file processors handle paths with Unicode characters, spaces, and symbols."""
     in_dir, out_dir = tmp_workspace
 
-    # Complex folder path with spaces, accents, and special characters
     special_folder = in_dir / "Vídeos & Imagens de Teste (2026) #1"
     special_folder.mkdir(parents=True, exist_ok=True)
 
@@ -126,8 +242,12 @@ def test_process_files_with_special_characters_and_spaces(
     out_video = out_dir / "vídeo_convertido_output.mkv"
     out_image = out_dir / "imagem_convertida_output.jpg"
 
-    video_success = video_converter(special_video, out_video, target_format="mkv")
-    image_success = file_converter(special_image, out_image, target_format="JPEG")
+    video_success = video_converter(
+        special_video, out_video, target_format="mkv"
+    )
+    image_success = file_converter(
+        special_image, out_image, target_format="JPEG"
+    )
 
     assert video_success is True
     assert out_video.exists()
@@ -140,7 +260,10 @@ def test_process_non_existent_file_handling(tmp_path):
     fake_input = tmp_path / "ghost_file.mp4"
     fake_output = tmp_path / "output.mp4"
 
-    video_success = video_converter(fake_input, fake_output, target_format="mp4")
+    video_success = video_converter(
+        fake_input, fake_output, target_format="mp4"
+    )
+
     assert video_success is False
     assert not fake_output.exists()
 
@@ -152,7 +275,10 @@ def test_process_corrupted_media_file_handling(tmp_path):
 
     output_file = tmp_path / "failed_output.mp4"
 
-    video_success = video_converter(corrupted_file, output_file, target_format="mp4")
+    video_success = video_converter(
+        corrupted_file, output_file, target_format="mp4"
+    )
+
     assert video_success is False
     assert not output_file.exists()
 

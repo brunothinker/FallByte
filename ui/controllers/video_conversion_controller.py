@@ -6,6 +6,7 @@ from pathlib import Path
 
 import flet as ft
 
+from src.utils.output_naming import unique_conversion_output_path
 from src.video.conversion.directory_conversion import directory_converter
 from src.video.conversion.file_conversion import file_converter
 from ui.components.dialog_utils import show_summary_dialog
@@ -275,9 +276,10 @@ class VideoConversionController:
         progress_bar.update()
 
         target_fmt = target_format.lower()
-        out_file = (
-            self.selected_output_dir
-            / f"{self.selected_input.stem}_converted.{target_fmt}"
+        out_file = unique_conversion_output_path(
+            input_path=self.selected_input,
+            output_dir=self.selected_output_dir,
+            target_format=target_fmt,
         )
 
         lbl_status.value = t(

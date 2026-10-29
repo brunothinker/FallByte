@@ -8,9 +8,12 @@ from src.image.conversion.file_conversion import file_converter
 from src.image.utils.image_cleanup import safe_cleanup_session_files
 from src.image.utils.image_progress import ProgressInfo
 from src.image.utils.image_scanner import scan_image_files
+from src.utils.output_directory import create_unique_output_dir
+from src.utils.output_naming import unique_conversion_output_path
 
 # Setup module logger
 logger = logging.getLogger(__name__)
+
 
 
 def directory_converter(
@@ -60,22 +63,33 @@ def directory_converter(
 
     try:
         # Scan input directory for valid image files
-        image_files = scan_image_files(input_dir)
+        image_files = sorted(
+            scan_image_files(input_dir), key=lambda path: path.as_posix().casefold()
+        )
         total_files = len(image_files)
 
         if total_files == 0:
             logger.warning(f"No valid image files found in '{input_dir}'.")
             return stats
 
+        output_dir = create_unique_output_dir(output_dir, "converted")
         target_fmt = target_format.lower().lstrip(".")
+
+        reserved_paths: set[str] = set()
+        destination_paths = {
+            file_path: unique_conversion_output_path(
+                input_path=file_path,
+                output_dir=output_dir,
+                target_format=target_fmt,
+                reserved_paths=reserved_paths,
+                relative_path=file_path.relative_to(input_dir),
+            )
+            for file_path in image_files
+        }
 
         # Iterate over discovered files and execute conversion
         for index, file_path in enumerate(image_files, start=1):
-            # Preserve directory structure relative to input_dir and change extension
-            relative_path = file_path.relative_to(input_dir)
-            destination_path = (output_dir / relative_path).with_suffix(
-                f".{target_fmt}"
-            )
+            destination_path = destination_paths[file_path]
 
             try:
                 orig_size = file_path.stat().st_size

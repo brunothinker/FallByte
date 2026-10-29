@@ -8,9 +8,11 @@ from src.image.compression.file_compression import file_compressor
 from src.image.utils.image_cleanup import safe_cleanup_session_files
 from src.image.utils.image_progress import ProgressInfo
 from src.image.utils.image_scanner import scan_image_files
+from src.utils.output_directory import create_unique_output_dir
 
 # Setup module logger
 logger = logging.getLogger(__name__)
+
 
 
 def directory_compressor(
@@ -64,6 +66,8 @@ def directory_compressor(
         if total_files == 0:
             logger.warning(f"No valid image files found in '{input_dir}'.")
             return stats
+
+        output_dir = create_unique_output_dir(output_dir, "compressed")
 
         # Iterate over discovered files and execute compression
         for index, file_path in enumerate(image_files, start=1):
