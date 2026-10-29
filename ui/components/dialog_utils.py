@@ -88,6 +88,16 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
                 ]
             ):
                 text_color = get_color("error")
+            # Match warning keywords for amber highlighting
+            elif any(
+                k in line_lower
+                for k in [
+                    "[warning]",
+                    "warning",
+                    "aviso",
+                ]
+            ):
+                text_color = get_color("warning")
             else:
                 text_color = get_color("subtext")
 

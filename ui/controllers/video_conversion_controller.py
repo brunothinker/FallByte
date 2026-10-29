@@ -411,7 +411,10 @@ class VideoConversionController:
                 progress_bar.value = info.current_file_index / info.total_files
                 filename = info.file_path.name if info.file_path else ""
 
-                print(f"[OK] {filename}")
+                if info.success:
+                    print(f"[OK] {filename}")
+                else:
+                    print(f"[FAIL] {filename}")
 
                 lbl_status.value = t(
                     "msg_converting_progress",

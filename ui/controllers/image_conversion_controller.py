@@ -416,7 +416,10 @@ class ConversionController:
                 progress_bar.value = info.current / info.total
                 filename = info.file_path.name if info.file_path else ""
 
-                print(f"[OK] {filename}")
+                if info.success:
+                    print(f"[OK] {filename}")
+                else:
+                    print(f"[FAIL] {filename}")
 
                 lbl_status.value = t(
                     "msg_converting_progress",
