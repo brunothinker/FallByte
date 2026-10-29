@@ -1,16 +1,15 @@
 import logging
-import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from src.image.conversion.image_file_conversion import file_converter
+from src.image.utils.image_cleanup import safe_cleanup_session_files
+from src.image.utils.image_progress import ProgressInfo
+from src.image.utils.image_scanner import scan_image_files
 from src.utils.output_directory import create_unique_output_dir
 from src.utils.output_naming import unique_conversion_output_path
-from src.video.conversion.file_conversion import file_converter
-from src.video.utils.video_cleanup import safe_cleanup_video_session_files
-from src.video.utils.video_progress import VideoProgressInfo
-from src.video.utils.video_scanner import scan_video_files
 
 # Setup module logger
 logger = logging.getLogger(__name__)
@@ -21,28 +20,34 @@ def directory_converter(
     input_dir: Path,
     output_dir: Path,
     target_format: str,
-    progress_callback: Callable[[VideoProgressInfo], None] | None = None,
-    cancel_event: threading.Event | None = None,
+    transparency_replacement_color: str = "#FFFFFF",
+    progress_callback: Callable[[ProgressInfo], None] | None = None,
 ) -> dict[str, Any]:
-    """Scans an input directory for video files, converts each file to the target format, and saves them to output_dir.
+    """Scans an input directory for image files and converts each file to target format.
 
-    Supports real-time progress callbacks, user cancellation, and cleanup of
-    generated files. A failure on one file never aborts the batch.
+    Preserves directory tree hierarchy relative to input_dir, dispatches real-time
+    progress updates to caller callbacks, handles cancellation signals, and performs
+    cleanup of generated session files. A failure on one file never aborts the batch.
 
     Args:
-        input_dir (Path): Path to the source directory containing videos.
+        input_dir (Path): Path to the source directory containing images.
         output_dir (Path): Path to the destination directory where converted
-          videos will be saved.
-        target_format (str): Desired output format (e.g., 'mp4', 'mkv', 'avi').
-        progress_callback (Callable[[ProgressInfo], None], optional): Callback
-          function invoked after processing each file. Defaults to None.
-        cancel_event (threading.Event, optional): Event that, when set,
-          terminates the running FFmpeg process and cancels the batch.
-          Defaults to None.
+            images will be saved.
+        target_format (str): Desired output format (e.g., 'jpeg', 'png', 'webp').
+        transparency_replacement_color (str, optional): Hex color used to replace
+            transparency if target format lacks alpha support. Defaults to "#FFFFFF".
+        progress_callback (Callable[[ProgressInfo], None] | None, optional): Callback
+            function invoked after processing each file. Defaults to None.
 
     Returns:
-        Dict[str, Any]: A summary dictionary containing conversion
-        statistics, byte sizes, elapsed time, and cancellation state.
+        dict[str, Any]: Summary dictionary containing conversion statistics:
+            - success (int): Count of successfully converted files.
+            - failed (int): Count of files that failed processing.
+            - elapsed_seconds (float): Total elapsed processing duration in seconds.
+            - original_bytes (int): Total size of input files in bytes.
+            - compressed_bytes (int): Total size of output converted files in bytes.
+            - cancelled (bool): True if operation was interrupted by user.
+            - cleaned_files_count (int): Count of files deleted during cancellation cleanup.
     """
     stats = {
         "success": 0,
@@ -55,21 +60,19 @@ def directory_converter(
     }
     start_time = time.perf_counter()
     created_destination_files: list[Path] = []
-    session_dir: Path | None = None
 
     try:
-        # Scan input directory for valid video files
-        video_files = sorted(
-            scan_video_files(input_dir), key=lambda path: path.as_posix().casefold()
+        # Scan input directory for valid image files
+        image_files = sorted(
+            scan_image_files(input_dir), key=lambda path: path.as_posix().casefold()
         )
-        total_files = len(video_files)
+        total_files = len(image_files)
 
         if total_files == 0:
-            logger.warning(f"No valid video files found in '{input_dir}'.")
+            logger.warning(f"No valid image files found in '{input_dir}'.")
             return stats
 
         output_dir = create_unique_output_dir(output_dir, "converted")
-        session_dir = output_dir
         target_fmt = target_format.lower().lstrip(".")
 
         reserved_paths: set[str] = set()
@@ -81,11 +84,11 @@ def directory_converter(
                 reserved_paths=reserved_paths,
                 relative_path=file_path.relative_to(input_dir),
             )
-            for file_path in video_files
+            for file_path in image_files
         }
 
         # Iterate over discovered files and execute conversion
-        for index, file_path in enumerate(video_files, start=1):
+        for index, file_path in enumerate(image_files, start=1):
             destination_path = destination_paths[file_path]
 
             try:
@@ -94,12 +97,12 @@ def directory_converter(
                 orig_size = 0
             stats["original_bytes"] += orig_size
 
-            # Execute single file conversion via FFmpeg (raises InterruptedError on cancel)
+            # Execute single file conversion (never raises)
             success = file_converter(
                 input_path=file_path,
                 output_path=destination_path,
                 target_format=target_fmt,
-                cancel_event=cancel_event,
+                transparency_replacement_color=transparency_replacement_color,
             )
 
             comp_size = 0
@@ -114,9 +117,9 @@ def directory_converter(
 
             # Dispatch progress metrics to callback if provided
             if progress_callback:
-                progress_info = VideoProgressInfo(
-                    current_file_index=index,
-                    total_files=total_files,
+                progress_info = ProgressInfo(
+                    current=index,
+                    total=total_files,
                     start_time=start_time,
                     file_path=file_path,
                     success=success,
@@ -134,16 +137,9 @@ def directory_converter(
         stats["cancelled"] = True
 
         # Delegate session cleanup to global utility
-        cleaned_count = safe_cleanup_video_session_files(
+        cleaned_count = safe_cleanup_session_files(
             created_files=created_destination_files, root_output_dir=output_dir
         )
-
-        # Remove the session folder only if cancellation left it empty
-        if session_dir is not None:
-            try:
-                session_dir.rmdir()
-            except OSError:
-                pass
 
         stats["cleaned_files_count"] = cleaned_count
         stats["elapsed_seconds"] = round(time.perf_counter() - start_time, 2)

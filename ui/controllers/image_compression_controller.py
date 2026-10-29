@@ -6,8 +6,8 @@ from pathlib import Path
 
 import flet as ft
 
-from src.image.compression.directory_compression import directory_compressor
-from src.image.compression.file_compression import file_compressor
+from src.image.compression.image_directory_compression import directory_compressor
+from src.image.compression.image_file_compression import file_compressor
 from ui.components.dialog_utils import show_summary_dialog
 from ui.i18n import t
 from ui.theme import get_color

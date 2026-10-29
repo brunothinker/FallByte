@@ -3,7 +3,7 @@ from pathlib import Path
 
 import flet as ft
 
-from src.image.compression.file_compression import UNCOMPRESSIBLE_FORMATS
+from src.image.compression.image_file_compression import UNCOMPRESSIBLE_FORMATS
 from ui.components.io_picker_card import create_clickable_card
 from ui.components.quality_selector import QualitySelector
 from ui.controllers.image_compression_controller import CompressionController

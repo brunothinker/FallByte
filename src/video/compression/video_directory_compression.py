@@ -1,14 +1,15 @@
 import logging
+import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from src.image.compression.file_compression import file_compressor
-from src.image.utils.image_cleanup import safe_cleanup_session_files
-from src.image.utils.image_progress import ProgressInfo
-from src.image.utils.image_scanner import scan_image_files
 from src.utils.output_directory import create_unique_output_dir
+from src.video.compression.video_file_compression import file_compressor
+from src.video.utils.video_cleanup import safe_cleanup_video_session_files
+from src.video.utils.video_progress import VideoProgressInfo
+from src.video.utils.video_scanner import scan_video_files
 
 # Setup module logger
 logger = logging.getLogger(__name__)
@@ -19,32 +20,31 @@ def directory_compressor(
     input_dir: Path,
     output_dir: Path,
     quality: int = 80,
-    progress_callback: Callable[[ProgressInfo], None] | None = None,
+    progress_callback: Callable[[VideoProgressInfo], None] | None = None,
+    cancel_event: threading.Event | None = None,
 ) -> dict[str, Any]:
-    """Scans an input directory for image files and compresses each file to output_dir.
+    """Scans an input directory for video files, compresses each file, and saves them to output_dir.
 
-    Preserves directory tree hierarchy relative to input_dir, dispatches real-time
-    progress updates to caller callbacks, handles cancellation signals, and performs
-    cleanup of generated session files. A failure on one file never aborts the batch.
+    Supports real-time progress callbacks, user cancellation, and cleanup of
+    generated files. Maintains original container formats. A failure on one
+    file never aborts the batch.
 
     Args:
-        input_dir (Path): Path to the source directory containing images.
+        input_dir (Path): Path to the source directory containing videos.
         output_dir (Path): Path to the destination directory where compressed
-            images will be saved.
-        quality (int, optional): Compression quality percentage (1-100).
-            Defaults to 80.
-        progress_callback (Callable[[ProgressInfo], None] | None, optional): Callback
-            function invoked after processing each file. Defaults to None.
+          videos will be saved.
+        quality (int, optional): Compression quality percentage (1-100). Defaults
+          to 80.
+        progress_callback (Callable[[VideoProgressInfo], None], optional): Callback
+          function invoked after processing each file, receiving a
+          VideoProgressInfo instance. Defaults to None.
+        cancel_event (threading.Event, optional): Event that, when set,
+          terminates the running FFmpeg process and cancels the batch.
+          Defaults to None.
 
     Returns:
-        dict[str, Any]: Summary dictionary containing compression metrics:
-            - success (int): Count of successfully compressed files.
-            - failed (int): Count of files that failed compression.
-            - elapsed_seconds (float): Total elapsed processing duration in seconds.
-            - original_bytes (int): Total size of input files in bytes.
-            - compressed_bytes (int): Total size of output compressed files in bytes.
-            - cancelled (bool): True if operation was interrupted by user.
-            - cleaned_files_count (int): Count of files deleted during cancellation cleanup.
+        Dict[str, Any]: A summary dictionary containing compression
+        statistics, byte sizes, elapsed time, and cancellation state.
     """
     stats = {
         "success": 0,
@@ -57,21 +57,23 @@ def directory_compressor(
     }
     start_time = time.perf_counter()
     created_destination_files: list[Path] = []
+    session_dir: Path | None = None
 
     try:
-        # Scan input directory for valid image files
-        image_files = scan_image_files(input_dir)
-        total_files = len(image_files)
+        # Scan input directory for valid video files
+        video_files = scan_video_files(input_dir)
+        total_files = len(video_files)
 
         if total_files == 0:
-            logger.warning(f"No valid image files found in '{input_dir}'.")
+            logger.warning(f"No valid video files found in '{input_dir}'.")
             return stats
 
         output_dir = create_unique_output_dir(output_dir, "compressed")
+        session_dir = output_dir
 
         # Iterate over discovered files and execute compression
-        for index, file_path in enumerate(image_files, start=1):
-            # Preserve directory structure relative to input_dir
+        for index, file_path in enumerate(video_files, start=1):
+            # Preserve directory structure and original file extension relative to input_dir
             relative_path = file_path.relative_to(input_dir)
             destination_path = output_dir / relative_path
 
@@ -81,11 +83,12 @@ def directory_compressor(
                 orig_size = 0
             stats["original_bytes"] += orig_size
 
-            # Execute single file compression (never raises)
+            # Execute single file compression (raises InterruptedError on cancel)
             success = file_compressor(
                 input_path=file_path,
                 output_path=destination_path,
                 quality=quality,
+                cancel_event=cancel_event,
             )
 
             comp_size = 0
@@ -100,9 +103,9 @@ def directory_compressor(
 
             # Dispatch progress metrics to callback if provided
             if progress_callback:
-                progress_info = ProgressInfo(
-                    current=index,
-                    total=total_files,
+                progress_info = VideoProgressInfo(
+                    current_file_index=index,
+                    total_files=total_files,
                     start_time=start_time,
                     file_path=file_path,
                     success=success,
@@ -120,9 +123,16 @@ def directory_compressor(
         stats["cancelled"] = True
 
         # Delegate session cleanup to global utility
-        cleaned_count = safe_cleanup_session_files(
+        cleaned_count = safe_cleanup_video_session_files(
             created_files=created_destination_files, root_output_dir=output_dir
         )
+
+        # Remove the session folder only if cancellation left it empty
+        if session_dir is not None:
+            try:
+                session_dir.rmdir()
+            except OSError:
+                pass
 
         stats["cleaned_files_count"] = cleaned_count
         stats["elapsed_seconds"] = round(time.perf_counter() - start_time, 2)

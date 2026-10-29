@@ -2,11 +2,11 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-from src.image.compression import directory_compression as image_compression
-from src.image.conversion import directory_conversion as image_conversion
+from src.image.compression import image_directory_compression as image_compression
+from src.image.conversion import image_directory_conversion as image_conversion
 from src.utils.output_directory import create_unique_output_dir
-from src.video.compression import directory_compression as video_compression
-from src.video.conversion import directory_conversion as video_conversion
+from src.video.compression import video_directory_compression as video_compression
+from src.video.conversion import video_directory_conversion as video_conversion
 
 PROCESSORS = [
     pytest.param(
