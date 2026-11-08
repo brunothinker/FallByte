@@ -411,8 +411,8 @@ class VideoConversionController:
             if self.abort_requested:
                 raise InterruptedError("CANCELLED_BY_USER")
 
-            if info.total_files > 0:
-                progress_bar.value = info.current_file_index / info.total_files
+            if info.total > 0:
+                progress_bar.value = info.current / info.total
                 filename = info.file_path.name if info.file_path else ""
 
                 if info.success:
@@ -422,8 +422,8 @@ class VideoConversionController:
 
                 lbl_status.value = t(
                     "msg_converting_progress",
-                    current=info.current_file_index,
-                    total=info.total_files,
+                    current=info.current,
+                    total=info.total,
                     filename=filename,
                 )
                 progress_bar.update()

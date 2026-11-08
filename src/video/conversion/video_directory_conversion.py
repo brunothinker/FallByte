@@ -7,21 +7,20 @@ from typing import Any
 
 from src.utils.output_directory import create_unique_output_dir
 from src.utils.output_naming import unique_conversion_output_path
+from src.utils.progress import ProgressInfo
 from src.video.conversion.video_file_conversion import file_converter
 from src.video.utils.video_cleanup import safe_cleanup_video_session_files
-from src.video.utils.video_progress import VideoProgressInfo
 from src.video.utils.video_scanner import scan_video_files
 
 # Setup module logger
 logger = logging.getLogger(__name__)
 
 
-
 def directory_converter(
     input_dir: Path,
     output_dir: Path,
     target_format: str,
-    progress_callback: Callable[[VideoProgressInfo], None] | None = None,
+    progress_callback: Callable[[ProgressInfo], None] | None = None,
     cancel_event: threading.Event | None = None,
 ) -> dict[str, Any]:
     """Scans an input directory for video files, converts each file to the target format, and saves them to output_dir.
@@ -117,9 +116,9 @@ def directory_converter(
 
             # Dispatch progress metrics to callback if provided
             if progress_callback:
-                progress_info = VideoProgressInfo(
-                    current_file_index=index,
-                    total_files=total_files,
+                progress_info = ProgressInfo(
+                    current=index,
+                    total=total_files,
                     start_time=start_time,
                     file_path=file_path,
                     success=success,

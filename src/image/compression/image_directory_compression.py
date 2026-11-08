@@ -6,9 +6,9 @@ from typing import Any
 
 from src.image.compression.image_file_compression import file_compressor
 from src.image.utils.image_cleanup import safe_cleanup_session_files
-from src.image.utils.image_progress import ProgressInfo
 from src.image.utils.image_scanner import scan_image_files
 from src.utils.output_directory import create_unique_output_dir
+from src.utils.progress import ProgressInfo
 
 # Setup module logger
 logger = logging.getLogger(__name__)
