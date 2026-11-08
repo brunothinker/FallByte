@@ -17,15 +17,6 @@ from ui.i18n import t
 from ui.theme import get_color
 from ui.utils.format_utils import video_input_formats
 
-SUPPORTED_VIDEO_CONVERSION_FORMATS: list[str] = [
-    "mp4",
-    "mkv",
-    "webm",
-    "mov",
-    "avi",
-    "wmv",
-]
-
 
 class TextRedirector(logging.Handler):
     """Redirects sys.stdout, sys.stderr and Python logging streams to accumulate console logs in a buffer."""

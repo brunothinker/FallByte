@@ -6,9 +6,9 @@ from pathlib import Path
 
 import flet as ft
 
+from src.formats import SUPPORTED_VIDEO_EXTENSIONS
 from src.video.compression.video_directory_compression import directory_compressor
 from src.video.compression.video_file_compression import file_compressor
-from src.video.utils.video_scanner import SUPPORTED_VIDEO_EXTENSIONS
 from ui.components.dialog_utils import (
     show_no_supported_files_dialog,
     show_summary_dialog,
@@ -17,10 +17,7 @@ from ui.i18n import t
 from ui.theme import get_color
 from ui.utils.format_utils import video_input_formats
 
-# Derived from the scanner so the pre-flight check and the batch scan always agree.
-SUPPORTED_VIDEO_EXTS: set[str] = {
-    ext.lstrip(".") for ext in SUPPORTED_VIDEO_EXTENSIONS
-}
+SUPPORTED_VIDEO_EXTS: set[str] = {ext.lstrip(".") for ext in SUPPORTED_VIDEO_EXTENSIONS}
 
 
 class TextRedirector(logging.Handler):

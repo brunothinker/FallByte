@@ -2,21 +2,8 @@ import logging
 
 from ui.i18n import t
 
-# Setup module logger
 logger = logging.getLogger(__name__)
 
-# Supported target formats for image conversion operations
-SUPPORTED_CONVERSION_FORMATS: list[str] = [
-    "JPEG",
-    "PNG",
-    "WEBP",
-    "BMP",
-    "TIFF",
-    "GIF",
-    "ICO",
-    "PPM",
-    "PDF",
-]
 
 # Internal mapping of translation keys to hexadecimal color strings
 COLOR_HEX_MAP: dict[str, str] = {
