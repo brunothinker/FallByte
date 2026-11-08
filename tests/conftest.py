@@ -1,7 +1,16 @@
+"""Shared pytest fixtures for the FallByte test suite.
+
+Provides a mocked Flet page, isolated input/output workspaces and factories
+that generate synthetic images (Pillow) and videos (bundled FFmpeg).
+"""
+
 import subprocess
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock
+
+# Must run BEFORE any `src` / `ui` import
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import flet as ft
 import pytest
@@ -9,17 +18,18 @@ from PIL import Image
 
 from src.video.utils.binary_manager import get_ffmpeg_path
 
-# Add project root directory to sys.path for pytest module resolution
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
 
 class DummyControl(ft.Control):
     """Dummy control to satisfy component initialization in tests."""
 
 
 @pytest.fixture
-def mock_page():
-    """Provides a mocked ft.Page instance for headless UI testing."""
+def mock_page() -> MagicMock:
+    """Provides a mocked ft.Page instance for headless UI testing.
+
+    Returns:
+        MagicMock: Page double exposing `route`, `overlay` and `dialog`.
+    """
     page = MagicMock()
     page.route = "/"
     page.overlay = []
@@ -29,7 +39,14 @@ def mock_page():
 
 @pytest.fixture
 def tmp_workspace(tmp_path: Path) -> tuple[Path, Path]:
-    """Creates temporary isolated directories for input and output test files."""
+    """Creates temporary isolated directories for input and output test files.
+
+    Args:
+        tmp_path (Path): Pytest-provided unique temporary directory.
+
+    Returns:
+        tuple[Path, Path]: The (input_dir, output_dir) pair, both existing.
+    """
     input_dir = tmp_path / "inputs"
     output_dir = tmp_path / "outputs"
     input_dir.mkdir(parents=True, exist_ok=True)
@@ -39,7 +56,13 @@ def tmp_workspace(tmp_path: Path) -> tuple[Path, Path]:
 
 @pytest.fixture
 def create_sample_image():
-    """Factory fixture to generate sample images with customizable mode and size."""
+    """Factory fixture to generate sample images with customizable mode and size.
+
+    Returns:
+        Callable[..., Path]: Function `(path, mode, size, fmt) -> Path` that
+            writes a solid-color image and returns its path.
+    """
+
     def _create(
         path: Path,
         mode: str = "RGB",
@@ -55,7 +78,13 @@ def create_sample_image():
 
 @pytest.fixture
 def create_sample_video():
-    """Factory fixture to generate sample synthetic videos using FFmpeg lavfi."""
+    """Factory fixture to generate sample synthetic videos using FFmpeg lavfi.
+
+    Returns:
+        Callable[..., Path]: Function `(path, duration_sec) -> Path` that
+            encodes a test pattern with a sine tone (H.264 + AAC).
+    """
+
     def _create(path: Path, duration_sec: int = 1) -> Path:
         ffmpeg_bin = get_ffmpeg_path()
         cmd = [
