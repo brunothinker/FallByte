@@ -1,3 +1,5 @@
+"""Centralized filesystem cleanup utilities for FallByte batch execution sessions."""
+
 import logging
 from collections.abc import Iterable
 from pathlib import Path

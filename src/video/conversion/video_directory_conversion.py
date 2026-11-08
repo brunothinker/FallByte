@@ -5,11 +5,11 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from src.utils.cleanup import safe_cleanup_session_files
 from src.utils.output_directory import create_unique_output_dir
 from src.utils.output_naming import unique_conversion_output_path
 from src.utils.progress import ProgressInfo
 from src.video.conversion.video_file_conversion import file_converter
-from src.video.utils.video_cleanup import safe_cleanup_video_session_files
 from src.video.utils.video_scanner import scan_video_files
 
 # Setup module logger
@@ -136,7 +136,7 @@ def directory_converter(
         stats["cancelled"] = True
 
         # Delegate session cleanup to global utility
-        cleaned_count = safe_cleanup_video_session_files(
+        cleaned_count = safe_cleanup_session_files(
             created_files=created_destination_files, root_output_dir=output_dir
         )
 

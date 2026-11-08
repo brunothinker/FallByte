@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Any
 
 from src.image.conversion.image_file_conversion import file_converter
-from src.image.utils.image_cleanup import safe_cleanup_session_files
 from src.image.utils.image_scanner import scan_image_files
+from src.utils.cleanup import safe_cleanup_session_files
 from src.utils.output_directory import create_unique_output_dir
 from src.utils.output_naming import unique_conversion_output_path
 from src.utils.progress import ProgressInfo
