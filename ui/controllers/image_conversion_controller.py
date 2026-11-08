@@ -6,8 +6,8 @@ from pathlib import Path
 
 import flet as ft
 
-from src.image.conversion.image_directory_conversion import directory_converter
-from src.image.conversion.image_file_conversion import file_converter
+from src.image.image_directory_conversion import directory_converter
+from src.image.image_file_conversion import file_converter
 from src.utils.output_naming import unique_conversion_output_path
 from ui.components.dialog_utils import (
     show_no_supported_files_dialog,

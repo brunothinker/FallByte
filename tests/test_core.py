@@ -5,22 +5,16 @@ import time
 import pytest
 from PIL import Image
 
-from src.image.compression.image_file_compression import file_compressor
-from src.image.conversion import (
-    image_directory_conversion as image_directory_conversion,
-)
-from src.image.conversion.image_file_conversion import file_converter
+from src.image.image_file_compression import file_compressor
+from src.image import image_directory_conversion as image_directory_conversion
+from src.image.image_file_conversion import file_converter
 from src.utils.cleanup import safe_cleanup_session_files
-from src.video.compression import (
-    video_directory_compression as video_directory_compression,
-)
-from src.video.compression.video_file_compression import (
+from src.video.video_file_compression import (
     file_compressor as video_compressor,
 )
-from src.video.conversion import (
-    video_directory_conversion as video_directory_conversion,
-)
-from src.video.conversion.video_file_conversion import file_converter as video_converter
+from src.video import video_directory_conversion as video_directory_conversion, \
+    video_directory_compression as video_directory_compression
+from src.video.video_file_conversion import file_converter as video_converter
 from src.video.utils import ffmpeg_utils
 from src.video.utils.binary_manager import get_ffmpeg_path
 

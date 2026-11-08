@@ -4,7 +4,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from src.image.compression.image_file_compression import file_compressor
+from src.image.image_file_compression import file_compressor
 from src.image.utils.image_scanner import scan_image_files
 from src.utils.cleanup import safe_cleanup_session_files
 from src.utils.output_directory import create_unique_output_dir

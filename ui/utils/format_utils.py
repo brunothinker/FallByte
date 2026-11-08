@@ -5,7 +5,7 @@ extensions are actually picked up from a folder), so the UI never drifts out
 of sync with the processing code.
 """
 
-from src.image.compression.image_file_compression import UNCOMPRESSIBLE_FORMATS
+from src.image.image_file_compression import UNCOMPRESSIBLE_FORMATS
 from src.image.utils.image_scanner import SUPPORTED_IMAGE_EXTENSIONS
 from src.video.utils.video_scanner import SUPPORTED_VIDEO_EXTENSIONS
 

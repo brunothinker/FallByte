@@ -7,8 +7,8 @@ from pathlib import Path
 import flet as ft
 
 from src.utils.output_naming import unique_conversion_output_path
-from src.video.conversion.video_directory_conversion import directory_converter
-from src.video.conversion.video_file_conversion import file_converter
+from src.video.video_directory_conversion import directory_converter
+from src.video.video_file_conversion import file_converter
 from ui.components.dialog_utils import (
     show_no_supported_files_dialog,
     show_summary_dialog,

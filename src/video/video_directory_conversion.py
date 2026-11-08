@@ -7,42 +7,40 @@ from typing import Any
 
 from src.utils.cleanup import safe_cleanup_session_files
 from src.utils.output_directory import create_unique_output_dir
+from src.utils.output_naming import unique_conversion_output_path
 from src.utils.progress import ProgressInfo
-from src.video.compression.video_file_compression import file_compressor
+from src.video.video_file_conversion import file_converter
 from src.video.utils.video_scanner import scan_video_files
 
 # Setup module logger
 logger = logging.getLogger(__name__)
 
 
-def directory_compressor(
+def directory_converter(
     input_dir: Path,
     output_dir: Path,
-    quality: int = 80,
+    target_format: str,
     progress_callback: Callable[[ProgressInfo], None] | None = None,
     cancel_event: threading.Event | None = None,
 ) -> dict[str, Any]:
-    """Scans an input directory for video files, compresses each file, and saves them to output_dir.
+    """Scans an input directory for video files, converts each file to the target format, and saves them to output_dir.
 
     Supports real-time progress callbacks, user cancellation, and cleanup of
-    generated files. Maintains original container formats. A failure on one
-    file never aborts the batch.
+    generated files. A failure on one file never aborts the batch.
 
     Args:
         input_dir (Path): Path to the source directory containing videos.
-        output_dir (Path): Path to the destination directory where compressed
+        output_dir (Path): Path to the destination directory where converted
           videos will be saved.
-        quality (int, optional): Compression quality percentage (1-100). Defaults
-          to 80.
+        target_format (str): Desired output format (e.g., 'mp4', 'mkv', 'avi').
         progress_callback (Callable[[ProgressInfo], None], optional): Callback
-          function invoked after processing each file, receiving a
-          ProgressInfo instance. Defaults to None.
+          function invoked after processing each file. Defaults to None.
         cancel_event (threading.Event, optional): Event that, when set,
           terminates the running FFmpeg process and cancels the batch.
           Defaults to None.
 
     Returns:
-        Dict[str, Any]: A summary dictionary containing compression
+        Dict[str, Any]: A summary dictionary containing conversion
         statistics, byte sizes, elapsed time, and cancellation state.
         When the directory has no supported files, "no_files" is set to True and
         nothing is processed; callers must not report success in that case.
@@ -62,7 +60,9 @@ def directory_compressor(
 
     try:
         # Scan input directory for valid video files
-        video_files = scan_video_files(input_dir)
+        video_files = sorted(
+            scan_video_files(input_dir), key=lambda path: path.as_posix().casefold()
+        )
         total_files = len(video_files)
 
         if total_files == 0:
@@ -70,14 +70,25 @@ def directory_compressor(
             stats["no_files"] = True
             return stats
 
-        output_dir = create_unique_output_dir(output_dir, "compressed")
+        output_dir = create_unique_output_dir(output_dir, "converted")
         session_dir = output_dir
+        target_fmt = target_format.lower().lstrip(".")
 
-        # Iterate over discovered files and execute compression
+        reserved_paths: set[str] = set()
+        destination_paths = {
+            file_path: unique_conversion_output_path(
+                input_path=file_path,
+                output_dir=output_dir,
+                target_format=target_fmt,
+                reserved_paths=reserved_paths,
+                relative_path=file_path.relative_to(input_dir),
+            )
+            for file_path in video_files
+        }
+
+        # Iterate over discovered files and execute conversion
         for index, file_path in enumerate(video_files, start=1):
-            # Preserve directory structure and original file extension relative to input_dir
-            relative_path = file_path.relative_to(input_dir)
-            destination_path = output_dir / relative_path
+            destination_path = destination_paths[file_path]
 
             try:
                 orig_size = file_path.stat().st_size
@@ -85,11 +96,11 @@ def directory_compressor(
                 orig_size = 0
             stats["original_bytes"] += orig_size
 
-            # Execute single file compression (raises InterruptedError on cancel)
-            success = file_compressor(
+            # Execute single file conversion via FFmpeg (raises InterruptedError on cancel)
+            success = file_converter(
                 input_path=file_path,
                 output_path=destination_path,
-                quality=quality,
+                target_format=target_fmt,
                 cancel_event=cancel_event,
             )
 
@@ -121,7 +132,7 @@ def directory_compressor(
         return stats
 
     except InterruptedError:
-        logger.info(f"Directory compression cancelled by user: '{input_dir}'")
+        logger.info(f"Directory conversion cancelled by user: '{input_dir}'")
         stats["cancelled"] = True
 
         # Delegate session cleanup to global utility
@@ -142,7 +153,7 @@ def directory_compressor(
 
     except Exception as e:
         logger.error(
-            f"Failed to compress directory '{input_dir}': {e}", exc_info=True
+            f"Failed to convert directory '{input_dir}': {e}", exc_info=True
         )
         stats["elapsed_seconds"] = round(time.perf_counter() - start_time, 2)
         return stats

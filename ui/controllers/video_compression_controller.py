@@ -7,8 +7,8 @@ from pathlib import Path
 import flet as ft
 
 from src.formats import SUPPORTED_VIDEO_EXTENSIONS
-from src.video.compression.video_directory_compression import directory_compressor
-from src.video.compression.video_file_compression import file_compressor
+from src.video.video_directory_compression import directory_compressor
+from src.video.video_file_compression import file_compressor
 from ui.components.dialog_utils import (
     show_no_supported_files_dialog,
     show_summary_dialog,
