@@ -64,6 +64,23 @@ def test_ico_sizing_clamp(tmp_workspace, create_sample_image):
         assert img.size[1] <= 256
 
 
+def test_image_conversion_atomic_write_on_failure(tmp_workspace, monkeypatch):
+    """Ensures conversion failures do not corrupt pre-existing files or leave temp files."""
+    in_dir, out_dir = tmp_workspace
+    src_img = in_dir / "corrupted.png"
+    src_img.write_bytes(b"invalid image data")
+
+    dst_img = out_dir / "output.jpg"
+    dst_img.write_bytes(b"pre-existing target data")
+
+    success = file_converter(src_img, dst_img, target_format="JPEG")
+
+    assert success is False
+    assert dst_img.exists()
+    assert dst_img.read_bytes() == b"pre-existing target data"
+    assert list(out_dir.glob(".*_tmp_*")) == []
+
+
 # --- Compression ---
 
 

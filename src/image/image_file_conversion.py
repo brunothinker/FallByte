@@ -1,4 +1,6 @@
 import logging
+import os
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -135,6 +137,9 @@ def file_converter(
     multi-page TIFF, square padding and size limits for ICO, and keeps the
     ICC color profile when possible.
 
+    Writes output atomically to a temporary file before moving it into place via
+    os.replace to ensure pre-existing files are never corrupted upon failure.
+
     Args:
         input_path (Path): Path to the source image file.
         output_path (Path): Path where the converted image will be saved.
@@ -145,6 +150,7 @@ def file_converter(
     Returns:
         bool: True if conversion succeeded, False otherwise.
     """
+    tmp_path = None
     try:
         if input_path.resolve() == output_path.resolve():
             logger.error(
@@ -154,6 +160,14 @@ def file_converter(
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
         fmt = _normalize_format(target_format)
+
+        with tempfile.NamedTemporaryFile(
+            dir=output_path.parent,
+            prefix=f".{output_path.stem}_tmp_",
+            suffix=output_path.suffix,
+            delete=False,
+        ) as tmp:
+            tmp_path = Path(tmp.name)
 
         with Image.open(input_path) as img:
             src_fmt = (img.format or "").upper()
@@ -194,7 +208,9 @@ def file_converter(
                     save_kwargs["duration"] = durations
                     save_kwargs["loop"] = loop
 
-            prepared[0].save(output_path, format=fmt, **save_kwargs)
+            prepared[0].save(tmp_path, format=fmt, **save_kwargs)
+
+        os.replace(tmp_path, output_path)
 
         logger.info(
             f"Successfully converted '{input_path.name}' to '{fmt}'."
@@ -205,5 +221,6 @@ def file_converter(
         logger.error(
             f"Failed to convert '{input_path.name}': {e}", exc_info=True
         )
-        output_path.unlink(missing_ok=True)
+        if tmp_path and tmp_path.exists():
+            tmp_path.unlink(missing_ok=True)
         return False

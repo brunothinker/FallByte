@@ -11,12 +11,13 @@ def safe_cleanup_session_files(
     root_output_dir: Path | str | None = None,
     session_out_dir: Path | str | None = None,
     remove_empty_session_dir: bool = False,
+    pre_existing_files: Iterable[Path | str] | None = None,
 ) -> int:
     """Safely removes files created during a cancelled processing session.
 
     Ensures that pre-existing files remain untouched while purging output files
-    generated during the interrupted batch session. Accepts either root_output_dir
-    or session_out_dir for full backwards compatibility with legacy calls and tests.
+    generated during the interrupted batch session. Only files registered in
+    created_files that did NOT exist before the session started are deleted.
 
     Args:
         created_files (Iterable[Path | str]): File paths generated in the active session.
@@ -24,6 +25,8 @@ def safe_cleanup_session_files(
         session_out_dir (Path | str | None, optional): Output directory path reserved for the session.
         remove_empty_session_dir (bool, optional): Whether to delete target folder
             if no files remain inside it. Defaults to False.
+        pre_existing_files (Iterable[Path | str] | None, optional): File paths that
+            already existed prior to the session start. Defaults to None.
 
     Returns:
         int: Total number of files successfully deleted during cleanup.
@@ -33,8 +36,23 @@ def safe_cleanup_session_files(
     base_path = Path(target_dir) if target_dir is not None else None
     affected_dirs = set()
 
+    pre_existing_set = (
+        {str(Path(p).resolve()).casefold() for p in pre_existing_files}
+        if pre_existing_files is not None
+        else set()
+    )
+
     for dst_file in created_files:
         file_path = Path(dst_file)
+        file_key = str(file_path.resolve()).casefold()
+
+        # Never delete files that pre-existed before the batch session started
+        if file_key in pre_existing_set:
+            logger.info(
+                f"Preserving pre-existing file from deletion: '{file_path}'"
+            )
+            continue
+
         if file_path.exists():
             try:
                 if (

@@ -1,5 +1,7 @@
 import logging
+import os
 import shutil
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -45,10 +47,26 @@ def _quantize_png(img: Image.Image, quality: int) -> Image.Image:
 
 
 def _keep_original(input_path: Path, output_path: Path, reason: str) -> bool:
-    """Copies the source file untouched to the destination."""
-    shutil.copy2(input_path, output_path)
-    logger.info(f"'{input_path.name}' kept as-is: {reason}.")
-    return True
+    """Copies the source file untouched to the destination via atomic replace."""
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            dir=output_path.parent,
+            prefix=f".{output_path.stem}_tmp_",
+            suffix=output_path.suffix,
+            delete=False,
+        ) as tmp:
+            tmp_path = Path(tmp.name)
+
+        shutil.copy2(input_path, tmp_path)
+        os.replace(tmp_path, output_path)
+        logger.info(f"'{input_path.name}' kept as-is: {reason}.")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to copy original file for '{input_path.name}': {e}")
+        if tmp_path and tmp_path.exists():
+            tmp_path.unlink(missing_ok=True)
+        return False
 
 
 def file_compressor(
@@ -60,6 +78,9 @@ def file_compressor(
     pngquant-style palette quantization for PNG (when quality < 90),
     deflate for TIFF. EXIF orientation is applied; ICC profile and EXIF
     metadata are preserved where the format allows.
+
+    Writes output atomically to a temporary file before moving it into place via
+    os.replace to ensure pre-existing files are never corrupted upon failure.
 
     Formats that cannot be re-encoded safely (BMP, PPM, GIF, ICO) and animated
     PNGs are copied unchanged. If the compressed result is not smaller than the
@@ -73,6 +94,7 @@ def file_compressor(
     Returns:
         bool: True if compression succeeded, False otherwise.
     """
+    tmp_path = None
     try:
         quality = max(1, min(100, int(quality)))
 
@@ -84,15 +106,25 @@ def file_compressor(
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
+        with tempfile.NamedTemporaryFile(
+            dir=output_path.parent,
+            prefix=f".{output_path.stem}_tmp_",
+            suffix=output_path.suffix,
+            delete=False,
+        ) as tmp:
+            tmp_path = Path(tmp.name)
+
         with Image.open(input_path) as img:
             fmt = _normalize_format(img.format, input_path)
             n_frames = getattr(img, "n_frames", 1)
 
             if fmt in UNCOMPRESSIBLE_FORMATS:
+                tmp_path.unlink(missing_ok=True)
                 return _keep_original(
                     input_path, output_path, f"{fmt} cannot be compressed safely"
                 )
             if fmt == "PNG" and n_frames > 1:
+                tmp_path.unlink(missing_ok=True)
                 return _keep_original(
                     input_path, output_path, "animated PNG would lose its frames"
                 )
@@ -137,15 +169,18 @@ def file_compressor(
             if icc and fmt in ("JPEG", "PNG", "WEBP", "TIFF"):
                 save_kwargs["icc_profile"] = icc
 
-            final_img.save(output_path, format=fmt, **save_kwargs)
+            final_img.save(tmp_path, format=fmt, **save_kwargs)
 
         original_size = input_path.stat().st_size
-        if output_path.stat().st_size >= original_size:
+        if tmp_path.stat().st_size >= original_size:
+            tmp_path.unlink(missing_ok=True)
             return _keep_original(
                 input_path,
                 output_path,
                 f"compressed result was not smaller at {quality}% quality",
             )
+
+        os.replace(tmp_path, output_path)
 
         logger.info(
             f"Successfully compressed '{input_path.name}' "
@@ -155,5 +190,6 @@ def file_compressor(
 
     except Exception:
         logger.exception(f"Failed to compress '{input_path.name}'")
-        output_path.unlink(missing_ok=True)
+        if tmp_path and tmp_path.exists():
+            tmp_path.unlink(missing_ok=True)
         return False

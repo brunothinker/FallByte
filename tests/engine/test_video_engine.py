@@ -13,10 +13,10 @@ import time
 import pytest
 
 from src.image.image_file_conversion import file_converter
-from src.video.video_file_compression import file_compressor as video_compressor
-from src.video.video_file_conversion import file_converter as video_converter
 from src.video.utils import ffmpeg_utils
 from src.video.utils.binary_manager import get_ffmpeg_path
+from src.video.video_file_compression import file_compressor as video_compressor
+from src.video.video_file_conversion import file_converter as video_converter
 
 
 def _long_encode_command(output_file) -> list[str]:
@@ -141,6 +141,23 @@ def test_process_corrupted_media_file_handling(tmp_path):
 
     assert video_success is False
     assert not output_file.exists()
+
+
+def test_video_conversion_atomic_write_on_failure(tmp_workspace):
+    """Ensures video conversion failure preserves pre-existing target file."""
+    in_dir, out_dir = tmp_workspace
+    corrupted_file = in_dir / "corrupted_media.mp4"
+    corrupted_file.write_bytes(b"NOT_A_VALID_MEDIA_HEADER")
+
+    output_file = out_dir / "existing_output.mp4"
+    output_file.write_bytes(b"original data")
+
+    success = video_converter(corrupted_file, output_file, target_format="mp4")
+
+    assert success is False
+    assert output_file.exists()
+    assert output_file.read_bytes() == b"original data"
+    assert list(out_dir.glob(".*_tmp_*")) == []
 
 
 # --- Cancellation & process lifecycle ---

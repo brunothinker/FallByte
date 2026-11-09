@@ -1,5 +1,7 @@
 import logging
+import os
 import shutil
+import tempfile
 import threading
 from pathlib import Path
 
@@ -23,12 +25,12 @@ logger = logging.getLogger(__name__)
 def _build_strategies(
     ffmpeg_bin: Path,
     input_path: Path,
-    output_path: Path,
+    tmp_path: Path,
     target_ext: str,
     quality: int,
 ) -> list[tuple[str, list[str]]]:
-    """Builds the ordered (label, command) strategies for a compression."""
-    out = [str(output_path)]
+    """Builds the ordered (label, command) strategies for a compression targeting a temporary file."""
+    out = [str(tmp_path)]
     codec_args = get_codec_args(target_ext, quality)
     flags = container_flags(target_ext)
 
@@ -89,6 +91,9 @@ def file_compressor(
     progressively more tolerant strategies are tried. If the result is not
     smaller than the original, the original file is kept as the output.
 
+    Writes output atomically to a temporary file preserving real extension, moving
+    it into place via os.replace to ensure pre-existing files are never corrupted.
+
     Args:
         input_path (Path): Path to the source video file.
         output_path (Path): Path where the compressed video will be saved.
@@ -103,6 +108,7 @@ def file_compressor(
     Raises:
         InterruptedError: If cancellation was requested via cancel_event.
     """
+    tmp_path = None
     try:
         quality = max(1, min(100, int(quality)))
 
@@ -116,24 +122,36 @@ def file_compressor(
         target_ext = output_path.suffix.lower().lstrip(".")
         ffmpeg_bin = get_ffmpeg_path()
 
+        with tempfile.NamedTemporaryFile(
+            dir=output_path.parent,
+            prefix=f".{output_path.stem}_tmp_",
+            suffix=output_path.suffix,
+            delete=False,
+        ) as tmp:
+            tmp_path = Path(tmp.name)
+
         strategies = _build_strategies(
-            ffmpeg_bin, input_path, output_path, target_ext, quality
+            ffmpeg_bin, input_path, tmp_path, target_ext, quality
         )
         used = run_strategies(
-            strategies, output_path, input_path.name, cancel_event
+            strategies, tmp_path, input_path.name, cancel_event
         )
         if used is None:
+            if tmp_path.exists():
+                tmp_path.unlink(missing_ok=True)
             return False
 
         original_size = input_path.stat().st_size
-        output_size = output_path.stat().st_size
+        output_size = tmp_path.stat().st_size
         if output_size >= original_size:
+            tmp_path.unlink(missing_ok=True)
             shutil.copy2(input_path, output_path)
             logger.info(
                 f"'{input_path.name}' could not be made smaller at {quality}% "
                 f"quality; original file kept."
             )
         else:
+            os.replace(tmp_path, output_path)
             logger.info(
                 f"Successfully compressed '{input_path.name}' "
                 f"[Format: {input_path.suffix.upper()} | Quality: {quality}%]."
@@ -141,12 +159,14 @@ def file_compressor(
         return True
 
     except InterruptedError:
-        output_path.unlink(missing_ok=True)
+        if tmp_path and tmp_path.exists():
+            tmp_path.unlink(missing_ok=True)
         raise
 
     except Exception as e:
         logger.error(
             f"Failed to compress '{input_path.name}': {e}", exc_info=True
         )
-        output_path.unlink(missing_ok=True)
+        if tmp_path and tmp_path.exists():
+            tmp_path.unlink(missing_ok=True)
         return False

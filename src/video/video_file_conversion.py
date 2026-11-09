@@ -1,5 +1,7 @@
 import logging
+import os
 import shutil
+import tempfile
 import threading
 from pathlib import Path
 
@@ -25,15 +27,15 @@ logger = logging.getLogger(__name__)
 def _build_strategies(
     ffmpeg_bin: Path,
     input_path: Path,
-    output_path: Path,
+    tmp_path: Path,
     target_fmt: str,
     video_codec: str | None,
     video_ok: bool,
     audio_ok: bool,
 ) -> list[tuple[str, list[str]]]:
-    """Builds the ordered (label, command) strategies for a conversion."""
+    """Builds the ordered (label, command) strategies targeting a temporary output file."""
     base = base_command(ffmpeg_bin, input_path)
-    out = [str(output_path)]
+    out = [str(tmp_path)]
     flags = container_flags(target_fmt)
     codec_args = get_codec_args(target_fmt)
     hevc_tag = (
@@ -112,6 +114,9 @@ def file_converter(
 
     If the input file is already in the target format, it is copied directly.
 
+    Writes output atomically to a temporary file preserving real extension, moving
+    it into place via os.replace to ensure pre-existing files are never corrupted.
+
     Args:
         input_path (Path): Path to the source video file.
         output_path (Path): Path where the converted video will be saved.
@@ -126,6 +131,7 @@ def file_converter(
     Raises:
         InterruptedError: If cancellation was requested via cancel_event.
     """
+    tmp_path = None
     try:
         if not input_path.exists() or input_path.stat().st_size == 0:
             logger.error(
@@ -169,10 +175,18 @@ def file_converter(
             f"audio={info.audio_codecs}, standard_pix_fmt={info.standard_pix_fmt}"
         )
 
+        with tempfile.NamedTemporaryFile(
+            dir=output_path.parent,
+            prefix=f".{output_path.stem}_tmp_",
+            suffix=output_path.suffix,
+            delete=False,
+        ) as tmp:
+            tmp_path = Path(tmp.name)
+
         strategies = _build_strategies(
             ffmpeg_bin,
             input_path,
-            output_path,
+            tmp_path,
             target_fmt,
             info.video_codec,
             video_ok,
@@ -180,11 +194,14 @@ def file_converter(
         )
 
         used = run_strategies(
-            strategies, output_path, input_path.name, cancel_event
+            strategies, tmp_path, input_path.name, cancel_event
         )
         if used is None:
-            output_path.unlink(missing_ok=True)
+            if tmp_path.exists():
+                tmp_path.unlink(missing_ok=True)
             return False
+
+        os.replace(tmp_path, output_path)
 
         logger.info(
             f"Successfully converted '{input_path.name}' to '{target_fmt}'."
@@ -192,10 +209,12 @@ def file_converter(
         return True
 
     except InterruptedError:
-        output_path.unlink(missing_ok=True)
+        if tmp_path and tmp_path.exists():
+            tmp_path.unlink(missing_ok=True)
         raise
 
     except Exception:
-            logger.exception(f"Failed to convert '{input_path.name}'.")
-            output_path.unlink(missing_ok=True)
-            return False
+        logger.exception(f"Failed to convert '{input_path.name}'.")
+        if tmp_path and tmp_path.exists():
+            tmp_path.unlink(missing_ok=True)
+        return False

@@ -27,7 +27,8 @@ def run_batch(
     """Orchestrates a generic batch processing workflow across multiple media files.
 
     Handles directory scanning, session folder creation, sequential processing,
-    progress tracking metrics, user cancellation signals, and graceful cleanup.
+    progress tracking metrics, user cancellation signals, and graceful cleanup,
+    strictly protecting pre-existing files from corruption or accidental deletion.
 
     Args:
         input_dir (str | Path): Source directory containing target files.
@@ -77,6 +78,7 @@ def run_batch(
 
     session_out_dir: Path = create_unique_output_dir(output_path, session_name)
     created_destination_files: list[Path] = []
+    pre_existing_destination_files: set[Path] = set()
 
     try:
         for index, src_file in enumerate(discovered_files, start=1):
@@ -84,6 +86,10 @@ def run_batch(
                 raise InterruptedError("Processamento cancelado pelo usuário.")
 
             dst_file = build_destination(src_file, session_out_dir)
+
+            # Record files that already existed before processing this batch item
+            if dst_file.exists():
+                pre_existing_destination_files.add(dst_file)
 
             try:
                 orig_size = src_file.stat().st_size
@@ -126,6 +132,7 @@ def run_batch(
             created_files=created_destination_files,
             session_out_dir=session_out_dir,
             remove_empty_session_dir=remove_empty_session_dir,
+            pre_existing_files=pre_existing_destination_files,
         )
 
         stats["cleaned_files_count"] = cleaned_count

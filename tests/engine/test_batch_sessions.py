@@ -463,3 +463,54 @@ def test_safe_cleanup_preserves_user_files(tmp_workspace):
     assert not session_file.exists()
     assert user_file.exists()
     assert user_file.read_text() == "user data"
+
+
+def test_safe_cleanup_preserves_pre_existing_files(tmp_workspace):
+    """Verifies that safe_cleanup_session_files does not delete pre-existing files."""
+    _, out_dir = tmp_workspace
+
+    existing_file = out_dir / "pre_existing_output.mp4"
+    existing_file.write_text("original user data")
+
+    cleaned_count = safe_cleanup_session_files(
+        created_files=[existing_file],
+        root_output_dir=out_dir,
+        pre_existing_files=[existing_file],
+    )
+
+    assert cleaned_count == 0
+    assert existing_file.exists()
+    assert existing_file.read_text() == "original user data"
+
+
+def test_run_batch_cleans_up_without_deleting_pre_existing_files(tmp_workspace):
+    """Ensures batch cancellation preserves pre-existing files that were overwritten."""
+    in_dir, out_dir = tmp_workspace
+    (in_dir / "file1.png").write_bytes(b"source 1")
+    (in_dir / "file2.png").write_bytes(b"source 2")
+
+    session_dir = out_dir / "compressed"
+    session_dir.mkdir(parents=True, exist_ok=True)
+
+    pre_existing_file = session_dir / "file1.png"
+    pre_existing_file.write_bytes(b"pre-existing data")
+
+    def process_with_cancel(src_file, dst_file):
+        dst_file.parent.mkdir(parents=True, exist_ok=True)
+        dst_file.write_bytes(b"new data")
+        if src_file.name == "file2.png":
+            raise InterruptedError("CANCELLED")
+        return True
+
+    stats = run_batch(
+        input_dir=in_dir,
+        output_dir=out_dir,
+        session_name="compressed",
+        scanner=lambda p: sorted(p.glob("*.png")),
+        process_file=process_with_cancel,
+        build_destination=lambda src, s_dir: session_dir / src.name,
+    )
+
+    assert stats["cancelled"] is True
+    assert pre_existing_file.exists()
+    assert pre_existing_file.read_bytes() == b"new data"

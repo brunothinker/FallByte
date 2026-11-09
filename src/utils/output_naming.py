@@ -7,7 +7,25 @@ def unique_conversion_output_path(
     target_format: str,
     reserved_paths: set[str] | None = None,
     relative_path: Path | None = None,
+    allow_overwrite: bool = False,
 ) -> Path:
+    """Generates a target output path for converted files.
+
+    Checks disk existence and reserved set entries to prevent name collisions.
+    When allow_overwrite is True, candidates existing on disk are accepted directly
+    instead of forcing unique numeric suffixes.
+
+    Args:
+        input_path (Path): Path to the source file.
+        output_dir (Path): Base destination output directory.
+        target_format (str): Desired target extension/format name.
+        reserved_paths (set[str] | None, optional): Set of reserved case-folded paths. Defaults to None.
+        relative_path (Path | None, optional): Relative path hierarchy inside output_dir. Defaults to None.
+        allow_overwrite (bool, optional): Whether existing paths on disk may be targeted. Defaults to False.
+
+    Returns:
+        Path: Computed output path candidate.
+    """
     target_fmt = target_format.lower().lstrip(".")
     relative = relative_path if relative_path is not None else input_path.name
     parent = output_dir / Path(relative).parent
@@ -16,7 +34,8 @@ def unique_conversion_output_path(
 
     candidate = parent / f"{stem}_converted.{target_fmt}"
     key = str(candidate.resolve()).casefold()
-    if candidate.exists() or key in reserved:
+
+    if not allow_overwrite and (candidate.exists() or key in reserved):
         source_ext = input_path.suffix.lower().lstrip(".") or "file"
         candidate = parent / f"{stem}_{source_ext}_converted.{target_fmt}"
         key = str(candidate.resolve()).casefold()
