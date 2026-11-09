@@ -29,7 +29,6 @@ def create_video_compression_page(
     lbl_status = ft.Text("", size=13, weight=ft.FontWeight.W_600)
     progress_bar = ft.ProgressBar(width=FORM_WIDTH, value=0, visible=False)
 
-    # Label displaying interactive slider percentage
     lbl_quality_val = ft.Text(
         t("lbl_quality_percentage", value=80),
         size=14,
@@ -45,7 +44,6 @@ def create_video_compression_page(
         )
         lbl_quality_val.update()
 
-    # Setup Quality Slider (1 - 100%)
     slider_quality = ft.Slider(
         min=1,
         max=100,
@@ -75,7 +73,6 @@ def create_video_compression_page(
         spacing=2,
     )
 
-    # Initialize FilePickers for input and output selection
     picker_in_file = ft.FilePicker(
         on_result=lambda e: controller.handle_input_result(
             e, lbl_in_path, lbl_status
@@ -96,7 +93,6 @@ def create_video_compression_page(
         if p not in page.overlay:
             page.overlay.append(p)
 
-    # Source selection card with popup menu
     card_in = create_source_picker_card(
         lbl_in_path=lbl_in_path,
         on_select_file=lambda: controller.open_picker(
@@ -108,7 +104,6 @@ def create_video_compression_page(
         file_icon=ft.icons.VIDEO_FILE,
     )
 
-    # Destination directory card
     card_out = create_clickable_card(
         title=t("lbl_destination"),
         icon=ft.icons.FOLDER,

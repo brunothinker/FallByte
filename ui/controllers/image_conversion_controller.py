@@ -1,6 +1,5 @@
 import threading
 import time
-from pathlib import Path
 
 import flet as ft
 
@@ -11,6 +10,7 @@ from ui.components.dialog_utils import (
     show_no_supported_files_dialog,
     show_summary_dialog,
 )
+from ui.controllers.base_controller import BaseController
 from ui.i18n import t
 from ui.theme import get_color
 from ui.utils.conversion_utils import resolve_color_key_to_hex
@@ -18,89 +18,12 @@ from ui.utils.format_utils import image_input_formats
 from ui.utils.log_capture import TextRedirector
 
 
-class ConversionController:
+class ConversionController(BaseController):
     """Controller managing single-file and batch directory image conversion business logic."""
 
     def __init__(self) -> None:
         """Initializes state variables for conversion execution and safety guards."""
-        self.selected_input: Path | None = None
-        self.selected_output_dir: Path | None = None
-        self.is_processing: bool = False
-        self.abort_requested: bool = False
-        self.picker_active: bool = False
-        self.cancel_dialog: ft.AlertDialog | None = None
-
-    def open_picker(
-        self, picker: ft.FilePicker, allow_directory: bool = False
-    ) -> None:
-        """Opens file or directory picker preventing concurrent window spawns.
-
-        Args:
-            picker: The Flet FilePicker component instance.
-            allow_directory: Flag indicating whether to pick directories instead of files.
-        """
-        if not self.picker_active:
-            self.picker_active = True
-            if allow_directory:
-                picker.get_directory_path()
-            else:
-                picker.pick_files(allow_multiple=False)
-                
-    def handle_input_result(
-        self,
-        e: ft.FilePickerResultEvent,
-        lbl_path: ft.Text,
-        lbl_status: ft.Text | None = None,
-    ) -> None:
-        """Handles selection result from input file or directory picker.
-
-        Args:
-            e: The FilePicker result event containing user selection paths.
-            lbl_path: The Flet Text UI control to display the selected path name.
-            lbl_status: Optional Flet Text UI control to clear previous status messages.
-        """
-        self.picker_active = False
-        if e.files and len(e.files) > 0:
-            self.selected_input = Path(e.files[0].path)
-        elif e.path:
-            self.selected_input = Path(e.path)
-
-        if self.selected_input:
-            lbl_path.value = (
-                self.selected_input.name or str(self.selected_input)
-            )
-            lbl_path.color = get_color("text")
-            lbl_path.update()
-
-            if lbl_status:
-                lbl_status.value = ""
-                lbl_status.update()
-
-    def handle_output_result(
-        self,
-        e: ft.FilePickerResultEvent,
-        lbl_path: ft.Text,
-        lbl_status: ft.Text | None = None,
-    ) -> None:
-        """Handles selection result from output directory picker.
-
-        Args:
-            e: The FilePicker result event containing user selection path.
-            lbl_path: The Flet Text UI control to display the selected directory name.
-            lbl_status: Optional Flet Text UI control to clear previous status messages.
-        """
-        self.picker_active = False
-        if e.path:
-            self.selected_output_dir = Path(e.path)
-            lbl_path.value = (
-                self.selected_output_dir.name or str(self.selected_output_dir)
-            )
-            lbl_path.color = get_color("text")
-            lbl_path.update()
-
-            if lbl_status:
-                lbl_status.value = ""
-                lbl_status.update()
+        super().__init__()
 
     def handle_action_click(
         self,
@@ -111,16 +34,7 @@ class ConversionController:
         progress_bar: ft.ProgressBar,
         btn_action: ft.ElevatedButton,
     ) -> None:
-        """Routes trigger button click to execute process or request cancellation.
-
-        Args:
-            page: Active Flet Page instance.
-            target_format: Target image extension string (e.g. 'png', 'jpg').
-            selected_color_key: Key identifying transparency replacement color.
-            lbl_status: Text control rendering process feedback text.
-            progress_bar: ProgressBar control rendering active execution progress.
-            btn_action: Primary process trigger button control.
-        """
+        """Routes trigger button click to execute process or request cancellation."""
         if self.is_processing:
             self._confirm_cancel_process(
                 page, lbl_status, progress_bar, btn_action
@@ -144,16 +58,7 @@ class ConversionController:
         progress_bar: ft.ProgressBar,
         btn_action: ft.ElevatedButton,
     ) -> None:
-        """Routes execution to single file or batch directory converter.
-
-        Args:
-            page: Active Flet Page instance.
-            target_format: Target image extension string.
-            selected_color_key: Key identifying transparency replacement color.
-            lbl_status: Text control rendering process feedback text.
-            progress_bar: ProgressBar control rendering active execution progress.
-            btn_action: Primary process trigger button control.
-        """
+        """Routes execution to single file or batch directory converter."""
         if not self.selected_input or not self.selected_output_dir:
             lbl_status.value = t("msg_select_required")
             lbl_status.color = get_color("error")
@@ -196,31 +101,11 @@ class ConversionController:
         progress_bar: ft.ProgressBar,
         btn_action: ft.ElevatedButton,
     ) -> None:
-        """Executes single-file image conversion flow and presents summary dialog.
-
-        Args:
-            page: Active Flet Page instance.
-            target_format: Target image extension string.
-            selected_color_key: Key identifying transparency replacement color.
-            lbl_status: Text control rendering process feedback text.
-            progress_bar: ProgressBar control rendering active execution progress.
-            btn_action: Primary process trigger button control.
-        """
+        """Executes single-file image conversion flow and presents summary dialog."""
         if not self.selected_input or not self.selected_output_dir:
             return
 
-        self.is_processing = True
-        self.abort_requested = False
-        page.session.set("is_processing", True)
-
-        btn_action.text = t("btn_stop_process")
-        btn_action.icon = ft.icons.STOP
-        btn_action.bgcolor = get_color("error")
-        btn_action.update()
-
-        progress_bar.visible = True
-        progress_bar.value = None
-        progress_bar.update()
+        self._set_processing_ui(page, progress_bar, btn_action)
 
         target_fmt = target_format.lower()
         clean_color = resolve_color_key_to_hex(selected_color_key)
@@ -264,13 +149,7 @@ class ConversionController:
 
         elapsed = time.time() - start_time
 
-        if self.cancel_dialog and self.cancel_dialog.open:
-            self.cancel_dialog.open = False
-            page.update()
-            self.cancel_dialog = None
-
-        progress_bar.visible = False
-        progress_bar.update()
+        self._close_cancel_dialog(page)
 
         if not self.abort_requested:
             if success:
@@ -300,15 +179,9 @@ class ConversionController:
                     pass
             lbl_status.value = t("msg_process_cancelled", count=1)
             lbl_status.color = get_color("error")
+            lbl_status.update()
 
-        self.is_processing = False
-        self.abort_requested = False
-        page.session.set("is_processing", False)
-        btn_action.text = t("btn_process")
-        btn_action.icon = ft.icons.PLAY_ARROW
-        btn_action.bgcolor = get_color("primary")
-        btn_action.update()
-        lbl_status.update()
+        self._restore_idle_ui(page, progress_bar, btn_action)
 
     def _execute_batch_directory(
         self,
@@ -319,29 +192,11 @@ class ConversionController:
         progress_bar: ft.ProgressBar,
         btn_action: ft.ElevatedButton,
     ) -> None:
-        """Executes batch directory image conversion with progress tracking and interruption.
-
-        Args:
-            page: Active Flet Page instance.
-            target_format: Target image extension string.
-            selected_color_key: Key identifying transparency replacement color.
-            lbl_status: Text control rendering process feedback text.
-            progress_bar: ProgressBar control rendering active execution progress.
-            btn_action: Primary process trigger button control.
-        """
+        """Executes batch directory image conversion with progress tracking and interruption."""
         if not self.selected_input or not self.selected_output_dir:
             return
 
-        self.is_processing = True
-        self.abort_requested = False
-        page.session.set("is_processing", True)
-
-        btn_action.text = t("btn_stop_process")
-        btn_action.icon = ft.icons.STOP
-        btn_action.bgcolor = get_color("error")
-        btn_action.update()
-
-        progress_bar.visible = True
+        self._set_processing_ui(page, progress_bar, btn_action)
         progress_bar.value = 0
         progress_bar.update()
 
@@ -352,14 +207,6 @@ class ConversionController:
         redirector.start()
 
         def update_progress(info) -> None:
-            """Callback function handling batch item progress and user cancellation checks.
-
-            Args:
-                info: Data object carrying file count and current item metadata.
-
-            Raises:
-                InterruptedError: If user requested process cancellation.
-            """
             if self.abort_requested:
                 raise InterruptedError("CANCELLED_BY_USER")
 
@@ -394,18 +241,13 @@ class ConversionController:
             if summary.get("cancelled", False):
                 self.abort_requested = True
 
-            if self.cancel_dialog and self.cancel_dialog.open:
-                self.cancel_dialog.open = False
-                page.update()
-                self.cancel_dialog = None
+            self._close_cancel_dialog(page)
 
             if not self.abort_requested:
                 if summary.get("no_files", False):
-                    # Nothing was processed: skip success message and summary dialog.
-                    progress_bar.visible = False
-                    progress_bar.update()
                     lbl_status.value = ""
                     lbl_status.update()
+                    self._restore_idle_ui(page, progress_bar, btn_action)
                     show_no_supported_files_dialog(page, image_input_formats())
                     return
 
@@ -435,80 +277,14 @@ class ConversionController:
 
         finally:
             redirector.stop()
-
-            if self.cancel_dialog and self.cancel_dialog.open:
-                self.cancel_dialog.open = False
-                page.update()
-                self.cancel_dialog = None
+            self._close_cancel_dialog(page)
 
             if self.abort_requested:
                 cleaned_count = summary.get("cleaned_files_count", 0)
-                progress_bar.visible = False
-                progress_bar.update()
                 lbl_status.value = t(
                     "msg_process_cancelled", count=cleaned_count
                 )
                 lbl_status.color = get_color("error")
-
-            self.is_processing = False
-            self.abort_requested = False
-            page.session.set("is_processing", False)
-            btn_action.text = t("btn_process")
-            btn_action.icon = ft.icons.PLAY_ARROW
-            btn_action.bgcolor = get_color("primary")
-            btn_action.update()
-            lbl_status.update()
-
-    def _confirm_cancel_process(
-        self,
-        page: ft.Page,
-        lbl_status: ft.Text,
-        progress_bar: ft.ProgressBar,
-        btn_action: ft.ElevatedButton,
-    ) -> None:
-        """Displays modal confirming execution abort and session cleanup.
-
-        Args:
-            page: Active Flet Page instance.
-            lbl_status: Text control rendering process feedback text.
-            progress_bar: ProgressBar control rendering active execution progress.
-            btn_action: Primary process trigger button control.
-        """
-
-        def close_dialog(_: ft.ControlEvent) -> None:
-            """Closes active cancellation confirmation dialog."""
-            if self.cancel_dialog:
-                self.cancel_dialog.open = False
-                page.update()
-                self.cancel_dialog = None
-
-        def stop_and_cleanup(_: ft.ControlEvent) -> None:
-            """Triggers cancellation flag and updates status feedback."""
-            close_dialog(_)
-            if self.is_processing:
-                self.abort_requested = True
-                lbl_status.value = t("msg_cancelling")
-                lbl_status.color = get_color("error")
                 lbl_status.update()
 
-        self.cancel_dialog = ft.AlertDialog(
-            modal=True,
-            title=ft.Text(
-                t("dialog_cancel_title"), weight=ft.FontWeight.W_600
-            ),
-            content=ft.Text(t("dialog_cancel_body"), size=13),
-            actions=[
-                ft.TextButton(t("btn_keep_running"), on_click=close_dialog),
-                ft.ElevatedButton(
-                    t("btn_stop_and_delete"),
-                    bgcolor=get_color("error"),
-                    color=get_color("text"),
-                    on_click=stop_and_cleanup,
-                ),
-            ],
-            actions_alignment=ft.MainAxisAlignment.END,
-        )
-
-        page.dialog = self.cancel_dialog
-        self.cancel_dialog.open = True
-        page.update()
+            self._restore_idle_ui(page, progress_bar, btn_action)

@@ -34,7 +34,6 @@ def create_compression_page(
         initial_value=80, label_text=t("lbl_quality_title")
     )
 
-    # Initialize FilePickers for input and output selection
     picker_in_file = ft.FilePicker(
         on_result=lambda e: controller.handle_input_result(
             e, lbl_in_path, lbl_status
@@ -55,7 +54,6 @@ def create_compression_page(
         if p not in page.overlay:
             page.overlay.append(p)
 
-    # Source selection card with popup menu
     card_in = create_source_picker_card(
         lbl_in_path=lbl_in_path,
         on_select_file=lambda: controller.open_picker(
@@ -67,7 +65,6 @@ def create_compression_page(
         file_icon=ft.icons.UPLOAD_FILE,
     )
 
-    # Clean Right Card (Destination Directory)
     card_out = create_clickable_card(
         title=t("lbl_destination"),
         icon=ft.icons.FOLDER,

@@ -32,7 +32,6 @@ def create_video_conversion_page(
     lbl_status = ft.Text("", size=13, weight=ft.FontWeight.W_600)
     progress_bar = ft.ProgressBar(width=FORM_WIDTH, value=0, visible=False)
 
-    # Setup target format dropdown control
     dd_format = ft.Dropdown(
         label=t("lbl_target_format"),
         value=SUPPORTED_VIDEO_CONVERSION_FORMATS[0].upper(),
@@ -43,7 +42,6 @@ def create_video_conversion_page(
         ],
     )
 
-    # Initialize FilePickers for input and output selection
     picker_in_file = ft.FilePicker(
         on_result=lambda e: controller.handle_input_result(
             e, lbl_in_path, lbl_status
@@ -64,7 +62,6 @@ def create_video_conversion_page(
         if p not in page.overlay:
             page.overlay.append(p)
 
-    # Source selection card with popup menu
     card_in = create_source_picker_card(
         lbl_in_path=lbl_in_path,
         on_select_file=lambda: controller.open_picker(
@@ -76,7 +73,6 @@ def create_video_conversion_page(
         file_icon=ft.icons.VIDEO_FILE,
     )
 
-    # Destination directory card
     card_out = create_clickable_card(
         title=t("lbl_destination"),
         icon=ft.icons.FOLDER,
