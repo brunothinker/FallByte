@@ -7,6 +7,7 @@ from pathlib import Path
 
 from src.video.utils.binary_manager import get_ffmpeg_path
 from src.video.utils.ffmpeg_utils import (
+    HEVC_COMPRESSION_CONTAINERS,
     RESCUE_INPUT_ARGS,
     RESCUE_STREAM_MAP,
     SAFE_STREAM_MAP,
@@ -14,7 +15,9 @@ from src.video.utils.ffmpeg_utils import (
     base_command,
     container_flags,
     get_codec_args,
+    has_encoder,
     is_same_file,
+    probe_streams,
     run_strategies,
 )
 
@@ -28,11 +31,28 @@ def _build_strategies(
     tmp_path: Path,
     target_ext: str,
     quality: int,
+    video_codec: str | None = None,
+    hevc_available: bool = False,
 ) -> list[tuple[str, list[str]]]:
-    """Builds the ordered (label, command) strategies for a compression targeting a temporary file."""
+    """Builds the ordered (label, command) strategies for a compression targeting a temporary file.
+
+    HEVC sources going into mp4/mov/mkv stay HEVC (libx265) when the encoder is
+    available, with a final libx264 strategy as safety net. Every other source
+    follows the original libx264/VP9/WMV2 path unchanged.
+    """
     out = [str(tmp_path)]
-    codec_args = get_codec_args(target_ext, quality)
-    flags = container_flags(target_ext)
+    keep_hevc = (
+        video_codec == "hevc"
+        and hevc_available
+        and target_ext in HEVC_COMPRESSION_CONTAINERS
+    )
+    codec_args = get_codec_args(
+        target_ext, quality, "hevc" if keep_hevc else None
+    )
+    hevc_tag = (
+        ["-tag:v", "hvc1"] if keep_hevc and target_ext in ("mp4", "mov") else []
+    )
+    flags = container_flags(target_ext) + hevc_tag
 
     strategies: list[tuple[str, list[str]]] = []
 
@@ -74,6 +94,20 @@ def _build_strategies(
             + out,
         )
     )
+
+    # Safety net: if libx265 fails for any reason, fall back to the original H.264 path.
+    if keep_hevc:
+        strategies.append(
+            (
+                "h264 fallback",
+                base_command(ffmpeg_bin, input_path)
+                + SAFE_STREAM_MAP
+                + SAFE_VIDEO_FILTER
+                + get_codec_args(target_ext, quality)
+                + container_flags(target_ext)
+                + out,
+            )
+        )
     return strategies
 
 
@@ -130,8 +164,21 @@ def file_compressor(
         ) as tmp:
             tmp_path = Path(tmp.name)
 
+        info = probe_streams(ffmpeg_bin, input_path)
+        hevc_available = (
+            info.video_codec == "hevc"
+            and target_ext in HEVC_COMPRESSION_CONTAINERS
+            and has_encoder(ffmpeg_bin, "libx265")
+        )
+
         strategies = _build_strategies(
-            ffmpeg_bin, input_path, tmp_path, target_ext, quality
+            ffmpeg_bin,
+            input_path,
+            tmp_path,
+            target_ext,
+            quality,
+            info.video_codec,
+            hevc_available,
         )
         used = run_strategies(
             strategies, tmp_path, input_path.name, cancel_event

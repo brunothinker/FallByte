@@ -168,13 +168,63 @@ def container_flags(target_fmt: str) -> list[str]:
     return []
 
 
-def get_codec_args(target_fmt: str, quality: int | None = None) -> list[str]:
+# Containers where compression keeps HEVC sources as HEVC (libx265).
+HEVC_COMPRESSION_CONTAINERS = {"mp4", "mov", "mkv"}
+
+_encoder_cache: dict[tuple[str, str], bool] = {}
+
+
+def has_encoder(ffmpeg_bin: Path, encoder: str) -> bool:
+    """True if the FFmpeg binary lists the given encoder (e.g. 'libx265'). Never raises."""
+    key = (str(ffmpeg_bin), encoder)
+    if key in _encoder_cache:
+        return _encoder_cache[key]
+
+    found = False
+    try:
+        result = subprocess.run(
+            [str(ffmpeg_bin), "-hide_banner", "-encoders"],
+            timeout=30,
+            **_subprocess_kwargs(),
+        )
+        found = bool(
+            re.search(
+                rf"\s{re.escape(encoder)}\s",
+                result.stdout.decode("utf-8", errors="ignore"),
+            )
+        )
+    except (OSError, subprocess.SubprocessError):
+        found = False
+
+    _encoder_cache[key] = found
+    return found
+
+
+def get_codec_args(
+    target_fmt: str, quality: int | None = None, video_codec: str | None = None
+) -> list[str]:
     """Returns encoder arguments for the target container.
+
+    Only compression (quality is not None) of a HEVC source into mp4/mov/mkv
+    uses libx265; every other combination keeps the original behavior.
 
     Args:
         target_fmt: Container extension without dot (mp4, mkv, webm, mov, avi, wmv).
         quality: 1-100 quality (compression). None selects conversion defaults.
+        video_codec: Detected source video codec (e.g. 'hevc'). None keeps defaults.
     """
+    if (
+        quality is not None
+        and video_codec == "hevc"
+        and target_fmt in HEVC_COMPRESSION_CONTAINERS
+    ):
+        # x265 needs a CRF ~5 above x264 for comparable quality; same slope.
+        crf = round(23 + (100 - quality) * 0.22)
+        return [
+            "-c:v", "libx265", "-crf", str(crf), "-preset", "fast",
+            "-c:a", "aac", "-b:a", "128k",
+        ]
+
     if target_fmt == "webm":
         crf = 30 if quality is None else round(15 + (100 - quality) * 0.4)
         return [

@@ -81,11 +81,21 @@ def create_sample_video():
     """Factory fixture to generate sample synthetic videos using FFmpeg lavfi.
 
     Returns:
-        Callable[..., Path]: Function `(path, duration_sec) -> Path` that
-            encodes a test pattern with a sine tone (H.264 + AAC).
+        Callable[..., Path]: Function `(path, duration_sec, codec, crf, size,
+            noisy) -> Path` that encodes a test pattern with a sine tone.
+            Defaults to a small H.264 + AAC clip. Pass `codec="libx265"` for a
+            HEVC source and `noisy=True` for a phone-like source (yuv420p with
+            film grain, so the video stream dominates the file size).
     """
 
-    def _create(path: Path, duration_sec: int = 1) -> Path:
+    def _create(
+        path: Path,
+        duration_sec: int = 1,
+        codec: str = "libx264",
+        crf: int | None = None,
+        size: str = "320x240",
+        noisy: bool = False,
+    ) -> Path:
         ffmpeg_bin = get_ffmpeg_path()
         cmd = [
             str(ffmpeg_bin),
@@ -93,13 +103,24 @@ def create_sample_video():
             "-f",
             "lavfi",
             "-i",
-            f"testsrc=duration={duration_sec}:size=320x240:rate=15",
+            f"testsrc=duration={duration_sec}:size={size}:rate=15",
             "-f",
             "lavfi",
             "-i",
             f"sine=frequency=1000:duration={duration_sec}",
+            *(
+                ["-vf", "noise=alls=25:allf=t+u,format=yuv420p"]
+                if noisy
+                else []
+            ),
             "-c:v",
-            "libx264",
+            codec,
+            *(["-crf", str(crf)] if crf is not None else []),
+            *(
+                ["-tag:v", "hvc1"]
+                if codec == "libx265" and path.suffix in (".mp4", ".mov")
+                else []
+            ),
             "-c:a",
             "aac",
             str(path),
