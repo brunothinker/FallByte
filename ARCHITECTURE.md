@@ -7,12 +7,10 @@
 ```text
 FallByte/
 ├── ARCHITECTURE.md
-├── FallByte.spec           # PyInstaller build specification
 ├── LICENSE
 ├── README.md
 ├── THIRD_PARTY_NOTICES.md
 ├── main.py
-├── pytest.ini              # pythonpath + testpaths for `pytest`
 ├── requirements.txt
 ├── packaging/              # Build scripts and package bundlers
 │   ├── appimage/           # AppImage packaging assets and scripts
@@ -28,7 +26,7 @@ FallByte/
 │   │   │   └── ffmpeg
 │   │   ├── mac/            # Placeholder (.gitkeep); no bundled binary yet
 │   │   └── windows/
-│   │       └── ffmpeg.exe
+│   │       └── ffmpeg.exe  # Not versioned (`*.exe` is gitignored); added at build time
 │   └── icons/
 │       ├── fallbyte_icon.ico
 │       └── fallbyte_icon.png
@@ -55,13 +53,15 @@ FallByte/
 │       └── utils/          # binary_manager.py, ffmpeg_utils.py, video_scanner.py
 ├── tests/                  # pytest suite, split by layer (see section 4)
 │   ├── conftest.py
+│   ├── README.md
+│   ├── requirements-dev.txt
 │   ├── engine/             # Tests for src/
 │   └── ui/                 # Tests for ui/
 └── ui/                     # Reactive graphical user interface (Flet / Flutter for Python)
-    ├── components/         # dialog_utils.py, io_picker_card.py, quality_selector.py
-    ├── controllers/        # One state controller per page (4) + async bridge to the engine
+    ├── components/         # dialog_utils, io_picker_card, path_label, quality_selector, source_picker_card
+    ├── controllers/        # base_controller.py + one controller per tool page (4) + async bridge to the engine
     ├── pages/              # Views: home, media hubs, and the 4 tool pages
-    ├── utils/              # compression_utils.py, conversion_utils.py, format_utils.py
+    ├── utils/              # compression_utils, conversion_utils, format_utils, log_capture, path_utils
     ├── app_layout.py       # Global frame, dynamic header, and navigation stack
     ├── i18n.py             # Internationalization engine (pt, en, es)
     ├── router.py           # Central screen mapper and router
@@ -82,7 +82,11 @@ FallByte/
 | What a batch passes to the file processor (kwargs, destination layout) | the matching `src/<domain>/<domain>_directory_<operation>.py` |
 | Texts shown to the user | `ui/i18n.py` |
 | Format names shown in notices and dialogs | `ui/utils/format_utils.py` (derived; normally no edit needed) |
-| Button/dialog/progress behavior of a tool | its controller in `ui/controllers/` (see known duplication in section 5) |
+| Behavior shared by all four tools (pickers, processing/idle button state, cancel dialog) | `ui/controllers/base_controller.py` |
+| Behavior of one tool only (validation, single-file flow, batch flow, summary) | its controller in `ui/controllers/` (see known duplication in section 5) |
+| Terminal log shown in the summary dialog | `ui/utils/log_capture.py` |
+| Source card (file/folder menu) and the path labels on the tool pages | `ui/components/source_picker_card.py`, `ui/components/path_label.py` |
+| Initial folder offered by native pickers | `ui/utils/path_utils.py` |
 
 ---
 
@@ -113,7 +117,9 @@ subgraph Views["Pages (Views)"]
 end
 
 subgraph Components["Reusable Components"]
+    CARD_SRC["source_picker_card.py"]
     CARD_IO["io_picker_card.py"]
+    PATH_LBL["path_label.py"]
     Q_SELECT["quality_selector.py"]
     DIALOGS["dialog_utils.py"]
 end
@@ -122,9 +128,12 @@ subgraph UIUtils["UI Utilities"]
     FMT_UTILS["format_utils.py"]
     CONV_UTILS["conversion_utils.py"]
     COMP_UTILS["compression_utils.py"]
+    LOG_CAP["log_capture.py"]
+    PATH_UTILS["path_utils.py"]
 end
 
 subgraph Controllers["Controllers Layer"]
+    BASE_CTRL["base_controller"]
     IMG_COMP_CTRL["image_compression_controller"]
     IMG_CONV_CTRL["image_conversion_controller"]
     VID_COMP_CTRL["video_compression_controller"]
@@ -159,6 +168,15 @@ IMG_COMP_PAGE -.->|"Uses"| CARD_IO
 IMG_CONV_PAGE -.->|"Uses"| CARD_IO
 VID_COMP_PAGE -.->|"Uses"| CARD_IO
 VID_CONV_PAGE -.->|"Uses"| CARD_IO
+Views -.->|"Source card"| CARD_SRC
+Views -.->|"Path labels"| PATH_LBL
+
+IMG_COMP_CTRL -->|"Inherits"| BASE_CTRL
+IMG_CONV_CTRL -->|"Inherits"| BASE_CTRL
+VID_COMP_CTRL -->|"Inherits"| BASE_CTRL
+VID_CONV_CTRL -->|"Inherits"| BASE_CTRL
+BASE_CTRL -.->|"Safe initial folder"| PATH_UTILS
+Controllers -.->|"Terminal log"| LOG_CAP
 
 Views -.->|"Format notices"| FMT_UTILS
 IMG_CONV_PAGE -.->|"Dropdowns, colors"| CONV_UTILS
@@ -182,10 +200,13 @@ Controllers -->|"Displays Summary Modal"| DIALOGS
    * **Navigation Lock:** While a job runs, the controller stores `is_processing` in the page session so the shell can block navigation.
 
 2. **State Controllers (`controllers/`):**
-   * **Concurrent Window Prevention (`picker_active`):** Controls the opening cycle of native OS pickers, blocking duplicate triggers on rapid double clicks.
+   * **Shared Base (`BaseController`):** All four controllers inherit from `base_controller.py`, which owns the state that is identical across tools (`selected_input`, `selected_output_dir`, `is_processing`, `abort_requested`, `picker_active`, `cancel_dialog`) and the behavior built on it: `open_picker`, `handle_input_result`, `handle_output_result`, `_set_processing_ui`, `_restore_idle_ui`, `_close_cancel_dialog` and `_confirm_cancel_process`.
+   * **Concurrent Window Prevention (`picker_active`):** Controls the opening cycle of native OS pickers, blocking duplicate triggers on rapid double clicks. The initial folder comes from `get_safe_initial_directory`, which falls back to the home folder when the previous selection no longer exists.
+   * **Cancel Hook (`_on_cancel_confirmed`):** The cancel dialog is identical for all tools. The only difference is what happens once the user confirms: the base implementation does nothing, and the two video controllers override it to set their `cancel_event`. Image controllers have no `cancel_event`; they stop through the progress callback (see D).
    * **Pre-flight File Analysis:** Evaluates files within selected directories for incompatible extensions before invoking heavy processors, displaying informative `AlertDialog` popups.
    * **Dual Operation Mode:** Transparently evaluates whether the `selected_input` is a single file (`is_file()`) or a directory, triggering the corresponding single-file processor or batch orchestrator in `src/image/` or `src/video/`.
-   * **Log Capture (`TextRedirector`):** Each controller builds a `logging.Handler` that also replaces `sys.stdout`/`sys.stderr` while a job runs, accumulating the terminal log shown in the summary dialog. See known duplication in section 5.
+   * **Log Capture (`TextRedirector`):** A single class in `ui/utils/log_capture.py`. Each controller creates one while a job runs; it is a `logging.Handler` that also replaces `sys.stdout`/`sys.stderr` and accumulates the terminal log shown in the summary dialog. `stop()` restores the original streams.
+   * **Still per controller:** the entry/validation method (`prepare_and_execute` or `execute_conversion`), `handle_action_click`, `_execute_single_file` and the batch method. See section 5.
 
 ### D. Sequence Diagram: UI Abort and Cancellation
 
@@ -204,7 +225,7 @@ Controller->>Dialog: Renders Confirmation Modal
 
 alt User confirms abort
     User->>Dialog: Clicks Stop and Delete
-    Dialog->>Controller: Sets abort_requested = True (and cancel_event on video)
+    Dialog->>Controller: abort_requested = True, then _on_cancel_confirmed() (video: cancel_event.set())
     alt Video controllers
         Controller-->>Engine: cancel_event signals the running file
         Engine->>FFmpeg: terminate(), then kill() after timeout
@@ -225,10 +246,14 @@ end
 ### E. Design System and Componentization
 
 - **QualitySelector (`quality_selector.py`):** Self-contained reactive component inheriting from `ft.Column`. Implements real-time bidirectional synchronization between a `Slider` (1-100) control and a `TextField` with focus-loss validation (`on_blur`), using `validate_quality_value` from `ui/utils/compression_utils.py`.
-- **IOPickerCard (`io_picker_card.py`):** Encapsulates responsive cards with ink ripple effects for click visual feedback and clean display of the selected directory/file path.
+- **SourcePickerCard (`source_picker_card.py`):** The input card shared by the four tool pages. It wraps a `PopupMenuButton` with two entries, "file" and "folder"; the icon of the file entry is a parameter (`file_icon`), so image and video pages reuse the same component.
+- **PathLabel (`path_label.py`):** `create_path_label()` returns the single-line, ellipsized `ft.Text` that shows the selected path (default i18n placeholder or a custom string). Controllers update its value after a picker result.
+- **IOPickerCard (`io_picker_card.py`):** `create_clickable_card` builds the responsive destination card with ink ripple effect and a path label.
 - **DialogUtils (`dialog_utils.py`):** Manages the post-execution summary modal (`show_summary_dialog`), computing overall space reduction statistics (original vs reduced bytes), success/failure counts, and expandable log details with contextual color support. It also provides `show_no_supported_files_dialog`, shown instead of the success message and summary when the selected folder has no files the module can process (orchestrators flag this with `no_files` in their stats).
-- **FormatUtils (`utils/format_utils.py`):** Builds the supported-format lists shown in the UI (page notices and the no-files dialog) from the extension sets in `src/formats.py`, so conversion and compression pages never drift out of sync with what is actually processed. Image compression hides formats listed in `UNCOMPRESSIBLE_FORMATS`.
+- **FormatUtils (`utils/format_utils.py`):** Builds the supported-format lists shown in the UI (page notices and the no-files dialog) from the extension sets in `src/formats.py`, so conversion and compression pages never drift out of sync with what is actually processed. It imports the extension sets directly from `src.formats`. Image compression hides formats listed in `UNCOMPRESSIBLE_FORMATS`.
 - **ConversionUtils (`utils/conversion_utils.py`):** Color-key → hex mapping for transparency replacement, hex normalization, and the `SUPPORTED_CONVERSION_FORMATS` alias of `IMAGE_TARGET_FORMATS` used by the image conversion dropdown.
+- **LogCapture (`utils/log_capture.py`):** `TextRedirector`, described in section C.
+- **PathUtils (`utils/path_utils.py`):** `get_safe_initial_directory` returns an existing folder for the native pickers (parent folder of a file, or the home folder as fallback).
 - **Global Theme (`theme.py`):** Centralizes design tokens maintaining visual consistency (`COLOR_CARD_BG`, `COLOR_PRIMARY`, `COLOR_SUCCESS`, `COLOR_ERROR`, `FORM_WIDTH = 550px`).
 
 ---
@@ -372,7 +397,8 @@ end
 | `SUPPORTED_IMAGE_EXTENSIONS` | Image extensions accepted as input (lower case, with dot) | `image_scanner.py`, `format_utils.py` |
 | `SUPPORTED_VIDEO_EXTENSIONS` | Video extensions accepted as input | `video_scanner.py`, `format_utils.py`, video compression controller |
 | `IMAGE_TARGET_FORMATS` | Output formats of image conversion (`JPEG`, `PNG`, `WEBP`, `BMP`, `TIFF`, `GIF`, `ICO`, `PPM`, `PDF`) | `conversion_utils.py` (dropdown) |
-| `VIDEO_TARGET_FORMATS` | Output containers of video conversion (`mp4`, `mkv`, `webm`, `mov`, `avi`, `wmv`) | video conversion controller / page |
+| `VIDEO_TARGET_FORMATS` | Output containers of video conversion (`mp4`, `mkv`, `webm`, `mov`, `avi`, `wmv`) | video conversion controller (re-exported to its page) |
+| `UNCOMPRESSIBLE_FORMATS` | Image formats kept untouched by compression (`BMP`, `PPM`, `GIF`, `ICO`) | `image_file_compression.py`, `format_utils.py` |
 
 Adding a format means editing this file; the dropdowns, scanners and "supported formats" notices follow. A new *output* format also needs its handling in the matching file processor.
 
@@ -451,7 +477,7 @@ Tests monkeypatch the file processor and the scanner by name inside each wrapper
 
 ### B. Code Quality and Test Suite (`tests/`)
 
-The suite is organized by layer and mirrors `src/` and `ui/`. Run everything with `pytest` (`pytest.ini` sets `pythonpath` and `testpaths`).
+The suite is organized by layer and mirrors `src/` and `ui/`. Run everything with `pytest`; `tests/conftest.py` adds the project root to `sys.path` before any `src`/`ui` import. Dev dependencies are in `tests/requirements-dev.txt`.
 
 ```text
 tests/
@@ -459,13 +485,14 @@ tests/
 ├── engine/                     Tests for src/ (no UI)
 │   ├── test_image_engine.py    Conversion matrix (mode x format), ICO clamp, compression fallback
 │   ├── test_video_engine.py    FFmpeg conversion/compression, edge cases, process cancellation
-│   └── test_batch_sessions.py  Batch wrappers, session folders, name collisions, cancel cleanup
+│   └── test_batch_sessions.py  Batch wrappers, `run_batch` contract, session folders, name collisions, cancel cleanup
 └── ui/                         Tests for ui/
-    ├── test_controllers.py     4 controllers: characterization (fake engines) + real-engine integration
-    └── test_components.py      Mocked Flet controls, dialogs, format helpers
+    ├── test_controllers.py     4 controllers (incl. BaseController behavior): fake-engine tests + real-engine integration
+    └── test_components.py      Format helpers, dialogs, source picker card, path label, plus mocked-Flet smoke tests
 ```
 
-- **Characterization Tests:** `test_controllers.py` pins the current behavior of the four controllers (including known quirks) so the controllers can be refactored without changing behavior. A failing characterization test on untouched code means the test is wrong, not the controller.
+- **Characterization Tests:** `test_controllers.py` runs the same scenarios against all four controllers (`SPECS`) with fake engines: single-file flow, batch flow, routing, cancel dialog and pickers. They pin the behavior of `BaseController` and the known quirks (e.g. image controllers have no `cancel_event`), so a refactor that changes behavior fails here. When a quirk is fixed on purpose, update the test in the same commit.
+- **Monkeypatch Contract:** Tests replace engine functions by name inside the controller and wrapper modules (`file_converter`, `directory_compressor`, `scan_image_files`, ...). Keep those names imported at module level.
 - **Side-Effect Isolation:** Tests run in `tmp_path` workspaces, replace engines with fakes where possible, and use real Pillow/FFmpeg only for engine tests.
 
 ---
@@ -475,9 +502,10 @@ tests/
 Documented so that nobody mistakes them for intended design.
 
 **Duplication still present in `ui/`**
-- The four controllers share roughly 85% of their code: picker handling, cancel dialog, button state, and `TextRedirector` (the class is copied in each controller).
-- The four pages repeat the source-picker card and the layout skeleton; only the destination card is shared (`io_picker_card.py`).
-- Consequence: a UX fix usually has to be applied in four controllers. Planned: a shared controller base and a shared log-capture module.
+- Shared already: picker/state/cancel logic (`BaseController`), the log capture (`TextRedirector`), the source card and path labels.
+- Still repeated in each controller: `handle_action_click`, the entry/validation method, `_execute_single_file` and the batch method (progress callback, summary payload, stream redirection). Image and video variants differ mainly in cancellation and in which engine function is called.
+- The four pages still repeat the layout skeleton (header, option block, action button); only the cards and labels are shared.
+- Consequence: a change to the run flow (e.g. summary content) still has to be applied in four controllers.
 
 **Behavioral differences between image and video (kept on purpose, flagged as bugs)**
 - Image cancellation only takes effect *between* files; the video flow terminates the running FFmpeg process immediately. Image controllers do not own a `cancel_event`.
@@ -493,6 +521,11 @@ Documented so that nobody mistakes them for intended design.
 - Always re-encodes with `libx264` (or the container's codec); HEVC sources can come out larger than the original, in which case the original is kept. Planned: detect the source codec with `probe_streams()` and use `libx265`.
 
 **Minor**
-- `ui/utils/format_utils.py` still imports `SUPPORTED_*_EXTENSIONS` through the scanner modules instead of `src.formats`.
-- The video compression controller still derives its own `SUPPORTED_VIDEO_EXTS` set (extensions without the dot) from `src.formats`.
-- `UNCOMPRESSIBLE_FORMATS` lives in `image_file_compression.py`, not in `formats.py`.
+- `ui/pages/video_conversion_page.py` imports `SUPPORTED_VIDEO_CONVERSION_FORMATS` from its controller (an alias of `VIDEO_TARGET_FORMATS`) instead of `src.formats`.
+- Several modules keep `logger = logging.getLogger(...)` without using it (the directory wrappers after the `run_batch` migration).
+
+**Test coverage gaps**
+- No test pins the `run_batch` behavior for unexpected exceptions (partial statistics, no cleanup).
+- Cancelling an *image* batch is not tested, so the `remove_empty_session_dir=False` difference to video is documented but not guarded.
+- The image conversion matrix uses its own list of 6 target formats; `GIF`, `PPM` and `PDF` are not covered. The video conversion test does not cover `wmv`.
+- The progress callback is not exercised with the real `run_batch` at controller level, so the image cancel path (callback raising `InterruptedError`) has no end-to-end test.
