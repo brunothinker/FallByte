@@ -6,6 +6,9 @@ from pathlib import Path
 
 import flet as ft
 
+from src.formats import (
+    VIDEO_TARGET_FORMATS as SUPPORTED_VIDEO_CONVERSION_FORMATS,
+)
 from src.utils.output_naming import unique_conversion_output_path
 from src.video.video_directory_conversion import directory_converter
 from src.video.video_file_conversion import file_converter
@@ -16,6 +19,16 @@ from ui.components.dialog_utils import (
 from ui.i18n import t
 from ui.theme import get_color
 from ui.utils.format_utils import video_input_formats
+
+# Setup module logger
+logger = logging.getLogger(__name__)
+
+# Expose supported video conversion formats for UI consumption
+__all__ = [
+    "SUPPORTED_VIDEO_CONVERSION_FORMATS",
+    "TextRedirector",
+    "VideoConversionController",
+]
 
 
 class TextRedirector(logging.Handler):

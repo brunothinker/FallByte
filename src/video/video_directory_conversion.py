@@ -1,16 +1,14 @@
 import logging
 import threading
-import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from src.utils.cleanup import safe_cleanup_session_files
-from src.utils.output_directory import create_unique_output_dir
+from src.utils.batch_runner import run_batch
 from src.utils.output_naming import unique_conversion_output_path
 from src.utils.progress import ProgressInfo
-from src.video.video_file_conversion import file_converter
 from src.video.utils.video_scanner import scan_video_files
+from src.video.video_file_conversion import file_converter
 
 # Setup module logger
 logger = logging.getLogger(__name__)
@@ -23,7 +21,7 @@ def directory_converter(
     progress_callback: Callable[[ProgressInfo], None] | None = None,
     cancel_event: threading.Event | None = None,
 ) -> dict[str, Any]:
-    """Scans an input directory for video files, converts each file to the target format, and saves them to output_dir.
+    """Scans an input directory for video files, converts each file to target format.
 
     Supports real-time progress callbacks, user cancellation, and cleanup of
     generated files. A failure on one file never aborts the batch.
@@ -35,125 +33,41 @@ def directory_converter(
         target_format (str): Desired output format (e.g., 'mp4', 'mkv', 'avi').
         progress_callback (Callable[[ProgressInfo], None], optional): Callback
           function invoked after processing each file. Defaults to None.
-        cancel_event (threading.Event, optional): Event that, when set,
-          terminates the running FFmpeg process and cancels the batch.
+        cancel_event (threading.Event, optional): Event terminating batch execution.
           Defaults to None.
 
     Returns:
-        Dict[str, Any]: A summary dictionary containing conversion
-        statistics, byte sizes, elapsed time, and cancellation state.
-        When the directory has no supported files, "no_files" is set to True and
-        nothing is processed; callers must not report success in that case.
+        Dict[str, Any]: Summary dictionary containing conversion statistics.
     """
-    stats = {
-        "success": 0,
-        "failed": 0,
-        "elapsed_seconds": 0.0,
-        "original_bytes": 0,
-        "compressed_bytes": 0,
-        "cancelled": False,
-        "cleaned_files_count": 0,
-    }
-    start_time = time.perf_counter()
-    created_destination_files: list[Path] = []
-    session_dir: Path | None = None
+    target_fmt = target_format.lower().lstrip(".")
+    reserved_paths: set[str] = set()
 
-    try:
-        # Scan input directory for valid video files
-        video_files = sorted(
-            scan_video_files(input_dir), key=lambda path: path.as_posix().casefold()
-        )
-        total_files = len(video_files)
-
-        if total_files == 0:
-            logger.warning(f"No valid files found in '{input_dir}'.")
-            stats["no_files"] = True
-            return stats
-
-        output_dir = create_unique_output_dir(output_dir, "converted")
-        session_dir = output_dir
-        target_fmt = target_format.lower().lstrip(".")
-
-        reserved_paths: set[str] = set()
-        destination_paths = {
-            file_path: unique_conversion_output_path(
-                input_path=file_path,
-                output_dir=output_dir,
-                target_format=target_fmt,
-                reserved_paths=reserved_paths,
-                relative_path=file_path.relative_to(input_dir),
-            )
-            for file_path in video_files
-        }
-
-        # Iterate over discovered files and execute conversion
-        for index, file_path in enumerate(video_files, start=1):
-            destination_path = destination_paths[file_path]
-
-            try:
-                orig_size = file_path.stat().st_size
-            except OSError:
-                orig_size = 0
-            stats["original_bytes"] += orig_size
-
-            # Execute single file conversion via FFmpeg (raises InterruptedError on cancel)
-            success = file_converter(
-                input_path=file_path,
-                output_path=destination_path,
-                target_format=target_fmt,
-                cancel_event=cancel_event,
-            )
-
-            comp_size = 0
-            if success:
-                stats["success"] += 1
-                if destination_path.exists():
-                    created_destination_files.append(destination_path)
-                    comp_size = destination_path.stat().st_size
-                    stats["compressed_bytes"] += comp_size
-            else:
-                stats["failed"] += 1
-
-            # Dispatch progress metrics to callback if provided
-            if progress_callback:
-                progress_info = ProgressInfo(
-                    current=index,
-                    total=total_files,
-                    start_time=start_time,
-                    file_path=file_path,
-                    success=success,
-                    orig_bytes=orig_size,
-                    comp_bytes=comp_size,
-                )
-                progress_callback(progress_info)
-
-        # Calculate total elapsed time
-        stats["elapsed_seconds"] = round(time.perf_counter() - start_time, 2)
-        return stats
-
-    except InterruptedError:
-        logger.info(f"Directory conversion cancelled by user: '{input_dir}'")
-        stats["cancelled"] = True
-
-        # Delegate session cleanup to global utility
-        cleaned_count = safe_cleanup_session_files(
-            created_files=created_destination_files, root_output_dir=output_dir
+    def process_file(src: Path, dst: Path) -> bool:
+        return file_converter(
+            input_path=src,
+            output_path=dst,
+            target_format=target_fmt,
+            cancel_event=cancel_event,
         )
 
-        # Remove the session folder only if cancellation left it empty
-        if session_dir is not None:
-            try:
-                session_dir.rmdir()
-            except OSError:
-                pass
-
-        stats["cleaned_files_count"] = cleaned_count
-        stats["elapsed_seconds"] = round(time.perf_counter() - start_time, 2)
-        return stats
-
-    except Exception as e:
-        logger.error(
-            f"Failed to convert directory '{input_dir}': {e}", exc_info=True
+    def build_destination(src_file: Path, session_out_dir: Path) -> Path:
+        return unique_conversion_output_path(
+            input_path=src_file,
+            output_dir=session_out_dir,
+            target_format=target_fmt,
+            reserved_paths=reserved_paths,
+            relative_path=src_file.relative_to(input_dir),
         )
-        stats["elapsed_seconds"] = round(time.perf_counter() - start_time, 2)
-        return stats
+
+    return run_batch(
+        input_dir=input_dir,
+        output_dir=output_dir,
+        session_name="converted",
+        scanner=scan_video_files,
+        process_file=process_file,
+        build_destination=build_destination,
+        progress_callback=progress_callback,
+        cancel_event=cancel_event,
+        sort=True,
+        remove_empty_session_dir=True,
+    )
