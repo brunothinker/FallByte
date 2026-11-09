@@ -49,7 +49,17 @@ def run_batch(
     input_path = Path(input_dir)
     output_path = Path(output_dir)
 
+    # Scan input directory for valid files
+    discovered_files = scanner(input_path)
+    if sort:
+        discovered_files = sorted(
+            discovered_files, key=lambda p: p.as_posix().casefold()
+        )
+
+    total_files = len(discovered_files)
+
     stats: dict[str, Any] = {
+        "total_files": total_files,
         "success": 0,
         "failed": 0,
         "elapsed_seconds": 0.0,
@@ -60,14 +70,6 @@ def run_batch(
     }
     start_time = time.perf_counter()
 
-    # Scan input directory for valid files
-    discovered_files = scanner(input_path)
-    if sort:
-        discovered_files = sorted(
-            discovered_files, key=lambda p: p.as_posix().casefold()
-        )
-
-    total_files = len(discovered_files)
     if total_files == 0:
         logger.warning(f"No valid files found in '{input_path}'.")
         stats["no_files"] = True

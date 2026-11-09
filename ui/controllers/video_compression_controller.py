@@ -17,8 +17,6 @@ from ui.i18n import t
 from ui.theme import get_color
 from ui.utils.format_utils import video_input_formats
 
-SUPPORTED_VIDEO_EXTS: set[str] = {ext.lstrip(".") for ext in SUPPORTED_VIDEO_EXTENSIONS}
-
 
 class TextRedirector(logging.Handler):
     """Redirects sys.stdout, sys.stderr and Python logging streams to accumulate console logs in a buffer."""
@@ -374,7 +372,7 @@ class VideoCompressionController:
         unsupported_files: list[Path] = []
 
         for f in all_files:
-            if f.suffix.lower().lstrip(".") in SUPPORTED_VIDEO_EXTS:
+            if f.suffix.lower() in SUPPORTED_VIDEO_EXTENSIONS:
                 supported_files.append(f)
             else:
                 unsupported_files.append(f)

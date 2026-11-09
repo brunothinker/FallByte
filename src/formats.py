@@ -46,3 +46,6 @@ VIDEO_TARGET_FORMATS: list[str] = [
     "avi",
     "wmv",
 ]
+
+# Image formats that cannot be further compressed via PIL (caps, no dot)
+UNCOMPRESSIBLE_FORMATS: set[str] = {"BMP", "PPM", "GIF", "ICO"}

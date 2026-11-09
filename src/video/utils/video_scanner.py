@@ -6,7 +6,6 @@ from src.formats import SUPPORTED_VIDEO_EXTENSIONS
 logger = logging.getLogger(__name__)
 
 def scan_video_files(directory_path: Path, recursive: bool = True) -> list[Path]:
-    discovered_videos: list[Path] = []
     """Scans a directory for supported video files compatible with FFmpeg.
 
     Args:

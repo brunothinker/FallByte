@@ -6,7 +6,6 @@ from src.formats import SUPPORTED_IMAGE_EXTENSIONS
 logger = logging.getLogger(__name__)
 
 def scan_image_files(directory_path: Path, recursive: bool = True) -> list[Path]:
-    discovered_images: list[Path] = []
     """Scans a directory for supported image files.
 
     Args:
