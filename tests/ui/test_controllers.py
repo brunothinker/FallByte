@@ -28,54 +28,54 @@ from ui.i18n import t
 
 # Per-controller wiring used to parametrize the characterization tests.
 SPECS = [
-    dict(
-        id="image-compression",
-        module="ui.controllers.image_compression_controller",
-        cls="CompressionController",
-        file_engine="file_compressor",
-        dir_engine="directory_compressor",
-        entry="prepare_and_execute",
-        batch="_run_batch_compression",
-        kwargs={"quality": 80},
-        has_cancel_event=False,
-        in_name="photo.png",
-    ),
-    dict(
-        id="image-conversion",
-        module="ui.controllers.image_conversion_controller",
-        cls="ConversionController",
-        file_engine="file_converter",
-        dir_engine="directory_converter",
-        entry="execute_conversion",
-        batch="_execute_batch_directory",
-        kwargs={"target_format": "webp", "selected_color_key": "color_white"},
-        has_cancel_event=False,
-        in_name="photo.png",
-    ),
-    dict(
-        id="video-compression",
-        module="ui.controllers.video_compression_controller",
-        cls="VideoCompressionController",
-        file_engine="file_compressor",
-        dir_engine="directory_compressor",
-        entry="prepare_and_execute",
-        batch="_run_batch_compression",
-        kwargs={"quality": 80},
-        has_cancel_event=True,
-        in_name="clip.mp4",
-    ),
-    dict(
-        id="video-conversion",
-        module="ui.controllers.video_conversion_controller",
-        cls="VideoConversionController",
-        file_engine="file_converter",
-        dir_engine="directory_converter",
-        entry="execute_conversion",
-        batch="_execute_batch_directory",
-        kwargs={"target_format": "mp4"},
-        has_cancel_event=True,
-        in_name="clip.mp4",
-    ),
+    {
+        "id": "image-compression",
+        "module": "ui.controllers.image_compression_controller",
+        "cls": "CompressionController",
+        "file_engine": "file_compressor",
+        "dir_engine": "directory_compressor",
+        "entry": "prepare_and_execute",
+        "batch": "_run_batch_compression",
+        "kwargs": {"quality": 80},
+        "has_cancel_event": False,
+        "in_name": "photo.png",
+    },
+    {
+        "id": "image-conversion",
+        "module": "ui.controllers.image_conversion_controller",
+        "cls": "ConversionController",
+        "file_engine": "file_converter",
+        "dir_engine": "directory_converter",
+        "entry": "execute_conversion",
+        "batch": "_execute_batch_directory",
+        "kwargs": {"target_format": "webp", "selected_color_key": "color_white"},
+        "has_cancel_event": False,
+        "in_name": "photo.png",
+    },
+    {
+        "id": "video-compression",
+        "module": "ui.controllers.video_compression_controller",
+        "cls": "VideoCompressionController",
+        "file_engine": "file_compressor",
+        "dir_engine": "directory_compressor",
+        "entry": "prepare_and_execute",
+        "batch": "_run_batch_compression",
+        "kwargs": {"quality": 80},
+        "has_cancel_event": True,
+        "in_name": "clip.mp4",
+    },
+    {
+        "id": "video-conversion",
+        "module": "ui.controllers.video_conversion_controller",
+        "cls": "VideoConversionController",
+        "file_engine": "file_converter",
+        "dir_engine": "directory_converter",
+        "entry": "execute_conversion",
+        "batch": "_execute_batch_directory",
+        "kwargs": {"target_format": "mp4"},
+        "has_cancel_event": True,
+        "in_name": "clip.mp4",
+    },
 ]
 
 
@@ -109,11 +109,11 @@ class Ctx:
 
     def widgets(self) -> dict:
         """Returns the fake widgets as keyword arguments for controller methods."""
-        return dict(
-            lbl_status=self.lbl_status,
-            progress_bar=self.progress_bar,
-            btn_action=self.btn_action,
-        )
+        return {
+            "lbl_status": self.lbl_status,
+            "progress_bar": self.progress_bar,
+            "btn_action": self.btn_action,
+        }
 
     def run_single(self) -> None:
         """Runs the single-file flow synchronously on a freshly created input file."""
@@ -163,7 +163,7 @@ class Ctx:
         def fake(**kwargs):
             if raises:
                 raise raises
-            return dict(result)
+            return dict(result) if result is not None else {}
 
         setattr(self.module, self.spec["dir_engine"], fake)
 

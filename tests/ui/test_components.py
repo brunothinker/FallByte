@@ -8,7 +8,6 @@ from unittest.mock import MagicMock
 
 import flet as ft
 
-
 # --- Mocked page & Flet controls ---
 
 
@@ -122,3 +121,68 @@ def test_no_supported_files_dialog_lists_formats(mock_page):
     assert dialog is not None and dialog.open is True
     texts = [c.value for c in dialog.content.content.controls]
     assert any("MP4, MKV" in text for text in texts)
+
+
+# --- Source Picker Card & Path Label Components ---
+
+
+def test_create_path_label_defaults_and_custom_text():
+    """Validates create_path_label initialization with default i18n text and custom strings."""
+    from ui.components.path_label import create_path_label
+
+    lbl_default = create_path_label()
+    assert isinstance(lbl_default, ft.Text)
+    assert lbl_default.size == 11
+    assert lbl_default.max_lines == 1
+    assert lbl_default.overflow == ft.TextOverflow.ELLIPSIS
+
+    lbl_custom = create_path_label("custom/path/file.png")
+    assert lbl_custom.value == "custom/path/file.png"
+
+
+def test_create_source_picker_card_structure_and_callbacks():
+    """Verifies that create_source_picker_card renders PopupMenuButton and triggers selection callbacks."""
+    from ui.components.path_label import create_path_label
+    from ui.components.source_picker_card import create_source_picker_card
+
+    file_callback_called = False
+    folder_callback_called = False
+
+    def on_file():
+        nonlocal file_callback_called
+        file_callback_called = True
+
+    def on_folder():
+        nonlocal folder_callback_called
+        folder_callback_called = True
+
+    lbl_in_path = create_path_label()
+    card = create_source_picker_card(
+        lbl_in_path=lbl_in_path,
+        on_select_file=on_file,
+        on_select_folder=on_folder,
+        file_icon=ft.icons.VIDEO_FILE,
+    )
+
+    assert isinstance(card, ft.Container)
+    assert isinstance(card.content, ft.PopupMenuButton)
+
+    popup_menu = card.content
+    assert popup_menu.items is not None
+    assert len(popup_menu.items) == 2
+
+    item_file = popup_menu.items[0]
+    item_folder = popup_menu.items[1]
+
+    assert isinstance(item_file, ft.PopupMenuItem)
+    assert isinstance(item_folder, ft.PopupMenuItem)
+    assert item_file.icon == ft.icons.VIDEO_FILE
+    assert item_folder.icon == ft.icons.FOLDER
+
+    if callable(item_file.on_click):
+        item_file.on_click(MagicMock())
+    assert file_callback_called is True
+
+    if callable(item_folder.on_click):
+        item_folder.on_click(MagicMock())
+    assert folder_callback_called is True

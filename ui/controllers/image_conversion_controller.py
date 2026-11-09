@@ -45,7 +45,7 @@ class ConversionController:
                 picker.get_directory_path()
             else:
                 picker.pick_files(allow_multiple=False)
-
+                
     def handle_input_result(
         self,
         e: ft.FilePickerResultEvent,
