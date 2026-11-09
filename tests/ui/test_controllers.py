@@ -28,54 +28,54 @@ from ui.i18n import t
 
 # Per-controller wiring used to parametrize the characterization tests.
 SPECS = [
-    dict(
-        id="image-compression",
-        module="ui.controllers.image_compression_controller",
-        cls="CompressionController",
-        file_engine="file_compressor",
-        dir_engine="directory_compressor",
-        entry="prepare_and_execute",
-        batch="_run_batch_compression",
-        kwargs={"quality": 80},
-        has_cancel_event=False,
-        in_name="photo.png",
-    ),
-    dict(
-        id="image-conversion",
-        module="ui.controllers.image_conversion_controller",
-        cls="ConversionController",
-        file_engine="file_converter",
-        dir_engine="directory_converter",
-        entry="execute_conversion",
-        batch="_execute_batch_directory",
-        kwargs={"target_format": "webp", "selected_color_key": "color_white"},
-        has_cancel_event=False,
-        in_name="photo.png",
-    ),
-    dict(
-        id="video-compression",
-        module="ui.controllers.video_compression_controller",
-        cls="VideoCompressionController",
-        file_engine="file_compressor",
-        dir_engine="directory_compressor",
-        entry="prepare_and_execute",
-        batch="_run_batch_compression",
-        kwargs={"quality": 80},
-        has_cancel_event=True,
-        in_name="clip.mp4",
-    ),
-    dict(
-        id="video-conversion",
-        module="ui.controllers.video_conversion_controller",
-        cls="VideoConversionController",
-        file_engine="file_converter",
-        dir_engine="directory_converter",
-        entry="execute_conversion",
-        batch="_execute_batch_directory",
-        kwargs={"target_format": "mp4"},
-        has_cancel_event=True,
-        in_name="clip.mp4",
-    ),
+    {
+        "id": "image-compression",
+        "module": "ui.controllers.image_compression_controller",
+        "cls": "CompressionController",
+        "file_engine": "file_compressor",
+        "dir_engine": "directory_compressor",
+        "entry": "prepare_and_execute",
+        "batch": "_run_batch_compression",
+        "kwargs": {"quality": 80},
+        "has_cancel_event": False,
+        "in_name": "photo.png",
+    },
+    {
+        "id": "image-conversion",
+        "module": "ui.controllers.image_conversion_controller",
+        "cls": "ConversionController",
+        "file_engine": "file_converter",
+        "dir_engine": "directory_converter",
+        "entry": "execute_conversion",
+        "batch": "_execute_batch_directory",
+        "kwargs": {"target_format": "webp", "selected_color_key": "color_white"},
+        "has_cancel_event": False,
+        "in_name": "photo.png",
+    },
+    {
+        "id": "video-compression",
+        "module": "ui.controllers.video_compression_controller",
+        "cls": "VideoCompressionController",
+        "file_engine": "file_compressor",
+        "dir_engine": "directory_compressor",
+        "entry": "prepare_and_execute",
+        "batch": "_run_batch_compression",
+        "kwargs": {"quality": 80},
+        "has_cancel_event": True,
+        "in_name": "clip.mp4",
+    },
+    {
+        "id": "video-conversion",
+        "module": "ui.controllers.video_conversion_controller",
+        "cls": "VideoConversionController",
+        "file_engine": "file_converter",
+        "dir_engine": "directory_converter",
+        "entry": "execute_conversion",
+        "batch": "_execute_batch_directory",
+        "kwargs": {"target_format": "mp4"},
+        "has_cancel_event": True,
+        "in_name": "clip.mp4",
+    },
 ]
 
 
@@ -109,11 +109,11 @@ class Ctx:
 
     def widgets(self) -> dict:
         """Returns the fake widgets as keyword arguments for controller methods."""
-        return dict(
-            lbl_status=self.lbl_status,
-            progress_bar=self.progress_bar,
-            btn_action=self.btn_action,
-        )
+        return {
+            "lbl_status": self.lbl_status,
+            "progress_bar": self.progress_bar,
+            "btn_action": self.btn_action,
+        }
 
     def run_single(self) -> None:
         """Runs the single-file flow synchronously on a freshly created input file."""
@@ -163,7 +163,7 @@ class Ctx:
         def fake(**kwargs):
             if raises:
                 raise raises
-            return dict(result)
+            return dict(result) if result is not None else {}
 
         setattr(self.module, self.spec["dir_engine"], fake)
 
@@ -402,11 +402,13 @@ def test_open_picker_blocks_concurrent_windows(ctx):
 
 
 def test_open_picker_file_mode(ctx):
-    """File mode opens the file picker and never the directory picker."""
+    """File mode opens the file picker with safe initial directory and never the directory picker."""
     picker = MagicMock()
     ctx.controller.open_picker(picker, allow_directory=False)
 
-    picker.pick_files.assert_called_once_with(allow_multiple=False)
+    picker.pick_files.assert_called_once_with(
+        allow_multiple=False, initial_directory=str(Path.home())
+    )
     picker.get_directory_path.assert_not_called()
 
 
@@ -661,3 +663,46 @@ def test_video_conversion_batch_no_supported_files(tmp_workspace, mock_page):
         mock_no_files.assert_called_once()
         assert "MKV" in mock_no_files.call_args.args[1]
         assert progress_bar.visible is False
+
+
+# --- Safe Directory Selection & Regression Tests ---
+
+
+def test_open_picker_uses_get_safe_initial_directory(ctx, monkeypatch):
+    """Regression test ensuring open_picker uses get_safe_initial_directory to prevent OS picker crashes."""
+    mock_get_safe = MagicMock(return_value=str(Path.home()))
+    monkeypatch.setattr("ui.controllers.base_controller.get_safe_initial_directory", mock_get_safe)
+
+    picker = MagicMock()
+    non_existent_path = ctx.in_dir / "deleted_folder"
+    ctx.controller.selected_input = non_existent_path
+
+    ctx.controller.open_picker(picker, allow_directory=True)
+
+    mock_get_safe.assert_called_once_with(non_existent_path)
+    picker.get_directory_path.assert_called_once_with(initial_directory=str(Path.home()))
+
+
+def test_open_picker_fallback_to_home_on_deleted_directory(ctx):
+    """Ensures file picker falls back to Home directory when previously selected directory was removed."""
+    picker = MagicMock()
+    deleted_dir = ctx.in_dir / "removed_dir"
+    ctx.controller.selected_input = deleted_dir
+
+    ctx.controller.open_picker(picker, allow_directory=False)
+
+    picker.pick_files.assert_called_once_with(
+        allow_multiple=False, initial_directory=str(Path.home())
+    )
+
+def test_cancel_dialog_uses_correct_i18n_body_key(ctx):
+    """Verifies that the cancellation dialog body uses the translated string from t('dialog_cancel_body')."""
+    ctx.controller.is_processing = True
+    ctx.controller._confirm_cancel_process(
+        ctx.page, ctx.lbl_status, ctx.progress_bar, ctx.btn_action
+    )
+    dialog = ctx.controller.cancel_dialog
+    assert dialog is not None
+    assert isinstance(dialog.content, ft.Text)
+    assert dialog.content.value == t("dialog_cancel_body")
+    assert dialog.content.value != "dialog_cancel_content"

@@ -12,9 +12,9 @@ import time
 
 import pytest
 
-from src.image.conversion.image_file_conversion import file_converter
-from src.video.compression.video_file_compression import file_compressor as video_compressor
-from src.video.conversion.video_file_conversion import file_converter as video_converter
+from src.image.image_file_conversion import file_converter
+from src.video.video_file_compression import file_compressor as video_compressor
+from src.video.video_file_conversion import file_converter as video_converter
 from src.video.utils import ffmpeg_utils
 from src.video.utils.binary_manager import get_ffmpeg_path
 

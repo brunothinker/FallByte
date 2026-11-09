@@ -1,8 +1,9 @@
 """Batch orchestration tests: session folders, name collisions and cancel cleanup.
 
 Covers the directory orchestrators of the four engines (image/video x
-conversion/compression) using fake file processors, plus the shared helpers
-`create_unique_output_dir` and `safe_cleanup_session_files`.
+conversion/compression) using fake file processors, the generic `run_batch`
+statistics contract, plus the shared helpers `create_unique_output_dir` and
+`safe_cleanup_session_files`.
 """
 
 import threading
@@ -10,12 +11,13 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-from src.image.compression import image_directory_compression as image_compression
-from src.image.conversion import image_directory_conversion as image_conversion
-from src.image.utils.image_cleanup import safe_cleanup_session_files
+from src.image import image_directory_compression as image_compression
+from src.image import image_directory_conversion as image_conversion
+from src.utils.batch_runner import run_batch
+from src.utils.cleanup import safe_cleanup_session_files
 from src.utils.output_directory import create_unique_output_dir
-from src.video.compression import video_directory_compression as video_compression
-from src.video.conversion import video_directory_conversion as video_conversion
+from src.video import video_directory_compression as video_compression
+from src.video import video_directory_conversion as video_conversion
 
 # (module, scanner attr, file processor attr, session folder name, kwargs)
 PROCESSORS = [
@@ -222,6 +224,58 @@ def test_directory_processor_does_not_create_session_folder_without_valid_files(
     assert stats["failed"] == 0
     assert not (output_dir / folder_name).exists()
     assert list(output_dir.iterdir()) == []
+
+
+# --- run_batch statistics contract ---
+
+
+def test_run_batch_reports_total_files(tmp_path):
+    """run_batch must report the number of scanned files, failed ones included.
+
+    Controllers build their summary message ("X of Y") from `total_files`, and
+    the controller tests use fake engines that always provide it, so this is
+    the only test guarding the real `run_batch` output.
+    """
+    input_dir = tmp_path / "in"
+    input_dir.mkdir()
+    for name in ("a.png", "b.png", "c.png"):
+        (input_dir / name).write_bytes(b"x")
+
+    def process(src_file, dst_file):
+        dst_file.parent.mkdir(parents=True, exist_ok=True)
+        dst_file.write_bytes(b"x")
+        return src_file.name != "c.png"  # c.png is reported as a failure
+
+    stats = run_batch(
+        input_dir=input_dir,
+        output_dir=tmp_path / "out",
+        session_name="compressed",
+        scanner=lambda path: sorted(path.glob("*.png")),
+        process_file=process,
+        build_destination=lambda src_file, session_dir: session_dir / src_file.name,
+    )
+
+    assert stats["total_files"] == 3
+    assert stats["success"] == 2
+    assert stats["failed"] == 1
+    assert stats["success"] + stats["failed"] == stats["total_files"]
+    assert "no_files" not in stats
+
+
+def test_run_batch_reports_zero_total_files_when_nothing_to_process(tmp_path):
+    """An empty scan reports total_files == 0 together with the no_files flag."""
+    stats = run_batch(
+        input_dir=tmp_path,
+        output_dir=tmp_path / "out",
+        session_name="compressed",
+        scanner=lambda path: [],
+        process_file=lambda src_file, dst_file: True,
+        build_destination=lambda src_file, session_dir: session_dir / src_file.name,
+    )
+
+    assert stats["total_files"] == 0
+    assert stats["no_files"] is True
+    assert not (tmp_path / "out").exists()
 
 
 # --- Batch conversion output naming ---

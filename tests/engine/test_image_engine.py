@@ -7,8 +7,8 @@ the "keep original" fallback of the image compressor.
 import pytest
 from PIL import Image
 
-from src.image.compression.image_file_compression import file_compressor
-from src.image.conversion.image_file_conversion import file_converter
+from src.image.image_file_compression import file_compressor
+from src.image.image_file_conversion import file_converter
 
 IMAGE_TARGET_FORMATS = ["JPEG", "PNG", "WEBP", "BMP", "ICO", "TIFF"]
 

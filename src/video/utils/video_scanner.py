@@ -1,24 +1,11 @@
 import logging
 from pathlib import Path
-from typing import List, Set
 
-# Setup module logger
+from src.formats import SUPPORTED_VIDEO_EXTENSIONS
+
 logger = logging.getLogger(__name__)
 
-# Video formats officially supported by the app (same list offered in the UI).
-SUPPORTED_VIDEO_EXTENSIONS: Set[str] = {
-    ".mp4",
-    ".mkv",
-    ".webm",
-    ".mov",
-    ".avi",
-    ".wmv",
-}
-
-
-def scan_video_files(
-    directory_path: Path, recursive: bool = True
-) -> List[Path]:
+def scan_video_files(directory_path: Path, recursive: bool = True) -> list[Path]:
     """Scans a directory for supported video files compatible with FFmpeg.
 
     Args:
@@ -30,7 +17,7 @@ def scan_video_files(
         List[Path]: A list of Path objects representing valid discovered video
         files.
     """
-    discovered_videos: List[Path] = []
+    discovered_videos: list[Path] = []
 
     try:
         if not directory_path.exists() or not directory_path.is_dir():

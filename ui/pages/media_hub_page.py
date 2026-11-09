@@ -20,13 +20,13 @@ def create_media_hub_page(
     """Generic polymorphic hub page builder for media modules (Images, Videos, etc.).
 
     Args:
-        page (ft.Page): Current Flet window page instance.
-        selected_paths (dict[str, Path]): Context dictionary holding shared global paths.
-        on_navigate (Callable[[str], None]): Navigation callback function for route transitions.
-        main_icon (str): Top header Flet icon identifier string.
-        heading_key (str): i18n translation key for main module heading.
-        subheading_key (str): i18n translation key for module subtitle.
-        options (list[dict[str, Any]]): List of option dictionary configurations for tool cards.
+        page: Current Flet window page instance.
+        selected_paths: Context dictionary holding shared global paths.
+        on_navigate: Navigation callback function for route transitions.
+        main_icon: Top header Flet icon identifier string.
+        heading_key: i18n translation key for main module heading.
+        subheading_key: i18n translation key for module subtitle.
+        options: List of option dictionary configurations for tool cards.
 
     Returns:
         ft.Container: Centered container layout housing tool selection cards.

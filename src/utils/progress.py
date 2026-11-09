@@ -1,3 +1,5 @@
+"""Centralized execution progress data structures for FallByte engines and controllers."""
+
 import time
 from dataclasses import dataclass
 from pathlib import Path

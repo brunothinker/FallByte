@@ -5,6 +5,7 @@ from typing import Any
 
 from PIL import Image, ImageOps, ImageSequence
 
+from src.formats import UNCOMPRESSIBLE_FORMATS
 from src.image.utils.remove_transparency import has_transparency
 
 # Setup module logger
@@ -15,7 +16,6 @@ FORMAT_ALIASES = {"JPG": "JPEG", "MPO": "JPEG", "JFIF": "JPEG", "TIF": "TIFF"}
 # Formats whose compression is skipped (original file is kept as-is):
 # BMP/PPM are raw, GIF/ICO cannot be safely re-encoded without losing
 # animation frames or embedded icon sizes.
-UNCOMPRESSIBLE_FORMATS = {"BMP", "PPM", "GIF", "ICO"}
 
 
 def _normalize_format(raw_format: str | None, path: Path) -> str:

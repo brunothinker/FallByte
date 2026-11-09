@@ -1,27 +1,11 @@
 import logging
 from pathlib import Path
 
-# Setup module logger
+from src.formats import SUPPORTED_IMAGE_EXTENSIONS
+
 logger = logging.getLogger(__name__)
 
-# Supported image extensions (normalized to lowercase with leading dot)
-SUPPORTED_IMAGE_EXTENSIONS: set[str] = {
-    ".jpg",
-    ".jpeg",
-    ".png",
-    ".webp",
-    ".bmp",
-    ".tiff",
-    ".tif",
-    ".gif",
-    ".ppm",
-    ".ico",
-}
-
-
-def scan_image_files(
-    directory_path: Path, recursive: bool = True
-) -> list[Path]:
+def scan_image_files(directory_path: Path, recursive: bool = True) -> list[Path]:
     """Scans a directory for supported image files.
 
     Args:

@@ -4,6 +4,8 @@ from pathlib import Path
 import flet as ft
 
 from ui.components.io_picker_card import create_clickable_card
+from ui.components.path_label import create_path_label
+from ui.components.source_picker_card import create_source_picker_card
 from ui.controllers.video_compression_controller import VideoCompressionController
 from ui.i18n import t
 from ui.theme import (
@@ -22,24 +24,11 @@ def create_video_compression_page(
     """Builds video compression page layout with interactive quality slider."""
     controller = VideoCompressionController()
 
-    lbl_in_path = ft.Text(
-        t("lbl_not_selected"),
-        size=11,
-        color=get_color("subtext"),
-        overflow=ft.TextOverflow.ELLIPSIS,
-        max_lines=1,
-    )
-    lbl_out_path = ft.Text(
-        t("lbl_not_selected"),
-        size=11,
-        color=get_color("subtext"),
-        overflow=ft.TextOverflow.ELLIPSIS,
-        max_lines=1,
-    )
+    lbl_in_path = create_path_label()
+    lbl_out_path = create_path_label()
     lbl_status = ft.Text("", size=13, weight=ft.FontWeight.W_600)
     progress_bar = ft.ProgressBar(width=FORM_WIDTH, value=0, visible=False)
 
-    # Label displaying interactive slider percentage
     lbl_quality_val = ft.Text(
         t("lbl_quality_percentage", value=80),
         size=14,
@@ -55,7 +44,6 @@ def create_video_compression_page(
         )
         lbl_quality_val.update()
 
-    # Setup Quality Slider (1 - 100%)
     slider_quality = ft.Slider(
         min=1,
         max=100,
@@ -85,7 +73,6 @@ def create_video_compression_page(
         spacing=2,
     )
 
-    # Initialize FilePickers for input and output selection
     picker_in_file = ft.FilePicker(
         on_result=lambda e: controller.handle_input_result(
             e, lbl_in_path, lbl_status
@@ -106,52 +93,17 @@ def create_video_compression_page(
         if p not in page.overlay:
             page.overlay.append(p)
 
-    # Source selection card with popup menu
-    card_in = ft.Container(
-        width=185,
-        height=125,
-        bgcolor=get_color("card_bg"),
-        border=ft.border.all(1, ft.colors.OUTLINE_VARIANT),
-        border_radius=12,
-        padding=10,
-        ink=True,
-        content=ft.PopupMenuButton(
-            content=ft.Column(
-                [
-                    ft.Icon(ft.icons.FOLDER_OPEN, size=28, color=get_color("primary")),
-                    ft.Text(
-                        t("lbl_source"),
-                        size=12,
-                        weight=ft.FontWeight.W_600,
-                        color=get_color("text"),
-                        text_align=ft.TextAlign.CENTER,
-                    ),
-                    lbl_in_path,
-                ],
-                alignment=ft.MainAxisAlignment.CENTER,
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=4,
-            ),
-            items=[
-                ft.PopupMenuItem(
-                    icon=ft.icons.VIDEO_FILE,
-                    text=t("lbl_select_file"),
-                    on_click=lambda _: controller.open_picker(
-                        picker_in_file, allow_directory=False
-                    ),
-                ),
-                ft.PopupMenuItem(
-                    icon=ft.icons.FOLDER,
-                    text=t("lbl_select_folder"),
-                    on_click=lambda _: controller.open_picker(
-                        picker_in_dir, allow_directory=True
-                    ),
-                ),
-            ],
+    card_in = create_source_picker_card(
+        lbl_in_path=lbl_in_path,
+        on_select_file=lambda: controller.open_picker(
+            picker_in_file, allow_directory=False
         ),
+        on_select_folder=lambda: controller.open_picker(
+            picker_in_dir, allow_directory=True
+        ),
+        file_icon=ft.icons.VIDEO_FILE,
     )
 
-    # Destination directory card
     card_out = create_clickable_card(
         title=t("lbl_destination"),
         icon=ft.icons.FOLDER,
