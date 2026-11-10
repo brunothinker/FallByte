@@ -189,10 +189,11 @@ class CompressionController(BaseController):
                 progress_bar.value = info.current / info.total
                 filename = info.file_path.name if info.file_path else ""
 
-                if info.success:
-                    print(f"[OK] {filename}")
-                else:
-                    print(f"[FAIL] {filename}")
+                if info.is_completed:
+                    if info.success:
+                        print(f"[OK] {filename}")
+                    else:
+                        print(f"[FAIL] {filename}")
 
                 lbl_status.value = t(
                     "msg_compressing_progress",

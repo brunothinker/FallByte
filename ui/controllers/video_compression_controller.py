@@ -309,7 +309,7 @@ class VideoCompressionController(BaseController):
                 progress_bar.value = info.percentage / 100.0
                 file_name = info.file_path.name if info.file_path else ""
 
-                if info.processed_seconds == 0.0:
+                if info.is_completed:
                     if info.success:
                         print(f"[OK] {file_name}")
                     else:

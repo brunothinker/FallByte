@@ -97,6 +97,20 @@ def run_batch(
                 orig_size = 0
             stats["original_bytes"] += orig_size
 
+            # Emit initial progress before processing to allow live intra-file tracking
+            if progress_callback:
+                start_info = ProgressInfo(
+                    current=index,
+                    total=total_files,
+                    start_time=start_time,
+                    file_path=src_file,
+                    success=False,
+                    orig_bytes=orig_size,
+                    comp_bytes=0,
+                    is_completed=False,
+                )
+                progress_callback(start_info)
+
             success = process_file(src_file, dst_file)
             comp_size = 0
 
@@ -109,6 +123,7 @@ def run_batch(
             else:
                 stats["failed"] += 1
 
+            # Emit end-of-file progress after completion
             if progress_callback:
                 progress_info = ProgressInfo(
                     current=index,
@@ -118,6 +133,7 @@ def run_batch(
                     success=success,
                     orig_bytes=orig_size,
                     comp_bytes=comp_size,
+                    is_completed=True,
                 )
                 progress_callback(progress_info)
 

@@ -21,6 +21,7 @@ class ProgressInfo:
         processed_seconds (float, optional): Duration already processed by FFmpeg in seconds. Defaults to 0.0.
         fps (float, optional): Current encoding framerate from FFmpeg. Defaults to 0.0.
         speed (float, optional): Encoding speed multiplier relative to realtime (e.g. 1.5x). Defaults to 0.0.
+        is_completed (bool, optional): Indicates whether the current item has finished processing. Defaults to False.
     """
 
     current: int
@@ -34,6 +35,7 @@ class ProgressInfo:
     processed_seconds: float = 0.0
     fps: float = 0.0
     speed: float = 0.0
+    is_completed: bool = False
 
     @property
     def item_percentage(self) -> float:
@@ -51,11 +53,14 @@ class ProgressInfo:
         """
         if self.total == 0:
             return 0.0
-        active_idx = max(0, self.current - 1)
-        active_item_fraction = (
-            self.item_percentage / 100.0 if self.duration_seconds > 0.0 else 0.0
-        )
-        overall_progress = (active_idx + active_item_fraction) / self.total
+        if self.is_completed:
+            overall_progress = self.current / self.total
+        else:
+            active_idx = max(0, self.current - 1)
+            active_item_fraction = (
+                self.item_percentage / 100.0 if self.duration_seconds > 0.0 else 0.0
+            )
+            overall_progress = (active_idx + active_item_fraction) / self.total
         return min(100.0, max(0.0, round(overall_progress * 100.0, 1)))
 
     @property

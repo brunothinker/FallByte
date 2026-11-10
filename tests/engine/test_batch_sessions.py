@@ -8,6 +8,7 @@ statistics contract, plus the shared helpers `create_unique_output_dir` and
 
 import threading
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 import pytest
 
@@ -16,6 +17,7 @@ from src.image import image_directory_conversion as image_conversion
 from src.utils.batch_runner import run_batch
 from src.utils.cleanup import safe_cleanup_session_files
 from src.utils.output_directory import create_unique_output_dir
+from src.utils.progress import ProgressInfo
 from src.video import video_directory_compression as video_compression
 from src.video import video_directory_conversion as video_conversion
 
@@ -562,3 +564,73 @@ def test_run_batch_cleans_up_without_deleting_pre_existing_files(tmp_workspace):
     assert stats["cancelled"] is True
     assert pre_existing_file.exists()
     assert pre_existing_file.read_bytes() == b"new data"
+
+
+def test_run_batch_video_live_progress_with_fake_processor(tmp_workspace):
+    """Verifies live progress updates starting from the first file and off-by-one progress bar calculations."""
+    in_dir, out_dir = tmp_workspace
+    file1 = in_dir / "clip1.mp4"
+    file2 = in_dir / "clip2.mp4"
+    file1.write_bytes(b"video data 1")
+    file2.write_bytes(b"video data 2")
+
+    captured_updates: list[tuple[int, str, float, bool]] = []
+    active_info: ProgressInfo | None = None
+
+    def fake_video_process(src: Path, dst: Path) -> bool:
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_bytes(src.read_bytes())
+
+        # Simulate FFmpeg intra-file progress updates
+        if active_info:
+            active_info.duration_seconds = 10.0
+            active_info.processed_seconds = 5.0
+            captured_updates.append(
+                (
+                    active_info.current,
+                    active_info.file_path.name if active_info.file_path else "",
+                    active_info.percentage,
+                    active_info.is_completed,
+                )
+            )
+
+        return True
+
+    def on_progress(info: ProgressInfo) -> None:
+        nonlocal active_info
+        active_info = info
+        captured_updates.append(
+            (
+                info.current,
+                info.file_path.name if info.file_path else "",
+                info.percentage,
+                info.is_completed,
+            )
+        )
+
+    stats = run_batch(
+        input_dir=in_dir,
+        output_dir=out_dir,
+        session_name="compressed",
+        scanner=lambda p: sorted(p.glob("*.mp4")),
+        process_file=fake_video_process,
+        build_destination=lambda src, s_dir: s_dir / src.name,
+        progress_callback=on_progress,
+    )
+
+    assert stats["total_files"] == 2
+    assert stats["success"] == 2
+
+    # Validate live progress on the first file
+    first_start = captured_updates[0]
+    assert first_start == (1, "clip1.mp4", 0.0, False)
+
+    first_intra = captured_updates[1]
+    assert first_intra == (1, "clip1.mp4", 25.0, False)
+
+    first_end = captured_updates[2]
+    assert first_end == (1, "clip1.mp4", 50.0, True)
+
+    # Validate second file progress and 100% completion
+    second_end = captured_updates[-1]
+    assert second_end == (2, "clip2.mp4", 100.0, True)
