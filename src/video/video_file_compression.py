@@ -1,11 +1,11 @@
 import logging
 import os
-import shutil
 import tempfile
 import threading
 from collections.abc import Callable
 from pathlib import Path
 
+from src.utils.cleanup import copy_original_file_atomically
 from src.video.utils.binary_manager import get_ffmpeg_path
 from src.video.utils.ffmpeg_utils import (
     HEVC_COMPRESSION_CONTAINERS,
@@ -207,10 +207,10 @@ def file_compressor(
         output_size = tmp_path.stat().st_size
         if output_size >= original_size:
             tmp_path.unlink(missing_ok=True)
-            shutil.copy2(input_path, output_path)
-            logger.info(
-                f"'{input_path.name}' could not be made smaller at {quality}% "
-                f"quality; original file kept."
+            return copy_original_file_atomically(
+                input_path,
+                output_path,
+                f"could not be made smaller at {quality}% quality",
             )
         else:
             os.replace(tmp_path, output_path)

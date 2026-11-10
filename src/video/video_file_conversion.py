@@ -1,11 +1,11 @@
 import logging
 import os
-import shutil
 import tempfile
 import threading
 from collections.abc import Callable
 from pathlib import Path
 
+from src.utils.cleanup import copy_original_file_atomically
 from src.video.utils.binary_manager import get_ffmpeg_path
 from src.video.utils.ffmpeg_utils import (
     RESCUE_INPUT_ARGS,
@@ -167,11 +167,11 @@ def file_converter(
 
         # Bypass FFmpeg re-encoding if extensions match and media streams are valid
         if input_ext == target_fmt:
-            logger.info(
-                f"Skipping re-encoding for '{input_path.name}': already .{target_fmt}. Copying file..."
+            return copy_original_file_atomically(
+                input_path,
+                output_path,
+                f"already .{target_fmt}, skipping re-encoding",
             )
-            shutil.copy2(input_path, output_path)
-            return True
 
         video_ok, audio_ok = copy_compatibility(target_fmt, info)
         logger.info(

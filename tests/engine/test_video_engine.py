@@ -325,3 +325,49 @@ def test_run_strategies_terminates_process_on_callback_exception(tmp_path, monke
     assert spawned[0].poll() is not None
     assert not output_file.exists()
     assert len(ffmpeg_utils._active_processes) == 0
+
+
+def test_video_compression_atomic_keep_original_on_failure(
+    tmp_workspace, create_sample_video, monkeypatch
+):
+    """Ensures failure during 'keep_original' copy leaves destination uncorrupted and no tmp files."""
+    in_dir, out_dir = tmp_workspace
+    src_mp4 = create_sample_video(in_dir / "input.mp4", duration_sec=1)
+    dst_mp4 = out_dir / "input_compressed.mp4"
+    dst_mp4.write_bytes(b"original destination data")
+
+    # Force shutil.copy2 to fail during the fallback copy
+    def failing_copy2(*args, **kwargs):
+        raise OSError("Simulated disk error during copy")
+
+    monkeypatch.setattr("src.utils.cleanup.shutil.copy2", failing_copy2)
+
+    # Compress at quality=100 where compressed output is >= original
+    success = video_compressor(src_mp4, dst_mp4, quality=100)
+
+    assert success is False
+    assert dst_mp4.exists()
+    assert dst_mp4.read_bytes() == b"original destination data"
+    assert list(out_dir.glob(".*_tmp_*")) == []
+
+
+def test_video_conversion_same_format_atomic_copy_on_failure(
+    tmp_workspace, create_sample_video, monkeypatch
+):
+    """Ensures failure during same-format bypass copy preserves existing output and cleans tmp files."""
+    in_dir, out_dir = tmp_workspace
+    src_mp4 = create_sample_video(in_dir / "input.mp4", duration_sec=1)
+    dst_mp4 = out_dir / "output.mp4"
+    dst_mp4.write_bytes(b"original destination data")
+
+    def failing_copy2(*args, **kwargs):
+        raise OSError("Simulated disk error during same-format copy")
+
+    monkeypatch.setattr("src.utils.cleanup.shutil.copy2", failing_copy2)
+
+    success = video_converter(src_mp4, dst_mp4, target_format="mp4")
+
+    assert success is False
+    assert dst_mp4.exists()
+    assert dst_mp4.read_bytes() == b"original destination data"
+    assert list(out_dir.glob(".*_tmp_*")) == []

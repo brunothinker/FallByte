@@ -1,6 +1,5 @@
 import logging
 import os
-import shutil
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -10,6 +9,7 @@ from PIL import Image, ImageOps, ImageSequence
 
 from src.formats import UNCOMPRESSIBLE_FORMATS
 from src.image.utils.remove_transparency import has_transparency
+from src.utils.cleanup import copy_original_file_atomically
 
 # Register HEIC/HEIF opener at startup for Pillow integration
 pillow_heif.register_heif_opener()
@@ -55,29 +55,6 @@ def _quantize_png(img: Image.Image, quality: int) -> Image.Image:
     except (ValueError, OSError) as quant_err:
         logger.warning(f"Quantization skipped: {quant_err}")
         return img
-
-
-def _keep_original(input_path: Path, output_path: Path, reason: str) -> bool:
-    """Copies the source file untouched to the destination via atomic replace."""
-    tmp_path = None
-    try:
-        with tempfile.NamedTemporaryFile(
-            dir=output_path.parent,
-            prefix=f".{output_path.stem}_tmp_",
-            suffix=output_path.suffix,
-            delete=False,
-        ) as tmp:
-            tmp_path = Path(tmp.name)
-
-        shutil.copy2(input_path, tmp_path)
-        os.replace(tmp_path, output_path)
-        logger.info(f"'{input_path.name}' kept as-is: {reason}.")
-        return True
-    except Exception as e:
-        logger.error(f"Failed to copy original file for '{input_path.name}': {e}")
-        if tmp_path and tmp_path.exists():
-            tmp_path.unlink(missing_ok=True)
-        return False
 
 
 def file_compressor(
@@ -131,12 +108,12 @@ def file_compressor(
 
             if fmt in UNCOMPRESSIBLE_FORMATS:
                 tmp_path.unlink(missing_ok=True)
-                return _keep_original(
+                return copy_original_file_atomically(
                     input_path, output_path, f"{fmt} cannot be compressed safely"
                 )
             if fmt == "PNG" and n_frames > 1:
                 tmp_path.unlink(missing_ok=True)
-                return _keep_original(
+                return copy_original_file_atomically(
                     input_path, output_path, "animated PNG would lose its frames"
                 )
 
@@ -185,7 +162,7 @@ def file_compressor(
         original_size = input_path.stat().st_size
         if tmp_path.stat().st_size >= original_size:
             tmp_path.unlink(missing_ok=True)
-            return _keep_original(
+            return copy_original_file_atomically(
                 input_path,
                 output_path,
                 f"compressed result was not smaller at {quality}% quality",

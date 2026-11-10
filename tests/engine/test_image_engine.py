@@ -146,3 +146,28 @@ def test_heic_image_compression_keeps_original(
     assert success is True
     assert dst_heic.exists()
     assert dst_heic.read_bytes() == src_heic.read_bytes()
+
+
+def test_image_compression_atomic_keep_original_on_failure(
+    tmp_workspace, create_sample_image, monkeypatch
+):
+    """Ensures failure during 'keep_original' copy leaves destination uncorrupted and no tmp files."""
+    in_dir, out_dir = tmp_workspace
+    src_gif = in_dir / "sample.gif"
+    create_sample_image(src_gif, mode="P", fmt="GIF")
+
+    dst_gif = out_dir / "compressed.gif"
+    dst_gif.write_bytes(b"original destination data")
+
+    # Force shutil.copy2 to fail during the fallback copy
+    def failing_copy2(*args, **kwargs):
+        raise OSError("Simulated disk error during copy")
+
+    monkeypatch.setattr("src.utils.cleanup.shutil.copy2", failing_copy2)
+
+    success = file_compressor(src_gif, dst_gif, quality=80)
+
+    assert success is False
+    assert dst_gif.exists()
+    assert dst_gif.read_bytes() == b"original destination data"
+    assert list(out_dir.glob(".*_tmp_*")) == []

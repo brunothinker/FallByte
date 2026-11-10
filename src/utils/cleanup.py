@@ -1,9 +1,52 @@
 import logging
+import os
+import shutil
+import tempfile
 from collections.abc import Iterable
 from pathlib import Path
 
 # Setup module logger
 logger = logging.getLogger(__name__)
+
+
+def copy_original_file_atomically(
+    input_path: Path, output_path: Path, reason: str
+) -> bool:
+    """Copies a source file untouched to the destination via atomic replace.
+
+    Ensures pre-existing files are never corrupted and no partial files are left behind
+    if an interruption occurs during copy.
+
+    Args:
+        input_path (Path): Path to the source file.
+        output_path (Path): Destination path where the file will be saved.
+        reason (str): Context description explaining why the original file is kept.
+
+    Returns:
+        bool: True if copy succeeded, False otherwise.
+    """
+    tmp_path = None
+    try:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(
+            dir=output_path.parent,
+            prefix=f".{output_path.stem}_tmp_",
+            suffix=output_path.suffix,
+            delete=False,
+        ) as tmp:
+            tmp_path = Path(tmp.name)
+
+        shutil.copy2(input_path, tmp_path)
+        os.replace(tmp_path, output_path)
+        logger.info(f"'{input_path.name}' kept as-is: {reason}.")
+        return True
+    except Exception as e:
+        logger.error(
+            f"Failed to copy original file for '{input_path.name}': {e}"
+        )
+        if tmp_path and tmp_path.exists():
+            tmp_path.unlink(missing_ok=True)
+        return False
 
 
 def safe_cleanup_session_files(
