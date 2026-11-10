@@ -13,6 +13,8 @@ def create_home_page(
     on_navigate: Callable[[str], None],
 ) -> ft.Container:
     """FallByte Home Page displaying main feature modules in cards."""
+    # Deferred import to break circular dependency with ui.registry
+    from ui.registry import MODULE_REGISTRY
 
     def build_module_card(
         title: str, description: str, icon: str, route_key: str
@@ -58,21 +60,6 @@ def create_home_page(
             ),
         )
 
-    modules = [
-        {
-            "title": t("home_mod_image_title"),
-            "description": t("home_mod_image_desc"),
-            "icon": ft.icons.IMAGE,
-            "route_key": "image_hub",
-        },
-        {
-            "title": t("home_mod_video_title"),
-            "description": t("home_mod_video_desc"),
-            "icon": ft.icons.VIDEO_LIBRARY,
-            "route_key": "video_hub",
-        },
-    ]
-
     return ft.Container(
         alignment=ft.alignment.center,
         padding=20,
@@ -81,12 +68,12 @@ def create_home_page(
                 ft.Row(
                     controls=[
                         build_module_card(
-                            title=mod["title"],
-                            description=mod["description"],
-                            icon=mod["icon"],
-                            route_key=mod["route_key"],
+                            title=t(mod.title_key),
+                            description=t(mod.desc_key),
+                            icon=mod.icon,
+                            route_key=mod.route_key,
                         )
-                        for mod in modules
+                        for mod in MODULE_REGISTRY
                     ],
                     alignment=ft.MainAxisAlignment.CENTER,
                     spacing=20,

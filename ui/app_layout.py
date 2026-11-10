@@ -9,6 +9,7 @@ import flet as ft
 
 from src.utils.config_manager import set_config_value
 from ui.i18n import AVAILABLE_LANGUAGES, TRANSLATIONS, set_language, t
+from ui.registry import MODULE_REGISTRY, resolve_active_module_id
 from ui.router import build_page_view
 from ui.theme import (
     THEME_PRESETS,
@@ -339,22 +340,27 @@ def create_app_layout(
         padding=ft.padding.symmetric(vertical=20),
     )
 
-    # Navigation items setup using i18n keys
+    # Navigation items setup built dynamically from central registry
     nav_items_data = [
-        {"route": "home", "title_key": "nav_home", "icon": ft.icons.HOME_OUTLINED},
-        {"route": "image_hub", "title_key": "image_hub_header_title", "icon": ft.icons.IMAGE_OUTLINED},
-        {"route": "video_hub", "title_key": "video_hub_header_title", "icon": ft.icons.VIDEO_LIBRARY_OUTLINED},
+        {"id": "home", "route": "home", "title_key": "nav_home", "icon": ft.icons.HOME_OUTLINED}
+    ] + [
+        {
+            "id": mod.id,
+            "route": mod.route_key,
+            "title_key": mod.title_key,
+            "icon": mod.sidebar_icon,
+        }
+        for mod in MODULE_REGISTRY
     ]
 
     sidebar_buttons: list[ft.Control] = []
 
     def build_nav_button(data: dict) -> ft.Container:
         """Builds a sidebar navigation button with active-state styling."""
+        module_id = data["id"]
         route = data["route"]
-        current_route = navigation_stack[-1]
-        is_active = current_route == route or (
-            route != "home" and current_route.startswith(route.split("_")[0])
-        )
+        active_module = resolve_active_module_id(navigation_stack[-1])
+        is_active = active_module == module_id
 
         icon_control = ft.Icon(
             data["icon"],
@@ -391,6 +397,7 @@ def create_app_layout(
             or e.control.update(),
         )
         container.data = {
+            "id": module_id,
             "route": route,
             "title_key": data["title_key"],
             "icon_control": icon_control,
@@ -402,14 +409,11 @@ def create_app_layout(
         sidebar_buttons.append(build_nav_button(item))
 
     def update_sidebar_active_states() -> None:
-        """Refreshes sidebar button highlight colors according to the current route."""
-        current_route = navigation_stack[-1]
+        """Refreshes sidebar button highlight colors according to the current active module."""
+        active_module = resolve_active_module_id(navigation_stack[-1])
         for btn in sidebar_buttons:
             if isinstance(btn, ft.Container) and isinstance(btn.data, dict):
-                route = btn.data["route"]
-                is_active = current_route == route or (
-                    route != "home" and current_route.startswith(route.split("_")[0])
-                )
+                is_active = btn.data["id"] == active_module
                 btn.bgcolor = get_color("card_hover") if is_active else ft.colors.TRANSPARENT
 
                 icon_ctrl = btn.data["icon_control"]

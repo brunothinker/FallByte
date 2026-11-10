@@ -186,3 +186,25 @@ def test_create_source_picker_card_structure_and_callbacks():
     if callable(item_folder.on_click):
         item_folder.on_click(MagicMock())
     assert folder_callback_called is True
+
+
+# --- Module Registry Tests ---
+
+
+def test_module_registry_route_and_active_state_resolution():
+    """Verifies route resolution and active module matching using module IDs."""
+    from ui.registry import get_all_routes, resolve_active_module_id
+
+    routes = get_all_routes()
+    assert "home" in routes
+    assert "image_hub" in routes
+    assert "video_hub" in routes
+    assert "image_conversion" in routes
+    assert "video_compression" in routes
+
+    # Active module ID resolution without string splitting
+    assert resolve_active_module_id("home") == "home"
+    assert resolve_active_module_id("image_hub") == "image"
+    assert resolve_active_module_id("image_conversion") == "image"
+    assert resolve_active_module_id("video_compression") == "video"
+    assert resolve_active_module_id("unknown_route") == ""
