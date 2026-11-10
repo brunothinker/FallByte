@@ -17,9 +17,10 @@ Most media optimization tools require uploading sensitive files to cloud servers
 FallByte comes fully equipped with high-performance engines for both **Images** and **Videos**:
 
 * **Local-First & Private:** Your files never leave your system. No server uploads, no telemetry, no internet required.
-* **Embedded Media Engine (FFmpeg):** Native video conversion and compression powered by standalone FFmpeg binaries—no external system installations required.
+* **Embedded Media Engine (FFmpeg):** Native video conversion and compression powered by standalone FFmpeg binaries -- no external system installations required.
 * **Smart Video Processing:** 
-  * **Conversion:** Standardize videos across major formats (`MP4`, `MKV`, `WEBM`, `MOV`, `AVI`, `WMV`) with automatic multi-threaded codec mapping (`VP9`, `H.264`, `WMV2`).
+  * **Conversion:** Standardize videos across major formats (`MP4`, `MKV`, `WEBM`, `MOV`, `AVI`, `WMV`) with automatic multi-threaded codec mapping (`VP9`, `H.264`, `HEVC/H.265`, `WMV2`).
+  * **HEVC 10-bit / HDR Support:** Full preservation of 10-bit pixel formats (`yuv420p10le`) during HEVC (`libx265`) compression and conversion without downsampling to 8-bit.
   * **Compression:** Map quality scales to CRF and bitrate parameters for high space savings.
 * **Advanced Image Processing:**
   * **Compression:** Reclaim storage using quality controls and advanced PNG quantization (palette reduction) while strictly keeping original file formats.
@@ -35,13 +36,13 @@ Choose the appropriate package for your operating system on our official downloa
 
 | Operating System | Supported Formats | Status |
 |---|---|---|
-| 🐧 **Ubuntu / Debian / Mint** | Native `.deb` Package | Supported |
-| 🎩 **Fedora / RHEL / openSUSE** | Native `.rpm` Package | Supported |
-| 🚀 **Arch / Universal Linux** | Portable `.AppImage` | Supported |
-| 🪟 **Windows (x64)** | Portable `.zip` | Temporarily Discontinued |
-| 💻 **macOS** | Source execution only | Not Tested |
+| Linux (Ubuntu / Debian / Mint) | Native `.deb` Package | Supported |
+| Linux (Fedora / RHEL / openSUSE) | Native `.rpm` Package | Supported |
+| Linux (Arch / Universal Linux) | Portable `.AppImage` | Supported |
+| Windows (x64) | Portable `.zip` | Temporarily Discontinued |
+| macOS | Source execution only | Not Tested |
 
-> 📥 **[Get FallByte for your OS (Official Download Page)](https://brunothinker.github.io/page/)**
+> **[Get FallByte for your OS (Official Download Page)](https://brunothinker.github.io/page/)**
 > 
 > *Prefer raw build artifacts? You can also browse all compiled files on the [GitHub Releases Page](https://github.com/brunothinker/FallByte/releases).*
 
@@ -58,6 +59,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python main.py
 ```
+
 ---
 
 ## Stack

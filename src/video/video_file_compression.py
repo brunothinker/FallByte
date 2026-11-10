@@ -16,6 +16,7 @@ from src.video.utils.ffmpeg_utils import (
     base_command,
     container_flags,
     get_codec_args,
+    get_video_filter,
     has_encoder,
     is_same_file,
     probe_streams,
@@ -34,12 +35,14 @@ def _build_strategies(
     quality: int,
     video_codec: str | None = None,
     hevc_available: bool = False,
+    is_10bit: bool = False,
 ) -> list[tuple[str, list[str]]]:
     """Builds the ordered (label, command) strategies for a compression targeting a temporary file.
 
     HEVC sources going into mp4/mov/mkv stay HEVC (libx265) when the encoder is
-    available, with a final libx264 strategy as safety net. Every other source
-    follows the original libx264/VP9/WMV2 path unchanged.
+    available, with a final libx264 strategy as safety net. Preserves 10-bit color depth
+    when compressing HEVC 10-bit sources. Every other source follows the original
+    libx264/VP9/WMV2 path unchanged.
     """
     out = [str(tmp_path)]
     keep_hevc = (
@@ -54,6 +57,7 @@ def _build_strategies(
         ["-tag:v", "hvc1"] if keep_hevc and target_ext in ("mp4", "mov") else []
     )
     flags = container_flags(target_ext) + hevc_tag
+    video_filter = get_video_filter(is_10bit=is_10bit, keep_hevc=keep_hevc)
 
     strategies: list[tuple[str, list[str]]] = []
 
@@ -64,7 +68,7 @@ def _build_strategies(
                 "re-encode keeping subtitles",
                 base_command(ffmpeg_bin, input_path)
                 + ["-map", "0:V:0", "-map", "0:a?", "-map", "0:s?", "-c:s", "copy", "-dn"]
-                + SAFE_VIDEO_FILTER
+                + video_filter
                 + codec_args
                 + out,
             )
@@ -75,7 +79,7 @@ def _build_strategies(
             "safe re-encode",
             base_command(ffmpeg_bin, input_path)
             + SAFE_STREAM_MAP
-            + SAFE_VIDEO_FILTER
+            + video_filter
             + codec_args
             + flags
             + out,
@@ -88,7 +92,7 @@ def _build_strategies(
             "rescue re-encode",
             base_command(ffmpeg_bin, input_path, RESCUE_INPUT_ARGS)
             + RESCUE_STREAM_MAP
-            + SAFE_VIDEO_FILTER
+            + video_filter
             + ["-ac", "2"]
             + codec_args
             + flags
@@ -183,6 +187,7 @@ def file_compressor(
             quality,
             info.video_codec,
             hevc_available,
+            info.is_10bit,
         )
 
         def _inner_progress(out_time: float, fps: float, speed: float) -> None:

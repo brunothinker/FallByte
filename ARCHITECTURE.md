@@ -77,7 +77,7 @@ FallByte/
 | Which files are removed after a cancel | `src/utils/cleanup.py` |
 | Progress fields shown by the UI | `src/utils/progress.py` |
 | Naming of converted outputs / session folders | `src/utils/output_naming.py`, `src/utils/output_directory.py` |
-| FFmpeg arguments, codecs, fallback strategies, cancellation of processes | `src/video/utils/ffmpeg_utils.py` |
+| FFmpeg arguments, 10-bit preservation, codecs, fallback strategies, cancellation of processes | `src/video/utils/ffmpeg_utils.py` |
 | How one image/video is converted or compressed | the matching `src/<domain>/<domain>_file_<operation>.py` |
 | What a batch passes to the file processor (kwargs, destination layout) | the matching `src/<domain>/<domain>_directory_<operation>.py` |
 | Texts shown to the user | `ui/i18n.py` |
@@ -335,7 +335,7 @@ VID_DIR_COMP -->|"scanner + process_file"| VID_SCAN
 VID_DIR_CONV -->|"scanner + process_file"| VID_SCAN
 VID_DIR_COMP -->|"Iterates items"| VID_FILE_COMP
 VID_DIR_CONV -->|"Iterates items"| VID_FILE_CONV
-VID_DIR_CONV -->|"Unique names"| OUT_NAME
+VID_CONV -->|"Unique names"| OUT_NAME
 VID_FILE_COMP -->|"Muxing & probing"| FFMPEG_HELP
 VID_FILE_CONV -->|"Muxing & probing"| FFMPEG_HELP
 FFMPEG_HELP -->|"Locates executable"| BIN_MGR
@@ -408,7 +408,7 @@ Adding a format means editing this file; the dropdowns, scanners and "supported 
 - **Video Domain:** Converts videos (`VIDEO_TARGET_FORMATS`) using multi-tiered fallback strategies:
   1. Pure stream remux (lossless & instant) when codecs are compatible.
   2. Video copy + audio re-encode when only audio codec is rejected.
-  3. Safe full re-encode using `yuv420p` pixel format and even dimensions.
+  3. Safe full re-encode using dynamic pixel format selection (`yuv420p10le` for 10-bit HEVC; `yuv420p` for standard 8-bit output) and even dimensions.
   4. Rescue re-encode with timestamp regeneration for damaged files.
 - **Output Naming (`output_naming.py`):** Converted files are named `<stem>_converted.<ext>`. When that name exists or was already reserved in the batch (e.g. `clip.avi` and `clip.mov`), the source extension is added (`clip_avi_converted.mp4`), then a numeric suffix. Output paths for single-file and batch compression are resolved using `unique_compression_output_path` (`<stem>_compressed.<ext>`).
 
@@ -416,7 +416,7 @@ Adding a format means editing this file; the dropdowns, scanners and "supported 
 - **Image Domain:** Reduces byte size while **strictly preserving the original format**.
   - **PNG Quantization (TinyPNG style):** For `PNG` images with quality < 90, palette reduction down to 256 colors via `FASTOCTREE` (with Alpha) or `MEDIANCUT` (without Alpha).
   - **Uncompressible Protection:** Formats that cannot be safely re-encoded without losing animations or embedded sizes (`UNCOMPRESSIBLE_FORMATS`: `BMP`, `PPM`, `GIF`, `ICO`, `HEIC`, `HEIF`) are kept untouched.
-- **Video Domain:** Maps quality percentage (1-100%) to CRF (for `libx264`/`libx265`/`libvpx-vp9`) or `qscale` (for `wmv2`), keeping the original file if the result turns out larger than the input. `probe_streams()` inspects the source video codec; HEVC (`hevc`/`h265`) sources are compressed via `libx265`, while AVC/H.264 and other codecs default to `libx264`.
+- **Video Domain:** Maps quality percentage (1-100%) to CRF (for `libx264`/`libx265`/`libvpx-vp9`) or `qscale` (for `wmv2`), keeping the original file if the result turns out larger than the input. `probe_streams()` inspects the source video codec and pixel format depth; HEVC (`hevc`/`h265`) sources are compressed via `libx265`, preserving 10-bit pixel formats (`yuv420p10le`) when present while non-HEVC or standard 8-bit codecs default to `libx264` (`yuv420p`).
 
 ### E. Batch Orchestration (`src/utils/batch_runner.py`)
 
@@ -484,6 +484,7 @@ tests/
 ├── engine/                     Tests for src/ (no UI)
 │   ├── test_image_engine.py    Conversion matrix (mode x format), ICO clamp, compression fallback
 │   ├── test_video_engine.py    FFmpeg conversion/compression, edge cases, process cancellation
+│   ├── test_video_hevc.py      HEVC 10-bit preservation, libx265 fallback, and CRF mapping
 │   └── test_batch_sessions.py  Batch wrappers, `run_batch` contract, session folders, name collisions, cancel cleanup
 └── ui/                         Tests for ui/
     ├── test_controllers.py     4 controllers (incl. BaseController behavior): fake-engine tests + real-engine integration

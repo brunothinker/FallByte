@@ -1,7 +1,8 @@
-"""HEVC compression tests: the output codec follows a HEVC source.
+"""HEVC compression and 10-bit color preservation tests.
 
 Pins three things:
   * HEVC sources (mp4/mov/mkv) are compressed with libx265 and keep the hvc1 tag;
+  * 10-bit HEVC sources preserve yuv420p10le pixel format when encoding with libx265;
   * every other source keeps the original libx264/VP9/WMV2 behavior (regression);
   * if libx265 is missing or fails, compression falls back to the old H.264 path.
 
@@ -16,7 +17,11 @@ import pytest
 from src.video import video_file_compression as vc
 from src.video.utils import ffmpeg_utils
 from src.video.utils.binary_manager import get_ffmpeg_path
-from src.video.utils.ffmpeg_utils import get_codec_args, probe_streams
+from src.video.utils.ffmpeg_utils import (
+    get_codec_args,
+    get_video_filter,
+    probe_streams,
+)
 
 FFMPEG = Path("ffmpeg")
 
@@ -29,9 +34,16 @@ def _crf_of(args: list[str]) -> int:
     return int(args[args.index("-crf") + 1])
 
 
-def _strategies(ext, quality=80, codec=None, hevc_available=False):
+def _strategies(ext, quality=80, codec=None, hevc_available=False, is_10bit=False):
     return vc._build_strategies(
-        FFMPEG, Path("in.mp4"), Path("out.tmp"), ext, quality, codec, hevc_available
+        FFMPEG,
+        Path("in.mp4"),
+        Path("out.tmp"),
+        ext,
+        quality,
+        codec,
+        hevc_available,
+        is_10bit,
     )
 
 
@@ -67,6 +79,31 @@ needs_x265 = pytest.mark.skipif(
     not _x265_available(),
     reason="bundled FFmpeg has no libx265",
 )
+
+
+# --- get_video_filter & 10-bit preservation: unit ---
+
+
+def test_get_video_filter_preserves_10bit_for_hevc():
+    """10-bit pixel format must be yuv420p10le only when encoding to HEVC."""
+    assert get_video_filter(is_10bit=True, keep_hevc=True) == [
+        "-vf",
+        "scale=trunc(iw/2)*2:trunc(ih/2)*2",
+        "-pix_fmt",
+        "yuv420p10le",
+    ]
+    assert get_video_filter(is_10bit=True, keep_hevc=False) == [
+        "-vf",
+        "scale=trunc(iw/2)*2:trunc(ih/2)*2",
+        "-pix_fmt",
+        "yuv420p",
+    ]
+    assert get_video_filter(is_10bit=False, keep_hevc=True) == [
+        "-vf",
+        "scale=trunc(iw/2)*2:trunc(ih/2)*2",
+        "-pix_fmt",
+        "yuv420p",
+    ]
 
 
 # --- get_codec_args: unit ---
@@ -129,6 +166,21 @@ def test_hevc_strategies_tag_hvc1_and_fall_back_to_h264(ext):
     assert _codec_of(fallback) == "libx264"
     assert "-tag:v" not in fallback
     assert list(strategies)[-1] == "h264 fallback"
+
+
+def test_hevc_10bit_strategies_use_yuv420p10le():
+    """Validates that HEVC 10-bit strategies include yuv420p10le pixel format."""
+    strategies = dict(
+        _strategies("mp4", codec="hevc", hevc_available=True, is_10bit=True)
+    )
+
+    for label in ("safe re-encode", "rescue re-encode"):
+        cmd = strategies[label]
+        assert _codec_of(cmd) == "libx265"
+        assert cmd[cmd.index("-pix_fmt") + 1] == "yuv420p10le"
+
+    fallback = strategies["h264 fallback"]
+    assert fallback[fallback.index("-pix_fmt") + 1] == "yuv420p"
 
 
 def test_hevc_mkv_strategies_all_use_x265_including_subtitles_one():

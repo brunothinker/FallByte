@@ -44,13 +44,10 @@ COPY_AUDIO_OK: dict[str, set[str] | None] = {
 SAFE_STREAM_MAP: list[str] = ["-map", "0:V:0", "-map", "0:a?", "-sn", "-dn"]
 # Rescue mode keeps only the first audio track.
 RESCUE_STREAM_MAP: list[str] = ["-map", "0:V:0", "-map", "0:a:0?", "-sn", "-dn"]
-# Even dimensions and the pixel format every player/encoder accepts.
-SAFE_VIDEO_FILTER: list[str] = [
-    "-vf",
-    "scale=trunc(iw/2)*2:trunc(ih/2)*2",
-    "-pix_fmt",
-    "yuv420p",
-]
+# Default scale filter to ensure even dimensions required by most hardware decoders/encoders.
+BASE_SCALE_FILTER: list[str] = ["-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2"]
+# Fallback standard 8-bit YUV 4:2:0 pixel format.
+SAFE_VIDEO_FILTER: list[str] = BASE_SCALE_FILTER + ["-pix_fmt", "yuv420p"]
 # Input options that help with damaged files / broken timestamps.
 RESCUE_INPUT_ARGS: list[str] = ["-fflags", "+genpts", "-err_detect", "ignore_err"]
 
@@ -61,6 +58,7 @@ TERMINATE_TIMEOUT = 3.0
 
 _STREAM_RE = re.compile(r"Stream #\d+:\d+.*?: (Video|Audio): (\w+)")
 _STANDARD_PIX_FMT_RE = re.compile(r"\byuvj?420p\b")
+_PIX_FMT_RE = re.compile(r",\s*([a-zA-Z0-9_]+(?:\([^\)]+\))?)(?:,|\s|\[)")
 _DURATION_RE = re.compile(
     r"Duration:\s*(\d{2}):(\d{2}):(\d{2}\.\d+)"
 )
@@ -72,7 +70,9 @@ class StreamInfo:
 
     video_codec: str | None = None
     audio_codecs: list[str] = field(default_factory=list)
+    pix_fmt: str | None = None
     standard_pix_fmt: bool = True
+    is_10bit: bool = False
     duration_seconds: float = 0.0
 
 
@@ -115,7 +115,7 @@ def base_command(
 
 
 def probe_streams(ffmpeg_bin: Path, input_path: Path) -> StreamInfo:
-    """Reads main video codec, audio codecs, pixel format, and duration via `ffmpeg -i`.
+    """Reads main video codec, audio codecs, pixel format, 10-bit flag, and duration via `ffmpeg -i`.
 
     Cover-art streams (attached pictures) are ignored. Never raises; returns an
     empty StreamInfo if probing fails.
@@ -146,9 +146,36 @@ def probe_streams(ffmpeg_bin: Path, input_path: Path) -> StreamInfo:
         if kind == "Video" and info.video_codec is None and "attached pic" not in line:
             info.video_codec = codec
             info.standard_pix_fmt = bool(_STANDARD_PIX_FMT_RE.search(line))
+
+            pix_match = _PIX_FMT_RE.search(line)
+            if pix_match:
+                extracted_fmt = pix_match.group(1).split("(")[0].strip()
+                info.pix_fmt = extracted_fmt
+                if "10" in extracted_fmt or "10bit" in line or "10-bit" in line:
+                    info.is_10bit = True
+            elif "10bit" in line or "10-bit" in line:
+                info.is_10bit = True
+
         elif kind == "Audio":
             info.audio_codecs.append(codec)
     return info
+
+
+def get_video_filter(is_10bit: bool = False, keep_hevc: bool = False) -> list[str]:
+    """Returns video filter arguments guaranteeing even dimensions and appropriate pixel format.
+
+    Preserves 10-bit depth (yuv420p10le) when encoding to HEVC (libx265). Falls back to
+    yuv420p (8-bit) for all other codecs/scenarios to ensure maximum playback compatibility.
+
+    Args:
+        is_10bit (bool): Whether the source video has 10-bit pixel depth.
+        keep_hevc (bool): Whether the target encoder is HEVC (libx265).
+
+    Returns:
+        list[str]: Filter arguments list including scale and pixel format options.
+    """
+    target_pix_fmt = "yuv420p10le" if (is_10bit and keep_hevc) else "yuv420p"
+    return BASE_SCALE_FILTER + ["-pix_fmt", target_pix_fmt]
 
 
 def codec_allowed(allowed: set[str] | None, codecs: list[str]) -> bool:
