@@ -4,6 +4,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+import pillow_heif
 from PIL import Image, ImageOps, ImageSequence
 
 from src.image.utils.remove_transparency import (
@@ -13,10 +14,18 @@ from src.image.utils.remove_transparency import (
     remove_transparency,
 )
 
+# Register HEIC/HEIF opener at startup for Pillow integration
+pillow_heif.register_heif_opener()
+
 # Setup module logger
 logger = logging.getLogger(__name__)
 
-FORMAT_ALIASES = {"JPG": "JPEG", "JFIF": "JPEG", "TIF": "TIFF"}
+FORMAT_ALIASES = {
+    "JPG": "JPEG",
+    "JFIF": "JPEG",
+    "TIF": "TIFF",
+    "HEIC": "HEIF",
+}
 
 # Pixel modes each target format can write. None = no restriction.
 ALLOWED_MODES: dict[str, set[str] | None] = {

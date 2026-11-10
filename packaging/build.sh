@@ -148,6 +148,7 @@ pyinstaller \
     --windowed \
     --name="FallByte" \
     --icon="$ICON_SRC" \
+    --collect-all pillow_heif \
     --distpath "$PYINSTALLER_DIR/dist" \
     --workpath "$PYINSTALLER_DIR/build" \
     "$MAIN_PY"

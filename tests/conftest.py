@@ -13,6 +13,12 @@ from unittest.mock import MagicMock
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import flet as ft
+
+# Pre-register HEIF opener to handle HEIC images in fixtures/tests
+import pillow_heif
+
+pillow_heif.register_heif_opener()
+
 import pytest
 from PIL import Image
 

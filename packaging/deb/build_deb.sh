@@ -73,7 +73,7 @@ Version: $VERSION
 Section: utils
 Priority: optional
 Architecture: $ARCH
-Depends: libgtk-3-0, libgstreamer1.0-0, libgstreamer-plugins-base1.0-0, libmpv2 | libmpv1 | mpv
+Depends: libgtk-3-0, libgstreamer1.0-0, libgstreamer-plugins-base1.0-0, libmpv2 | libmpv1 | mpv, libheif1
 Maintainer: Bruno Henrique <brunothinker@github.com>
 Description: Local-first media optimization tool for images and videos.
 EOF

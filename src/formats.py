@@ -12,6 +12,8 @@ SUPPORTED_IMAGE_EXTENSIONS: set[str] = {
     ".gif",
     ".ppm",
     ".ico",
+    ".heic",
+    ".heif",
 }
 
 # Supported input video extensions (lowercase with leading dot)
@@ -53,4 +55,4 @@ VIDEO_TARGET_FORMATS: list[str] = [
 ]
 
 # Image formats that cannot be further compressed via PIL (caps, no dot)
-UNCOMPRESSIBLE_FORMATS: set[str] = {"BMP", "PPM", "GIF", "ICO"}
+UNCOMPRESSIBLE_FORMATS: set[str] = {"BMP", "PPM", "GIF", "ICO", "HEIC", "HEIF"}

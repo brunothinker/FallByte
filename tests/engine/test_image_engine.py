@@ -4,6 +4,7 @@ Covers the color-mode x target-format conversion matrix, ICO size clamping and
 the "keep original" fallback of the image compressor.
 """
 
+import pillow_heif
 import pytest
 from PIL import Image
 
@@ -45,6 +46,35 @@ def test_image_conversion_matrix(
     assert success is True
     assert dst_path.exists()
     assert dst_path.stat().st_size > 0
+
+
+def test_heic_image_conversion_to_target_formats(
+    tmp_workspace, create_sample_image
+):
+    """Verifies HEIC/HEIF image input conversion to other supported target formats."""
+    in_dir, out_dir = tmp_workspace
+
+    base_png = in_dir / "sample.png"
+    create_sample_image(base_png, mode="RGB", size=(100, 100), fmt="PNG")
+
+    heif_file = pillow_heif.from_pillow(Image.open(base_png))
+    src_heic = in_dir / "sample.heic"
+    heif_file.save(src_heic)
+
+    dst_jpeg = out_dir / "converted_heic.jpg"
+    success = file_converter(
+        src_heic,
+        dst_jpeg,
+        target_format="JPEG",
+        transparency_replacement_color="#FFFFFF",
+    )
+
+    assert success is True
+    assert dst_jpeg.exists()
+    assert dst_jpeg.stat().st_size > 0
+
+    with Image.open(dst_jpeg) as img:
+        assert img.format == "JPEG"
 
 
 def test_ico_sizing_clamp(tmp_workspace, create_sample_image):
@@ -97,3 +127,24 @@ def test_image_compression_keep_original_when_uncompressible(
 
     assert success is True
     assert dst_gif.exists()
+
+
+def test_heic_image_compression_keeps_original(
+    tmp_workspace, create_sample_image
+):
+    """Ensures HEIC files are handled safely by keeping the original file untouched."""
+    in_dir, out_dir = tmp_workspace
+
+    base_png = in_dir / "sample.png"
+    create_sample_image(base_png, mode="RGB", size=(100, 100), fmt="PNG")
+
+    heif_file = pillow_heif.from_pillow(Image.open(base_png))
+    src_heic = in_dir / "sample.heic"
+    heif_file.save(src_heic)
+
+    dst_heic = out_dir / "compressed.heic"
+    success = file_compressor(src_heic, dst_heic, quality=80)
+
+    assert success is True
+    assert dst_heic.exists()
+    assert dst_heic.read_bytes() == src_heic.read_bytes()

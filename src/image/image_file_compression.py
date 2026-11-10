@@ -5,19 +5,30 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+import pillow_heif
 from PIL import Image, ImageOps, ImageSequence
 
 from src.formats import UNCOMPRESSIBLE_FORMATS
 from src.image.utils.remove_transparency import has_transparency
 
+# Register HEIC/HEIF opener at startup for Pillow integration
+pillow_heif.register_heif_opener()
+
 # Setup module logger
 logger = logging.getLogger(__name__)
 
-FORMAT_ALIASES = {"JPG": "JPEG", "MPO": "JPEG", "JFIF": "JPEG", "TIF": "TIFF"}
+FORMAT_ALIASES = {
+    "JPG": "JPEG",
+    "MPO": "JPEG",
+    "JFIF": "JPEG",
+    "TIF": "TIFF",
+    "HEIC": "HEIF",
+}
 
 # Formats whose compression is skipped (original file is kept as-is):
 # BMP/PPM are raw, GIF/ICO cannot be safely re-encoded without losing
-# animation frames or embedded icon sizes.
+# animation frames or embedded icon sizes. HEIC/HEIF compression as output is
+# skipped to prevent generation of degraded native containers without pillow-heif encoder support.
 
 
 def _normalize_format(raw_format: str | None, path: Path) -> str:
@@ -82,9 +93,9 @@ def file_compressor(
     Writes output atomically to a temporary file before moving it into place via
     os.replace to ensure pre-existing files are never corrupted upon failure.
 
-    Formats that cannot be re-encoded safely (BMP, PPM, GIF, ICO) and animated
-    PNGs are copied unchanged. If the compressed result is not smaller than the
-    original, the original file is kept as the output.
+    Formats that cannot be re-encoded safely (BMP, PPM, GIF, ICO, HEIC, HEIF)
+    and animated PNGs are copied unchanged. If the compressed result is not smaller
+    than the original, the original file is kept as the output.
 
     Args:
         input_path (Path): Path to the source image file.

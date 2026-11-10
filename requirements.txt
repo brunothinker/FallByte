@@ -3,6 +3,7 @@ flet==0.21.2
 
 # Image Processing Engine
 pillow==12.3.0
+pillow-heif==0.21.0
 
 # YAML Parser
 pyyaml==6.0.3
