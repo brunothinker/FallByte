@@ -12,7 +12,6 @@ CONFIG_DIR = Path.home() / ".fallbyte"
 CONFIG_FILE = CONFIG_DIR / "config.yaml"
 
 DEFAULT_CONFIG: dict[str, Any] = {
-    "language": "pt",
     "theme_mode": "dark",
     "theme": "blue_dark",
 }

@@ -1,12 +1,16 @@
 import locale
 import logging
+import os
+import re
+import sys
+from collections.abc import Mapping
 from typing import Any
 
 # Setup module logger
 logger = logging.getLogger(__name__)
 
 # Active language identifier
-CURRENT_LANG: str = "pt"
+CURRENT_LANG: str = "en"
 
 # Centralized translation dictionary mapping language codes to key-value strings
 TRANSLATIONS: dict[str, dict[str, str]] = {
@@ -343,6 +347,18 @@ AVAILABLE_LANGUAGES: dict[str, str] = {
     "es": "🇪🇸 Español",
 }
 
+_WIN_NAMES: dict[str, str] = {
+    "portuguese": "pt",
+    "spanish": "es",
+    "english": "en",
+}
+
+_WIN_LANGIDS: dict[int, str] = {
+    0x16: "pt",
+    0x0A: "es",
+    0x09: "en",
+}
+
 
 def t(key: str, **kwargs: Any) -> str:
     """Translates a key into active language, replacing dynamic placeholders."""
@@ -368,14 +384,95 @@ def set_language(lang_code: str) -> None:
         )
 
 
-def detect_system_language() -> str:
-    """Detects system language code using locale module, falling back to 'pt'."""
+# Auxiliary mapping for Windows localized language names to supported ISO codes
+_WIN_NAMES: dict[str, str] = {
+    "portuguese": "pt",
+    "spanish": "es",
+    "english": "en",
+}
+
+# Win32 primary language identifiers (GetUserDefaultUILanguage & 0x3FF)
+_WIN_LANGIDS: dict[int, str] = {
+    0x16: "pt",
+    0x0A: "es",
+    0x09: "en",
+}
+
+
+def _normalize(raw: str | None) -> str | None:
+    """Normalizes raw locale strings (e.g., pt_BR, pt-BR, Portuguese_Brazil) into a supported language code.
+
+    Args:
+        raw (str | None): Raw locale identifier string.
+
+    Returns:
+        str | None: Supported two-letter language code if matched, otherwise None.
+    """
+    if not raw:
+        return None
+    token = re.split(r"[_\-.@:]", raw.strip().lower())[0]
+    code = _WIN_NAMES.get(token, token)
+    return code if code in TRANSLATIONS else None
+
+
+def _windows_langid() -> int | None:
+    """Retrieves the primary language ID of the Windows OS display UI via Win32 API.
+
+    Returns:
+        int | None: Masked primary language ID integer, or None if not running on Windows or API fails.
+    """
+    if sys.platform != "win32":
+        return None
     try:
-        sys_locale, _ = locale.getdefaultlocale()
-        if sys_locale:
-            lang_prefix = sys_locale.split("_")[0].lower()
-            if lang_prefix in TRANSLATIONS:
-                return lang_prefix
-    except (AttributeError, ValueError, locale.Error) as e:
-        logger.warning(f"Failed to detect system locale: {e}")
-    return "pt"
+        import ctypes
+        windll = getattr(ctypes, "windll", None)
+        if windll:
+            return windll.kernel32.GetUserDefaultUILanguage() & 0x3FF
+    except (AttributeError, OSError):
+        return None
+    return None
+
+
+def detect_system_language(env: Mapping[str, str] | None = None) -> str:
+    """Detects system language code, falling back to 'en' if unsupported.
+
+    Checks Windows UI language API first, followed by standard POSIX environment
+    variables (LANGUAGE, LC_ALL, LC_MESSAGES, LANG), and Python locale module.
+
+    Args:
+        env (Mapping[str, str] | None, optional): Custom environment variables mapping for testing.
+            Defaults to os.environ.
+
+    Returns:
+        str: Validated language code present in TRANSLATIONS or 'en'.
+    """
+    use_process_state = env is None
+    env_map = os.environ if env is None else env
+
+    # 1. Native detection via Win32 API (Windows platforms only)
+    if use_process_state and sys.platform == "win32":
+        langid = _windows_langid()
+        if langid in _WIN_LANGIDS:
+            return _WIN_LANGIDS[langid]
+
+    # 2. Standard POSIX environment variables inspection (Linux, macOS, containers)
+    for var in ("LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"):
+        env_val = env_map.get(var) or ""
+        for part in env_val.split(":"):
+            code = _normalize(part)
+            if code:
+                return code
+
+    # 3. Fallback query using CPython locale module
+    if use_process_state:
+        try:
+            loc_tuple = locale.getlocale()
+            if loc_tuple and loc_tuple[0]:
+                code = _normalize(loc_tuple[0])
+                if code:
+                    return code
+        except (ValueError, locale.Error) as e:
+            logger.warning(f"Failed to query system locale: {e}")
+
+    # 4. Final universal fallback
+    return "en"

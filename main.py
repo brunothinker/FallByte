@@ -5,7 +5,7 @@ import flet as ft
 
 from src.utils.config_manager import load_config
 from ui.app_layout import create_app_layout
-from ui.i18n import TRANSLATIONS, set_language, t
+from ui.i18n import TRANSLATIONS, detect_system_language, set_language, t
 from ui.theme import build_flet_theme, get_color, set_active_theme
 
 APP_VERSION = "dev"
@@ -21,14 +21,14 @@ def main(page: ft.Page) -> None:
         page (ft.Page): Root Flet page window instance.
     """
     user_config = load_config()
-    saved_lang = user_config.get("language", "en")
+    saved_lang = user_config.get("language")
     saved_theme = user_config.get("theme", "blue_dark")
 
-    # Configure active language setting
+    # Configure active language setting: use saved choice or detect system locale
     if saved_lang in TRANSLATIONS:
         set_language(saved_lang)
     else:
-        set_language("en")
+        set_language(detect_system_language())
 
     # Apply saved theme configuration from persistent storage
     set_active_theme(saved_theme)
