@@ -135,7 +135,7 @@ class BaseController:
         btn_action.text = t("btn_stop_process")
         btn_action.icon = ft.icons.STOP
         btn_action.bgcolor = get_color("danger")
-        btn_action.color = get_color("text")
+        btn_action.color = "#FFFFFF"
         btn_action.update()
 
     def _restore_idle_ui(
@@ -200,7 +200,7 @@ class BaseController:
                 ft.ElevatedButton(
                     t("btn_stop_and_delete"),
                     bgcolor=get_color("danger"),
-                    color=get_color("text"),
+                    color="#FFFFFF",
                     on_click=on_stop_confirmed,
                 ),
             ],

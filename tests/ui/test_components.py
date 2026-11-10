@@ -93,6 +93,18 @@ def test_banner_and_snack_bar_simulation(mock_page):
     assert mock_page.snack_bar.content.value == "Compression completed successfully!"
 
 
+# --- Theme & Color Resolution ---
+
+
+def test_theme_get_color_danger_resolution():
+    """Verifies get_color returns static danger color without fallback to white."""
+    from ui.theme import get_color
+
+    danger_color = get_color("danger")
+    assert danger_color == ft.colors.RED_600
+    assert danger_color != "#FFFFFF"
+
+
 # --- Format helpers & dialogs ---
 
 

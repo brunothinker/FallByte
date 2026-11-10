@@ -25,6 +25,7 @@ from ui.controllers.image_conversion_controller import ConversionController
 from ui.controllers.video_compression_controller import VideoCompressionController
 from ui.controllers.video_conversion_controller import VideoConversionController
 from ui.i18n import t
+from ui.theme import get_color
 
 # Per-controller wiring used to parametrize the characterization tests.
 SPECS = [
@@ -252,6 +253,8 @@ def test_single_file_sets_stop_button_while_running(ctx):
 
     def fake(**kwargs):
         seen["text"] = ctx.btn_action.text
+        seen["bgcolor"] = ctx.btn_action.bgcolor
+        seen["color"] = ctx.btn_action.color
         seen["processing"] = ctx.controller.is_processing
         seen["session"] = ctx.page.session.set.call_args
         kwargs["output_path"].parent.mkdir(parents=True, exist_ok=True)
@@ -262,6 +265,8 @@ def test_single_file_sets_stop_button_while_running(ctx):
     ctx.run_single()
 
     assert seen["text"] == t("btn_stop_process")
+    assert seen["bgcolor"] == get_color("danger")
+    assert seen["color"] == "#FFFFFF"
     assert seen["processing"] is True
     assert seen["session"].args == ("is_processing", True)
 
@@ -390,7 +395,11 @@ def test_cancel_dialog_confirm_sets_abort_flags(ctx):
     dialog = ctx.controller.cancel_dialog
     assert dialog is not None and dialog.open is True
 
-    dialog.actions[1].on_click(MagicMock())  # "Yes, stop and delete"
+    stop_btn = dialog.actions[1]
+    assert stop_btn.bgcolor == get_color("danger")
+    assert stop_btn.color == "#FFFFFF"
+
+    stop_btn.on_click(MagicMock())  # "Yes, stop and delete"
 
     assert ctx.controller.abort_requested is True
     assert ctx.lbl_status.value == t("msg_cancelling")
