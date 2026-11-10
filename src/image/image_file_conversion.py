@@ -15,7 +15,8 @@ from src.image.utils.remove_transparency import (
 )
 
 # Register HEIC/HEIF opener at startup for Pillow integration
-pillow_heif.register_heif_opener()
+if hasattr(pillow_heif, "register_heif_opener"):
+    pillow_heif.register_heif_opener()
 
 # Setup module logger
 logger = logging.getLogger(__name__)

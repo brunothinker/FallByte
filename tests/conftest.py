@@ -17,7 +17,8 @@ import flet as ft
 # Pre-register HEIF opener to handle HEIC images in fixtures/tests
 import pillow_heif
 
-pillow_heif.register_heif_opener()
+if hasattr(pillow_heif, "register_heif_opener"):
+    pillow_heif.register_heif_opener()
 
 import pytest
 from PIL import Image
