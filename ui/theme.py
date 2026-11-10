@@ -147,11 +147,13 @@ def get_color(color_key: str) -> str:
     if color_key in preset:
         return preset[color_key]
 
-    # Static invariant status color mappings
+    # Static invariant status and control color mappings
     static_colors = {
         "success": ft.colors.GREEN_600,
         "error": ft.colors.RED_600,
         "warning": ft.colors.AMBER_600,
+        "button_stop": ft.colors.RED_600,
+        "button_stop_hover": ft.colors.RED_700,
     }
     return static_colors.get(color_key, "#FFFFFF")
 

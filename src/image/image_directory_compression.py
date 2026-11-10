@@ -62,5 +62,5 @@ def directory_compressor(
         progress_callback=progress_callback,
         cancel_event=cancel_event,
         sort=False,
-        remove_empty_session_dir=False,
+        remove_empty_session_dir=True,
     )

@@ -22,6 +22,7 @@ class CompressionController(BaseController):
     def __init__(self) -> None:
         """Initializes state variables for image compression execution and safety guards."""
         super().__init__()
+        self.cancel_event: threading.Event = threading.Event()
 
     def handle_action_click(
         self,
@@ -56,6 +57,8 @@ class CompressionController(BaseController):
             lbl_status.color = get_color("error")
             lbl_status.update()
             return
+
+        self.cancel_event.clear()
 
         if self.selected_input.is_file():
             threading.Thread(
@@ -173,7 +176,7 @@ class CompressionController(BaseController):
         progress_bar.update()
 
         def update_progress(info) -> None:
-            if self.abort_requested:
+            if self.abort_requested or self.cancel_event.is_set():
                 raise InterruptedError("CANCELLED_BY_USER")
 
             if info.total > 0:
@@ -204,6 +207,7 @@ class CompressionController(BaseController):
                 output_dir=self.selected_output_dir,
                 quality=quality,
                 progress_callback=update_progress,
+                cancel_event=self.cancel_event,
             )
 
             if summary.get("cancelled", False):
@@ -254,3 +258,24 @@ class CompressionController(BaseController):
                 lbl_status.update()
 
             self._restore_idle_ui(page, progress_bar, btn_action)
+
+    def _confirm_cancel_process(
+        self,
+        page: ft.Page,
+        lbl_status: ft.Text,
+        progress_bar: ft.ProgressBar,
+        btn_action: ft.ElevatedButton,
+    ) -> None:
+        """Overrides cancel confirmation to signal cancel_event."""
+        super()._confirm_cancel_process(page, lbl_status, progress_bar, btn_action)
+        if self.cancel_dialog and len(self.cancel_dialog.actions) > 1:
+            btn_confirm = self.cancel_dialog.actions[1]
+            if isinstance(btn_confirm, ft.ElevatedButton):
+                orig_on_click = btn_confirm.on_click
+
+                def on_confirm_click(e):
+                    self.cancel_event.set()
+                    if orig_on_click:
+                        orig_on_click(e)
+
+                btn_confirm.on_click = on_confirm_click

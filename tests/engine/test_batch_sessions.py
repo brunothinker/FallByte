@@ -278,6 +278,48 @@ def test_run_batch_reports_zero_total_files_when_nothing_to_process(tmp_path):
     assert not (tmp_path / "out").exists()
 
 
+def test_run_batch_handles_unexpected_exception(tmp_path):
+    """Ensures run_batch handles unexpected inner exceptions cleanly without session cleanup."""
+    input_dir = tmp_path / "in"
+    input_dir.mkdir()
+    (input_dir / "sample.png").write_bytes(b"data")
+
+    def process_with_error(src_file, dst_file):
+        raise RuntimeError("Unexpected engine crash")
+
+    stats = run_batch(
+        input_dir=input_dir,
+        output_dir=tmp_path / "out",
+        session_name="compressed",
+        scanner=lambda path: sorted(path.glob("*.png")),
+        process_file=process_with_error,
+        build_destination=lambda src_file, session_dir: session_dir / src_file.name,
+    )
+
+    assert stats["cancelled"] is False
+    assert stats["total_files"] == 1
+    assert stats["success"] == 0
+    assert stats["failed"] == 0
+
+
+def test_image_batch_cancellation_removes_empty_session_folder(
+    tmp_workspace, monkeypatch
+):
+    """Ensures image batch cancellation removes leftover empty session folder."""
+    in_dir, out_dir = tmp_workspace
+    (in_dir / "photo.png").write_bytes(b"image data")
+
+    cancel_event = threading.Event()
+    cancel_event.set()
+
+    stats = image_compression.directory_compressor(
+        in_dir, out_dir, quality=80, cancel_event=cancel_event
+    )
+
+    assert stats["cancelled"] is True
+    assert list(out_dir.iterdir()) == []
+
+
 # --- Batch conversion output naming ---
 
 

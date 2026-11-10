@@ -73,5 +73,5 @@ def directory_converter(
         progress_callback=progress_callback,
         cancel_event=cancel_event,
         sort=True,
-        remove_empty_session_dir=False,
+        remove_empty_session_dir=True,
     )

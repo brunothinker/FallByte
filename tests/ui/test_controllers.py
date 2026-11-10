@@ -37,7 +37,7 @@ SPECS = [
         "entry": "prepare_and_execute",
         "batch": "_run_batch_compression",
         "kwargs": {"quality": 80},
-        "has_cancel_event": False,
+        "has_cancel_event": True,
         "in_name": "photo.png",
     },
     {
@@ -49,7 +49,7 @@ SPECS = [
         "entry": "execute_conversion",
         "batch": "_execute_batch_directory",
         "kwargs": {"target_format": "webp", "selected_color_key": "color_white"},
-        "has_cancel_event": False,
+        "has_cancel_event": True,
         "in_name": "photo.png",
     },
     {
@@ -382,7 +382,7 @@ def test_action_click_while_processing_opens_cancel_dialog(ctx):
 
 
 def test_cancel_dialog_confirm_sets_abort_flags(ctx):
-    """Confirming the cancel dialog raises the abort flags (and the cancel event for video)."""
+    """Confirming the cancel dialog raises the abort flags (and the cancel event for video/image)."""
     ctx.controller.is_processing = True
     ctx.controller._confirm_cancel_process(
         ctx.page, ctx.lbl_status, ctx.progress_bar, ctx.btn_action
@@ -398,8 +398,6 @@ def test_cancel_dialog_confirm_sets_abort_flags(ctx):
     assert ctx.controller.cancel_dialog is None
     if ctx.spec["has_cancel_event"]:
         assert ctx.controller.cancel_event.is_set()
-    else:
-        assert not hasattr(ctx.controller, "cancel_event")
 
 
 def test_cancel_dialog_keep_running_changes_nothing(ctx):
@@ -416,6 +414,39 @@ def test_cancel_dialog_keep_running_changes_nothing(ctx):
     assert dialog.open is False
     if ctx.spec["has_cancel_event"]:
         assert not ctx.controller.cancel_event.is_set()
+
+
+def test_image_cancellation_path_end_to_end(ctx):
+    """Tests image cancellation path end-to-end when progress callback triggers cancellation."""
+    ctx.controller.selected_input = ctx.in_dir
+    ctx.controller.selected_output_dir = ctx.out_dir
+    (ctx.in_dir / ctx.spec["in_name"]).write_bytes(b"data")
+
+    def fake_dir_engine_interrupted(**kwargs):
+        if hasattr(ctx.controller, "cancel_event"):
+            ctx.controller.cancel_event.set()
+        ctx.controller.abort_requested = True
+        callback = kwargs.get("progress_callback")
+        if callback:
+            info = MagicMock()
+            info.total = 1
+            info.current = 1
+            info.file_path = ctx.in_dir / ctx.spec["in_name"]
+            info.success = True
+            try:
+                callback(info)
+            except InterruptedError:
+                pass
+        return {"cancelled": True, "cleaned_files_count": 1}
+
+    setattr(ctx.module, ctx.spec["dir_engine"], fake_dir_engine_interrupted)
+
+    getattr(ctx.controller, ctx.spec["batch"])(
+        page=ctx.page, **ctx.spec["kwargs"], **ctx.widgets()
+    )
+
+    assert ctx.lbl_status.value == t("msg_process_cancelled", count=1)
+    _assert_idle_ui(ctx)
 
 
 # --- Pickers ---

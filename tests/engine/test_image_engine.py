@@ -8,11 +8,9 @@ import pillow_heif
 import pytest
 from PIL import Image
 
+from src.formats import IMAGE_TARGET_FORMATS
 from src.image.image_file_compression import file_compressor
 from src.image.image_file_conversion import file_converter
-
-IMAGE_TARGET_FORMATS = ["JPEG", "PNG", "WEBP", "BMP", "ICO", "TIFF"]
-
 
 # --- Conversion ---
 
