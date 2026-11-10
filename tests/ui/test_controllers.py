@@ -781,3 +781,81 @@ def test_cancel_dialog_uses_correct_i18n_body_key(ctx):
     assert isinstance(dialog.content, ft.Text)
     assert dialog.content.value == t("dialog_cancel_body")
     assert dialog.content.value != "dialog_cancel_content"
+
+
+def test_single_file_compression_does_not_overwrite_preexisting_file(tmp_workspace, mock_page, monkeypatch):
+    """Verifies that single-file compression uses unique output naming and does not overwrite existing destination files."""
+    in_dir, out_dir = tmp_workspace
+    src_file = in_dir / "sample.png"
+    src_file.write_bytes(b"source data")
+
+    # Create a pre-existing target file in output directory
+    preexisting_file = out_dir / "sample_compressed.png"
+    preexisting_file.write_bytes(b"original content")
+
+    controller = CompressionController()
+    controller.selected_input = src_file
+    controller.selected_output_dir = out_dir
+
+    lbl_status = MagicMock(spec=ft.Text)
+    progress_bar = MagicMock(spec=ft.ProgressBar)
+    btn_action = MagicMock(spec=ft.ElevatedButton)
+
+    monkeypatch.setattr("ui.controllers.image_compression_controller.show_summary_dialog", MagicMock())
+    monkeypatch.setattr(
+        "ui.controllers.image_compression_controller.file_compressor",
+        lambda input_path, output_path, quality: output_path.write_bytes(b"compressed data") or True,
+    )
+
+    controller._execute_single_file(
+        page=mock_page,
+        quality=80,
+        lbl_status=lbl_status,
+        progress_bar=progress_bar,
+        btn_action=btn_action,
+    )
+
+    # Pre-existing file content must remain untouched
+    assert preexisting_file.read_bytes() == b"original content"
+    # New file with unique suffix should be created
+    expected_new_file = out_dir / "sample_compressed_2.png"
+    assert expected_new_file.exists()
+    assert expected_new_file.read_bytes() == b"compressed data"
+
+
+def test_single_file_compression_cancellation_preserves_preexisting_file(tmp_workspace, mock_page, monkeypatch):
+    """Verifies that cancelling single-file compression does not delete pre-existing user files in the destination."""
+    in_dir, out_dir = tmp_workspace
+    src_file = in_dir / "sample.mp4"
+    src_file.write_bytes(b"source video")
+
+    # Create a pre-existing target file in output directory
+    preexisting_file = out_dir / "sample_compressed.mp4"
+    preexisting_file.write_bytes(b"preexisting user video")
+
+    controller = VideoCompressionController()
+    controller.selected_input = src_file
+    controller.selected_output_dir = out_dir
+    controller.abort_requested = True
+
+    lbl_status = MagicMock(spec=ft.Text)
+    progress_bar = MagicMock(spec=ft.ProgressBar)
+    btn_action = MagicMock(spec=ft.ElevatedButton)
+
+    monkeypatch.setattr("ui.controllers.video_compression_controller.show_summary_dialog", MagicMock())
+    monkeypatch.setattr(
+        "ui.controllers.video_compression_controller.file_compressor",
+        lambda **kwargs: False,
+    )
+
+    controller._execute_single_file(
+        page=mock_page,
+        quality=80,
+        lbl_status=lbl_status,
+        progress_bar=progress_bar,
+        btn_action=btn_action,
+    )
+
+    # Pre-existing file must NOT be deleted upon cancellation
+    assert preexisting_file.exists()
+    assert preexisting_file.read_bytes() == b"preexisting user video"

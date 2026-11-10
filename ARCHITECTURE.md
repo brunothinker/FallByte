@@ -163,7 +163,6 @@ VID_COMP_PAGE -->|"Delegates Events"| VID_COMP_CTRL
 VID_CONV_PAGE -->|"Delegates Events"| VID_CONV_CTRL
 
 IMG_COMP_PAGE -.->|"Uses"| Q_SELECT
-VID_COMP_PAGE -.->|"Uses"| Q_SELECT
 IMG_COMP_PAGE -.->|"Uses"| CARD_IO
 IMG_CONV_PAGE -.->|"Uses"| CARD_IO
 VID_COMP_PAGE -.->|"Uses"| CARD_IO
@@ -202,7 +201,7 @@ Controllers -->|"Displays Summary Modal"| DIALOGS
 2. **State Controllers (`controllers/`):**
    * **Shared Base (`BaseController`):** All four controllers inherit from `base_controller.py`, which owns the state that is identical across tools (`selected_input`, `selected_output_dir`, `is_processing`, `abort_requested`, `picker_active`, `cancel_dialog`) and the behavior built on it: `open_picker`, `handle_input_result`, `handle_output_result`, `_set_processing_ui`, `_restore_idle_ui`, `_close_cancel_dialog` and `_confirm_cancel_process`.
    * **Concurrent Window Prevention (`picker_active`):** Controls the opening cycle of native OS pickers, blocking duplicate triggers on rapid double clicks. The initial folder comes from `get_safe_initial_directory`, which falls back to the home folder when the previous selection no longer exists.
-   * **Cancel Hook (`_on_cancel_confirmed`):** The cancel dialog is identical for all tools. The only difference is what happens once the user confirms: the base implementation does nothing, and the two video controllers override it to set their `cancel_event`. Image controllers have no `cancel_event`; they stop through the progress callback (see D).
+   * **Cancel Hook (`_on_cancel_confirmed`):** The cancel dialog is identical for all tools. The base implementation is overridden by controllers needing specific abort signals (e.g. video controllers setting their `cancel_event`).
    * **Pre-flight File Analysis:** Evaluates files within selected directories for incompatible extensions before invoking heavy processors, displaying informative `AlertDialog` popups.
    * **Dual Operation Mode:** Transparently evaluates whether the `selected_input` is a single file (`is_file()`) or a directory, triggering the corresponding single-file processor or batch orchestrator in `src/image/` or `src/video/`.
    * **Log Capture (`TextRedirector`):** A single class in `ui/utils/log_capture.py`. Each controller creates one while a job runs; it is a `logging.Handler` that also replaces `sys.stdout`/`sys.stderr` and accumulates the terminal log shown in the summary dialog. `stop()` restores the original streams.
@@ -245,7 +244,7 @@ end
 
 ### E. Design System and Componentization
 
-- **QualitySelector (`quality_selector.py`):** Self-contained reactive component inheriting from `ft.Column`. Implements real-time bidirectional synchronization between a `Slider` (1-100) control and a `TextField` with focus-loss validation (`on_blur`), using `validate_quality_value` from `ui/utils/compression_utils.py`.
+- **QualitySelector (`quality_selector.py`):** Self-contained reactive component inheriting from `ft.Column`. Implements real-time bidirectional synchronization between a `Slider` (1-100) control and a `TextField` with focus-loss validation (`on_blur`), using `validate_quality_value` from `ui/utils/compression_utils.py`. Used on the Image Compression page (the Video Compression page uses a custom discrete slider with `divisions=99`).
 - **SourcePickerCard (`source_picker_card.py`):** The input card shared by the four tool pages. It wraps a `PopupMenuButton` with two entries, "file" and "folder"; the icon of the file entry is a parameter (`file_icon`), so image and video pages reuse the same component.
 - **PathLabel (`path_label.py`):** `create_path_label()` returns the single-line, ellipsized `ft.Text` that shows the selected path (default i18n placeholder or a custom string). Controllers update its value after a picker result.
 - **IOPickerCard (`io_picker_card.py`):** `create_clickable_card` builds the responsive destination card with ink ripple effect and a path label.
@@ -398,7 +397,7 @@ end
 | `SUPPORTED_VIDEO_EXTENSIONS` | Video extensions accepted as input | `video_scanner.py`, `format_utils.py`, video compression controller |
 | `IMAGE_TARGET_FORMATS` | Output formats of image conversion (`JPEG`, `PNG`, `WEBP`, `BMP`, `TIFF`, `GIF`, `ICO`, `PPM`, `PDF`) | `conversion_utils.py` (dropdown) |
 | `VIDEO_TARGET_FORMATS` | Output containers of video conversion (`mp4`, `mkv`, `webm`, `mov`, `avi`, `wmv`) | video conversion controller (re-exported to its page) |
-| `UNCOMPRESSIBLE_FORMATS` | Image formats kept untouched by compression (`BMP`, `PPM`, `GIF`, `ICO`) | `image_file_compression.py`, `format_utils.py` |
+| `UNCOMPRESSIBLE_FORMATS` | Image formats kept untouched by compression (`BMP`, `PPM`, `GIF`, `ICO`, `HEIC`, `HEIF`) | `image_file_compression.py`, `format_utils.py` |
 
 Adding a format means editing this file; the dropdowns, scanners and "supported formats" notices follow. A new *output* format also needs its handling in the matching file processor.
 
@@ -411,13 +410,13 @@ Adding a format means editing this file; the dropdowns, scanners and "supported 
   2. Video copy + audio re-encode when only audio codec is rejected.
   3. Safe full re-encode using `yuv420p` pixel format and even dimensions.
   4. Rescue re-encode with timestamp regeneration for damaged files.
-- **Output Naming (`output_naming.py`):** Converted files are named `<stem>_converted.<ext>`. When that name exists or was already reserved in the batch (e.g. `clip.avi` and `clip.mov`), the source extension is added (`clip_avi_converted.mp4`), then a numeric suffix.
+- **Output Naming (`output_naming.py`):** Converted files are named `<stem>_converted.<ext>`. When that name exists or was already reserved in the batch (e.g. `clip.avi` and `clip.mov`), the source extension is added (`clip_avi_converted.mp4`), then a numeric suffix. Output paths for single-file and batch compression are resolved using `unique_compression_output_path` (`<stem>_compressed.<ext>`).
 
 #### Compression Module (`image_*_compression.py` & `video_*_compression.py`)
 - **Image Domain:** Reduces byte size while **strictly preserving the original format**.
   - **PNG Quantization (TinyPNG style):** For `PNG` images with quality < 90, palette reduction down to 256 colors via `FASTOCTREE` (with Alpha) or `MEDIANCUT` (without Alpha).
-  - **Uncompressible Protection:** Formats that cannot be safely re-encoded without losing animations or embedded sizes (`UNCOMPRESSIBLE_FORMATS`: `BMP`, `PPM`, `GIF`, `ICO`) are kept untouched.
-- **Video Domain:** Maps quality percentage (1-100%) to CRF (for `libx264`/`libvpx-vp9`) or `qscale` (for `wmv2`), keeping the original file if the result turns out larger than the input.
+  - **Uncompressible Protection:** Formats that cannot be safely re-encoded without losing animations or embedded sizes (`UNCOMPRESSIBLE_FORMATS`: `BMP`, `PPM`, `GIF`, `ICO`, `HEIC`, `HEIF`) are kept untouched.
+- **Video Domain:** Maps quality percentage (1-100%) to CRF (for `libx264`/`libx265`/`libvpx-vp9`) or `qscale` (for `wmv2`), keeping the original file if the result turns out larger than the input. `probe_streams()` inspects the source video codec; HEVC (`hevc`/`h265`) sources are compressed via `libx265`, while AVC/H.264 and other codecs default to `libx264`.
 
 ### E. Batch Orchestration (`src/utils/batch_runner.py`)
 
@@ -447,7 +446,7 @@ Tests monkeypatch the file processor and the scanner by name inside each wrapper
 
 ### F. Shared Data Structures
 
-- **`ProgressInfo` (`src/utils/progress.py`):** One dataclass for image and video: `current` (1-based), `total`, `start_time`, `file_path`, `success`, `orig_bytes`, `comp_bytes`, with derived `percentage`, `elapsed_seconds` and `estimated_remaining_seconds`.
+- **`ProgressInfo` (`src/utils/progress.py`):** Unified dataclass tracking progress for both image and video operations: `current` (1-based), `total`, `start_time`, `file_path`, `success`, `orig_bytes`, `comp_bytes`, `duration_seconds`, `processed_seconds`, `fps`, and `speed`, with derived `percentage`, `elapsed_seconds`, and `estimated_remaining_seconds`.
 - **`create_unique_output_dir` (`output_directory.py`):** Creates the first free `name`, `name_1`, `name_2`... atomically (`mkdir(exist_ok=False)`), safe under concurrent calls.
 
 ### G. I/O Isolation Guarantee (`safe_cleanup_session_files`)
@@ -462,8 +461,8 @@ Tests monkeypatch the file processor and the scanner by name inside each wrapper
 ### H. FFmpeg Cancellation and Process Lifecycle (`ffmpeg_utils.py`)
 
 1. **Cancel Signal:** Video controllers own a `threading.Event` (`cancel_event`) that is cleared when a run starts and set when the user confirms the abort. It is forwarded through the directory wrappers and file processors to `run_strategies()`.
-2. **Non-Blocking Execution:** `run_strategies()` launches FFmpeg with `subprocess.Popen` and polls the cancel event (`CANCEL_POLL_INTERVAL`) while the process runs, instead of blocking until it finishes.
-3. **Termination:** On cancellation the process receives `terminate()` and, after `TERMINATE_TIMEOUT`, `kill()`. The partial output file is deleted, no further strategies are attempted, and `InterruptedError` is raised so the batch cleanup flow keeps working. The file processors re-raise it instead of reporting a regular failure.
+2. **Non-Blocking Execution & Progress Monitoring:** `run_strategies()` launches FFmpeg with `subprocess.Popen` and reads stderr line by line. On every progress line read from FFmpeg, the controller checks `cancel_event.is_set()`.
+3. **Termination:** On cancellation the process receives `terminate()` and, after `TERMINATE_TIMEOUT`, `kill()`. Atomic temporary files are cleaned up, no further strategies are attempted, and `InterruptedError` is raised so the batch cleanup flow keeps working. The file processors re-raise it instead of reporting a regular failure.
 4. **Exit Hook:** Running processes are tracked in a registry together with their output files. `terminate_active_processes()` is registered with `atexit` to avoid orphan FFmpeg processes and partial outputs when the application closes during an encode.
 5. **Binary Lookup (`binary_manager.get_ffmpeg_path`):** Resolves the bundled FFmpeg for Linux and Windows. macOS is not resolved yet (`resources/bin/mac/` is only a placeholder).
 
@@ -511,14 +510,6 @@ Documented so that nobody mistakes them for intended design.
 - Image cancellation only takes effect *between* files; the video flow terminates the running FFmpeg process immediately. Image controllers do not own a `cancel_event`.
 - Cancelling an image batch leaves an empty session folder (`remove_empty_session_dir=False`); video batches remove it.
 - `run_batch` swallows unexpected exceptions and returns partial statistics without cleaning up the files created so far.
-
-**Output safety (open issue)**
-- File processors write directly to the final destination path (FFmpeg with `-y`, Pillow `save`). An interrupted process can leave a partial file under the final name.
-- Single-file compression writes `<output dir>/<input name>` without a session folder; an existing file with the same name is overwritten, and cancelling a run deletes it.
-- Planned: atomic writes through a temporary file plus `os.replace`, a no-overwrite policy, and cleanup that only removes files created by the session.
-
-**Video compression**
-- Always re-encodes with `libx264` (or the container's codec); HEVC sources can come out larger than the original, in which case the original is kept. Planned: detect the source codec with `probe_streams()` and use `libx265`.
 
 **Minor**
 - `ui/pages/video_conversion_page.py` imports `SUPPORTED_VIDEO_CONVERSION_FORMATS` from its controller (an alias of `VIDEO_TARGET_FORMATS`) instead of `src.formats`.

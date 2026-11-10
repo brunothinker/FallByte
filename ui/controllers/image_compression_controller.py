@@ -5,6 +5,7 @@ import flet as ft
 
 from src.image.image_directory_compression import directory_compressor
 from src.image.image_file_compression import file_compressor
+from src.utils.output_naming import unique_compression_output_path
 from ui.components.dialog_utils import (
     show_no_supported_files_dialog,
     show_summary_dialog,
@@ -87,7 +88,12 @@ class CompressionController(BaseController):
 
         self._set_processing_ui(page, progress_bar, btn_action)
 
-        out_file = self.selected_output_dir / self.selected_input.name
+        out_file = unique_compression_output_path(
+            input_path=self.selected_input,
+            output_dir=self.selected_output_dir,
+        )
+        pre_existed = out_file.exists()
+
         lbl_status.value = t(
             "msg_compressing_progress",
             current=1,
@@ -148,7 +154,7 @@ class CompressionController(BaseController):
             }
             show_summary_dialog(page, summary)
         else:
-            if out_file.exists():
+            if not pre_existed and out_file.exists():
                 try:
                     out_file.unlink()
                 except OSError:

@@ -5,6 +5,7 @@ from pathlib import Path
 import flet as ft
 
 from src.formats import SUPPORTED_VIDEO_EXTENSIONS
+from src.utils.output_naming import unique_compression_output_path
 from src.utils.progress import ProgressInfo
 from src.video.video_directory_compression import directory_compressor
 from src.video.video_file_compression import file_compressor
@@ -89,7 +90,11 @@ class VideoCompressionController(BaseController):
             return
 
         filename = self.selected_input.name
-        out_file = self.selected_output_dir / filename
+        out_file = unique_compression_output_path(
+            input_path=self.selected_input,
+            output_dir=self.selected_output_dir,
+        )
+        pre_existed = out_file.exists()
 
         self._set_processing_ui(page, progress_bar, btn_action)
         self.cancel_event.clear()
@@ -183,7 +188,7 @@ class VideoCompressionController(BaseController):
             }
             show_summary_dialog(page, summary)
         else:
-            if out_file.exists():
+            if not pre_existed and out_file.exists():
                 try:
                     out_file.unlink()
                 except OSError:
