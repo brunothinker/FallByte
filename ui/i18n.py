@@ -1,3 +1,9 @@
+"""Internationalization (i18n) module for multi-language support.
+
+Provides translation lookup helpers, active language state management,
+and system locale/language auto-detection for cross-platform operations.
+"""
+
 import locale
 import logging
 import os
@@ -353,43 +359,6 @@ AVAILABLE_LANGUAGES: dict[str, str] = {
     "es": "🇪🇸 Español",
 }
 
-_WIN_NAMES: dict[str, str] = {
-    "portuguese": "pt",
-    "spanish": "es",
-    "english": "en",
-}
-
-_WIN_LANGIDS: dict[int, str] = {
-    0x16: "pt",
-    0x0A: "es",
-    0x09: "en",
-}
-
-
-def t(key: str, **kwargs: Any) -> str:
-    """Translates a key into active language, replacing dynamic placeholders."""
-    text = TRANSLATIONS.get(CURRENT_LANG, {}).get(key, key)
-    if kwargs:
-        try:
-            text = text.format(**kwargs)
-        except KeyError as e:
-            logger.warning(
-                f"Missing placeholder variable {e} when formatting translation key '{key}'."
-            )
-    return text
-
-
-def set_language(lang_code: str) -> None:
-    """Sets active language code for translation helper."""
-    global CURRENT_LANG
-    if lang_code in TRANSLATIONS:
-        CURRENT_LANG = lang_code
-    else:
-        logger.warning(
-            f"Attempted to set unsupported language code '{lang_code}'."
-        )
-
-
 # Auxiliary mapping for Windows localized language names to supported ISO codes
 _WIN_NAMES: dict[str, str] = {
     "portuguese": "pt",
@@ -403,6 +372,42 @@ _WIN_LANGIDS: dict[int, str] = {
     0x0A: "es",
     0x09: "en",
 }
+
+
+def t(key: str, **kwargs: Any) -> str:
+    """Translates a key into active language, replacing dynamic placeholders.
+
+    Args:
+        key (str): Translation dictionary key identifier.
+        **kwargs (Any): Dynamic variable arguments for string formatting.
+
+    Returns:
+        str: Translated and formatted string, or the raw key if not found.
+    """
+    text = TRANSLATIONS.get(CURRENT_LANG, {}).get(key, key)
+    if kwargs:
+        try:
+            text = text.format(**kwargs)
+        except KeyError as e:
+            logger.warning(
+                f"Missing placeholder variable {e} when formatting translation key '{key}'."
+            )
+    return text
+
+
+def set_language(lang_code: str) -> None:
+    """Sets active language code for translation helper.
+
+    Args:
+        lang_code (str): Two-letter ISO language code (e.g., 'pt', 'en', 'es').
+    """
+    global CURRENT_LANG
+    if lang_code in TRANSLATIONS:
+        CURRENT_LANG = lang_code
+    else:
+        logger.warning(
+            f"Attempted to set unsupported language code '{lang_code}'."
+        )
 
 
 def _normalize(raw: str | None) -> str | None:
