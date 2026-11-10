@@ -339,6 +339,36 @@ def test_action_click_without_selection_asks_for_paths(ctx):
     ctx.summary_dialog.assert_not_called()
 
 
+def test_action_click_same_folder_blocks_execution(ctx):
+    """Starting with identical input and output directories blocks processing and shows error."""
+    ctx.controller.selected_input = ctx.in_dir
+    ctx.controller.selected_output_dir = ctx.in_dir
+
+    getattr(ctx.controller, ctx.spec["entry"])(
+        page=ctx.page, **ctx.spec["kwargs"], **ctx.widgets()
+    )
+
+    assert ctx.lbl_status.value == t("msg_same_folder_error")
+    assert ctx.controller.is_processing is False
+    ctx.summary_dialog.assert_not_called()
+
+
+def test_action_click_nested_folder_blocks_execution(ctx):
+    """Starting with output directory nested within input directory blocks execution."""
+    nested_dir = ctx.in_dir / "subfolder"
+    nested_dir.mkdir(parents=True, exist_ok=True)
+    ctx.controller.selected_input = ctx.in_dir
+    ctx.controller.selected_output_dir = nested_dir
+
+    getattr(ctx.controller, ctx.spec["entry"])(
+        page=ctx.page, **ctx.spec["kwargs"], **ctx.widgets()
+    )
+
+    assert ctx.lbl_status.value == t("msg_nested_folder_error")
+    assert ctx.controller.is_processing is False
+    ctx.summary_dialog.assert_not_called()
+
+
 def test_action_click_while_processing_opens_cancel_dialog(ctx):
     """Clicking the action button while processing routes to the cancel confirmation."""
     ctx.controller.is_processing = True

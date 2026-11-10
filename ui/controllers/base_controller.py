@@ -19,6 +19,31 @@ class BaseController:
         self.picker_active: bool = False
         self.cancel_dialog: ft.AlertDialog | None = None
 
+    def validate_paths(self) -> str | None:
+        """Validates source and destination paths to prevent overwriting or nested recursion.
+
+        Returns:
+            str | None: i18n translation key string if validation fails, otherwise None.
+        """
+        if not self.selected_input or not self.selected_output_dir:
+            return "msg_select_required"
+
+        src = self.selected_input.resolve()
+        dst = self.selected_output_dir.resolve()
+
+        if src.is_file():
+            if src.parent == dst:
+                return "msg_same_folder_error"
+            if dst in src.parents:
+                return "msg_nested_folder_error"
+        else:
+            if src == dst:
+                return "msg_same_folder_error"
+            if dst in src.parents or src in dst.parents:
+                return "msg_nested_folder_error"
+
+        return None
+
     def open_picker(
         self, picker: ft.FilePicker, allow_directory: bool = False, is_output: bool = False
     ) -> None:

@@ -50,8 +50,9 @@ class CompressionController(BaseController):
         btn_action: ft.ElevatedButton,
     ) -> None:
         """Executes single-file or batch directory image compression."""
-        if not self.selected_input or not self.selected_output_dir:
-            lbl_status.value = t("msg_select_required")
+        validation_error = self.validate_paths()
+        if validation_error or not self.selected_input:
+            lbl_status.value = t(validation_error or "msg_select_required")
             lbl_status.color = get_color("error")
             lbl_status.update()
             return
