@@ -123,6 +123,30 @@ def test_no_supported_files_dialog_lists_formats(mock_page):
     assert any("MP4, MKV" in text for text in texts)
 
 
+def test_get_log_line_color_tag_precedence():
+    """Ensures explicit bracket tags take precedence over file name keywords."""
+    from ui.components.dialog_utils import get_log_line_color
+    from ui.theme import get_color
+
+    # Regression: [FAIL] tags with file names containing "compressed" or "converted" must return error color
+    assert get_log_line_color("[FAIL] photo_compressed.png") == get_color("error")
+    assert get_log_line_color("[FAIL] video_converted.mp4") == get_color("error")
+    assert get_log_line_color("[ERROR] file_success.jpg") == get_color("error")
+
+    # Valid [OK] logs
+    assert get_log_line_color("[OK] photo_compressed.png") == get_color("success")
+    assert get_log_line_color("[OK] video_converted.mp4") == get_color("success")
+
+    # Explicit warning tag
+    assert get_log_line_color("[WARNING] slow compression") == get_color("warning")
+
+    # Keyword fallback checks
+    assert get_log_line_color("An exception occurred") == get_color("error")
+    assert get_log_line_color("Warning: low disk space") == get_color("warning")
+    assert get_log_line_color("Successfully converted file") == get_color("success")
+    assert get_log_line_color("Processing starting now...") == get_color("subtext")
+
+
 # --- Source Picker Card & Path Label Components ---
 
 

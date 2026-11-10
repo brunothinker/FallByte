@@ -25,6 +25,65 @@ def format_size(size_bytes: int) -> str:
     return f"{kb:.1f} KB"
 
 
+def get_log_line_color(line_str: str) -> str:
+    """Determines the theme color key for a terminal log line based on tags and keywords.
+
+    Prioritizes explicit bracket tags ([fail], [error], [warning], [ok]) before falling back
+    to general text matching to prevent false-positive matches (e.g. '[FAIL] image_compressed.png').
+
+    Args:
+        line_str (str): The raw log line string to evaluate.
+
+    Returns:
+        str: Theme color key string (e.g., 'error', 'success', 'warning', 'subtext').
+    """
+    line_lower = line_str.lower()
+
+    # Priority 1: Check explicit bracket tags first to prevent false positive matches on file names
+    if any(tag in line_lower for tag in ["[fail]", "[error]"]):
+        return get_color("error")
+    if "[warning]" in line_lower:
+        return get_color("warning")
+    if "[ok]" in line_lower:
+        return get_color("success")
+
+    # Priority 2: Fallback to keyword matching for generic log lines
+    if any(
+        k in line_lower
+        for k in [
+            "falha",
+            "erro",
+            "failed",
+            "exception",
+            "traceback",
+        ]
+    ):
+        return get_color("error")
+
+    if any(
+        k in line_lower
+        for k in [
+            "warning",
+            "aviso",
+        ]
+    ):
+        return get_color("warning")
+
+    if any(
+        k in line_lower
+        for k in [
+            "success",
+            "sucesso",
+            "concluído",
+            "converted",
+            "compressed",
+        ]
+    ):
+        return get_color("success")
+
+    return get_color("subtext")
+
+
 def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
     """Displays modal dialog rendering execution metrics, file size stats, and colored logs.
 
@@ -59,47 +118,7 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
                 continue
 
             raw_log_text_list.append(line_str)
-            line_lower = line_str.lower()
-
-            # Match success keywords for green highlighting
-            if any(
-                k in line_lower
-                for k in [
-                    "[ok]",
-                    "success",
-                    "sucesso",
-                    "concluído",
-                    "converted",
-                    "compressed",
-                ]
-            ):
-                text_color = get_color("success")
-            # Match failure/error keywords for red highlighting
-            elif any(
-                k in line_lower
-                for k in [
-                    "[fail]",
-                    "[error]",
-                    "falha",
-                    "erro",
-                    "failed",
-                    "exception",
-                    "traceback",
-                ]
-            ):
-                text_color = get_color("error")
-            # Match warning keywords for amber highlighting
-            elif any(
-                k in line_lower
-                for k in [
-                    "[warning]",
-                    "warning",
-                    "aviso",
-                ]
-            ):
-                text_color = get_color("warning")
-            else:
-                text_color = get_color("subtext")
+            text_color = get_log_line_color(line_str)
 
             log_items.append(
                 ft.Text(
