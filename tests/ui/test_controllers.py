@@ -432,12 +432,16 @@ def test_open_picker_blocks_concurrent_windows(ctx):
 
 
 def test_open_picker_file_mode(ctx):
-    """File mode opens the file picker with safe initial directory and never the directory picker."""
+    """File mode opens the file picker with safe initial directory and allowed_extensions."""
     picker = MagicMock()
-    ctx.controller.open_picker(picker, allow_directory=False)
+    ctx.controller.open_picker(
+        picker, allow_directory=False, allowed_extensions=["mp4", "mkv"]
+    )
 
     picker.pick_files.assert_called_once_with(
-        allow_multiple=False, initial_directory=str(Path.home())
+        allow_multiple=False,
+        initial_directory=str(Path.home()),
+        allowed_extensions=["mp4", "mkv"],
     )
     picker.get_directory_path.assert_not_called()
 
@@ -722,8 +726,9 @@ def test_open_picker_fallback_to_home_on_deleted_directory(ctx):
     ctx.controller.open_picker(picker, allow_directory=False)
 
     picker.pick_files.assert_called_once_with(
-        allow_multiple=False, initial_directory=str(Path.home())
+        allow_multiple=False, initial_directory=str(Path.home()), allowed_extensions=None
     )
+
 
 def test_cancel_dialog_uses_correct_i18n_body_key(ctx):
     """Verifies that the cancellation dialog body uses the translated string from t('dialog_cancel_body')."""

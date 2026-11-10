@@ -45,7 +45,11 @@ class BaseController:
         return None
 
     def open_picker(
-        self, picker: ft.FilePicker, allow_directory: bool = False, is_output: bool = False
+        self,
+        picker: ft.FilePicker,
+        allow_directory: bool = False,
+        is_output: bool = False,
+        allowed_extensions: list[str] | None = None,
     ) -> None:
         """Opens file or directory picker preventing concurrent window spawns and non-existent paths.
 
@@ -53,6 +57,7 @@ class BaseController:
             picker: The Flet FilePicker component instance.
             allow_directory: Flag indicating whether to pick directories instead of files.
             is_output: Flag indicating whether this picker handles destination directory selection.
+            allowed_extensions: Optional list of allowed file extension strings without leading dot.
         """
         if not self.picker_active:
             self.picker_active = True
@@ -62,7 +67,11 @@ class BaseController:
             if allow_directory:
                 picker.get_directory_path(initial_directory=safe_dir)
             else:
-                picker.pick_files(allow_multiple=False, initial_directory=safe_dir)
+                picker.pick_files(
+                    allow_multiple=False,
+                    initial_directory=safe_dir,
+                    allowed_extensions=allowed_extensions,
+                )
 
     def handle_input_result(
         self,

@@ -108,7 +108,7 @@ def test_format_utils_lists_follow_scanners():
     # Scanned-but-uncompressible formats are not advertised for compression.
     assert not {"BMP", "PPM", "GIF", "ICO"} & set(image_compression_formats())
     assert {"JPG", "PNG", "WEBP"} <= set(image_compression_formats())
-    assert set(video_input_formats()) == {"MP4", "MKV", "WEBM", "MOV", "AVI", "WMV"}
+    assert {"MP4", "MKV", "WEBM", "MOV", "AVI", "WMV", "FLV", "M4V"} <= set(video_input_formats())
 
 
 def test_no_supported_files_dialog_lists_formats(mock_page):

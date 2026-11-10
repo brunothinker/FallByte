@@ -22,6 +22,11 @@ SUPPORTED_VIDEO_EXTENSIONS: set[str] = {
     ".mov",
     ".avi",
     ".wmv",
+    ".m4v",
+    ".flv",
+    ".ts",
+    ".3gp",
+    ".mpg",
 }
 
 # Target output formats available for image conversion

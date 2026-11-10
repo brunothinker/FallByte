@@ -42,6 +42,8 @@ def create_video_conversion_page(
         ],
     )
 
+    allowed_exts = [f.lower() for f in video_input_formats()]
+
     picker_in_file = ft.FilePicker(
         on_result=lambda e: controller.handle_input_result(
             e, lbl_in_path, lbl_status
@@ -65,7 +67,7 @@ def create_video_conversion_page(
     card_in = create_source_picker_card(
         lbl_in_path=lbl_in_path,
         on_select_file=lambda: controller.open_picker(
-            picker_in_file, allow_directory=False
+            picker_in_file, allow_directory=False, allowed_extensions=allowed_exts
         ),
         on_select_folder=lambda: controller.open_picker(
             picker_in_dir, allow_directory=True
@@ -78,7 +80,7 @@ def create_video_conversion_page(
         icon=ft.icons.FOLDER,
         lbl_text=lbl_out_path,
         on_click_action=lambda _: controller.open_picker(
-            picker_out, allow_directory=True
+            picker_out, allow_directory=True, is_output=True
         ),
     )
 
