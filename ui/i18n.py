@@ -353,19 +353,6 @@ AVAILABLE_LANGUAGES: dict[str, str] = {
     "es": "🇪🇸 Español",
 }
 
-_WIN_NAMES: dict[str, str] = {
-    "portuguese": "pt",
-    "spanish": "es",
-    "english": "en",
-}
-
-_WIN_LANGIDS: dict[int, str] = {
-    0x16: "pt",
-    0x0A: "es",
-    0x09: "en",
-}
-
-
 def t(key: str, **kwargs: Any) -> str:
     """Translates a key into active language, replacing dynamic placeholders."""
     text = TRANSLATIONS.get(CURRENT_LANG, {}).get(key, key)
