@@ -289,13 +289,13 @@ atexit.register(terminate_active_processes)
 
 
 def _terminate_process(process: subprocess.Popen[bytes]) -> None:
-    """Terminates a running process, escalating to kill if it does not exit in time."""
+    """Terminates a running process using wait() to prevent pipe race conditions."""
     process.terminate()
     try:
-        process.communicate(timeout=TERMINATE_TIMEOUT)
+        process.wait(timeout=TERMINATE_TIMEOUT)
     except subprocess.TimeoutExpired:
         process.kill()
-        process.communicate()
+        process.wait()
 
 
 def run_strategies(
@@ -322,7 +322,7 @@ def run_strategies(
         str | None: Label of the successful strategy, or None if all failed.
 
     Raises:
-        InterruptedError: If cancellation was requested.
+        InterruptedError: If cancellation was requested or raised during callback execution.
     """
     for label, cmd in strategies:
         if cancel_event is not None and cancel_event.is_set():
@@ -399,6 +399,13 @@ def run_strategies(
 
             process.wait()
             stderr_thread.join(timeout=1.0)
+
+        except BaseException:
+            if process.poll() is None:
+                _terminate_process(process)
+            output_path.unlink(missing_ok=True)
+            stderr_thread.join(timeout=1.0)
+            raise
 
         finally:
             with _active_lock:

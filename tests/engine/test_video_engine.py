@@ -293,3 +293,35 @@ def test_terminate_active_processes_kills_ffmpeg_and_removes_output(tmp_path):
     assert registered[0].poll() is not None
     assert not output_file.exists()
     assert not ffmpeg_utils._active_processes
+
+
+def test_run_strategies_terminates_process_on_callback_exception(tmp_path, monkeypatch):
+    """Verifies that an exception in progress_callback terminates FFmpeg and cleans output."""
+    output_file = tmp_path / "long_encode.mp4"
+    cmd = _long_encode_command(output_file)
+
+    spawned: list[subprocess.Popen] = []
+    original_popen = subprocess.Popen
+
+    def recording_popen(*args, **kwargs):
+        process = original_popen(*args, **kwargs)
+        spawned.append(process)
+        return process
+
+    monkeypatch.setattr(ffmpeg_utils.subprocess, "Popen", recording_popen)
+
+    def throwing_callback(out_time, fps, speed):
+        raise InterruptedError("CANCELLED_IN_CALLBACK")
+
+    with pytest.raises(InterruptedError):
+        ffmpeg_utils.run_strategies(
+            [("long encode", cmd)],
+            output_file,
+            "long_encode.mp4",
+            progress_callback=throwing_callback,
+        )
+
+    assert len(spawned) == 1
+    assert spawned[0].poll() is not None
+    assert not output_file.exists()
+    assert len(ffmpeg_utils._active_processes) == 0
