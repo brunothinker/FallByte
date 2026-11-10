@@ -102,7 +102,11 @@ def create_sample_video():
         size: str = "320x240",
         noisy: bool = False,
     ) -> Path:
-        ffmpeg_bin = get_ffmpeg_path()
+        try:
+            ffmpeg_bin = get_ffmpeg_path()
+        except (FileNotFoundError, OSError) as err:
+            pytest.skip(f"FFmpeg binary not available: {err}")
+
         cmd = [
             str(ffmpeg_bin),
             "-y",

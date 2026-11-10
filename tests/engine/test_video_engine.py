@@ -29,8 +29,13 @@ def _long_encode_command(output_file) -> list[str]:
         list[str]: Command line encoding a 10-minute synthetic video with the
             `veryslow` preset, which never finishes within the test timeout.
     """
+    try:
+        ffmpeg_bin = get_ffmpeg_path()
+    except (FileNotFoundError, OSError) as err:
+        pytest.skip(f"FFmpeg binary not available: {err}")
+
     return [
-        str(get_ffmpeg_path()),
+        str(ffmpeg_bin),
         "-hide_banner",
         "-nostdin",
         "-progress",

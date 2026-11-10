@@ -37,8 +37,13 @@ def _strategies(ext, quality=80, codec=None, hevc_available=False):
 
 def _video_line(path: Path) -> str:
     """Returns the `Video:` line printed by `ffmpeg -i` (shows codec and tag)."""
+    try:
+        ffmpeg_bin = get_ffmpeg_path()
+    except (FileNotFoundError, OSError):
+        return ""
+
     result = subprocess.run(
-        [str(get_ffmpeg_path()), "-hide_banner", "-i", str(path)],
+        [str(ffmpeg_bin), "-hide_banner", "-i", str(path)],
         capture_output=True,
         stdin=subprocess.DEVNULL,
         check=False,
@@ -49,8 +54,17 @@ def _video_line(path: Path) -> str:
     return ""
 
 
+def _x265_available() -> bool:
+    """Checks whether the bundled FFmpeg binary exists and supports libx265 encoding."""
+    try:
+        ffmpeg_bin = get_ffmpeg_path()
+        return ffmpeg_utils.has_encoder(ffmpeg_bin, "libx265")
+    except (FileNotFoundError, OSError):
+        return False
+
+
 needs_x265 = pytest.mark.skipif(
-    not ffmpeg_utils.has_encoder(get_ffmpeg_path(), "libx265"),
+    not _x265_available(),
     reason="bundled FFmpeg has no libx265",
 )
 
