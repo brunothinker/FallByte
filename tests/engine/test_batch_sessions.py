@@ -290,7 +290,7 @@ def test_image_batch_conversion_avoids_output_name_collisions(
     (in_dir / "photo.jpg").write_bytes(b"jpg source")
 
     def fake_converter(
-        input_path, output_path, target_format, transparency_replacement_color
+        input_path, output_path, target_format, transparency_replacement_color, **_kwargs
     ):
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_bytes(input_path.read_bytes())
@@ -327,7 +327,9 @@ def test_video_batch_conversion_avoids_output_name_collisions(
     (in_dir / "clip.avi").write_bytes(b"avi source")
     (in_dir / "clip.mov").write_bytes(b"mov source")
 
-    def fake_converter(input_path, output_path, target_format, cancel_event=None):
+    def fake_converter(
+        input_path, output_path, target_format, cancel_event=None, **_kwargs
+    ):
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_bytes(input_path.read_bytes())
         return True
@@ -369,7 +371,7 @@ def test_image_batch_conversion_preserves_existing_output(
     existing_output.write_bytes(b"existing user data")
 
     def fake_converter(
-        input_path, output_path, target_format, transparency_replacement_color
+        input_path, output_path, target_format, transparency_replacement_color, **_kwargs
     ):
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_bytes(input_path.read_bytes())
@@ -402,7 +404,9 @@ def test_video_batch_conversion_cleans_up_when_cancelled(
     (in_dir / "a_clip.avi").write_bytes(b"first source")
     (in_dir / "b_clip.mov").write_bytes(b"second source")
 
-    def fake_converter(input_path, output_path, target_format, cancel_event=None):
+    def fake_converter(
+        input_path, output_path, target_format, cancel_event=None, **_kwargs
+    ):
         if input_path.name == "b_clip.mov":
             raise InterruptedError("CANCELLED_BY_USER")
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -429,7 +433,9 @@ def test_video_batch_compression_removes_empty_session_folder_when_cancelled(
     in_dir, out_dir = tmp_workspace
     (in_dir / "clip.mp4").write_bytes(b"source")
 
-    def fake_compressor(input_path, output_path, quality, cancel_event=None):
+    def fake_compressor(
+        input_path, output_path, quality, cancel_event=None, **_kwargs
+    ):
         raise InterruptedError("CANCELLED_BY_USER")
 
     monkeypatch.setattr(

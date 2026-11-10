@@ -3,6 +3,7 @@ import os
 import shutil
 import tempfile
 import threading
+from collections.abc import Callable
 from pathlib import Path
 
 from src.video.utils.binary_manager import get_ffmpeg_path
@@ -116,6 +117,7 @@ def file_compressor(
     output_path: Path,
     quality: int = 80,
     cancel_event: threading.Event | None = None,
+    file_progress_callback: Callable[[float, float, float, float], None] | None = None,
 ) -> bool:
     """Compresses a single video file while strictly maintaining its original format.
 
@@ -135,6 +137,8 @@ def file_compressor(
           better quality. Defaults to 80.
         cancel_event (threading.Event, optional): Event that, when set,
           terminates the running FFmpeg process. Defaults to None.
+        file_progress_callback (Callable[[float, float, float, float], None], optional):
+          Callback receiving (duration_seconds, processed_seconds, fps, speed).
 
     Returns:
         bool: True if compression succeeded, False otherwise.
@@ -180,8 +184,19 @@ def file_compressor(
             info.video_codec,
             hevc_available,
         )
+
+        def _inner_progress(out_time: float, fps: float, speed: float) -> None:
+            if file_progress_callback:
+                file_progress_callback(
+                    info.duration_seconds, out_time, fps, speed
+                )
+
         used = run_strategies(
-            strategies, tmp_path, input_path.name, cancel_event
+            strategies,
+            tmp_path,
+            input_path.name,
+            cancel_event,
+            progress_callback=_inner_progress,
         )
         if used is None:
             if tmp_path.exists():

@@ -3,6 +3,7 @@ import os
 import shutil
 import tempfile
 import threading
+from collections.abc import Callable
 from pathlib import Path
 
 from src.video.utils.binary_manager import get_ffmpeg_path
@@ -100,6 +101,7 @@ def file_converter(
     output_path: Path,
     target_format: str,
     cancel_event: threading.Event | None = None,
+    file_progress_callback: Callable[[float, float, float, float], None] | None = None,
 ) -> bool:
     """Converts a video file to the specified target format using FFmpeg.
 
@@ -124,6 +126,8 @@ def file_converter(
           'mkv', 'webm', 'mov', 'avi', 'wmv').
         cancel_event (threading.Event, optional): Event that, when set,
           terminates the running FFmpeg process. Defaults to None.
+        file_progress_callback (Callable[[float, float, float, float], None], optional):
+          Callback receiving (duration_seconds, processed_seconds, fps, speed).
 
     Returns:
         bool: True if conversion succeeded, False otherwise.
@@ -193,8 +197,18 @@ def file_converter(
             audio_ok,
         )
 
+        def _inner_progress(out_time: float, fps: float, speed: float) -> None:
+            if file_progress_callback:
+                file_progress_callback(
+                    info.duration_seconds, out_time, fps, speed
+                )
+
         used = run_strategies(
-            strategies, tmp_path, input_path.name, cancel_event
+            strategies,
+            tmp_path,
+            input_path.name,
+            cancel_event,
+            progress_callback=_inner_progress,
         )
         if used is None:
             if tmp_path.exists():

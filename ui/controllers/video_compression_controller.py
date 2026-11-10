@@ -5,6 +5,7 @@ from pathlib import Path
 import flet as ft
 
 from src.formats import SUPPORTED_VIDEO_EXTENSIONS
+from src.utils.progress import ProgressInfo
 from src.video.video_directory_compression import directory_compressor
 from src.video.video_file_compression import file_compressor
 from ui.components.dialog_utils import (
@@ -87,16 +88,17 @@ class VideoCompressionController(BaseController):
         if not self.selected_input or not self.selected_output_dir:
             return
 
+        filename = self.selected_input.name
+        out_file = self.selected_output_dir / filename
+
         self._set_processing_ui(page, progress_bar, btn_action)
         self.cancel_event.clear()
-
-        out_file = self.selected_output_dir / self.selected_input.name
 
         lbl_status.value = t(
             "msg_compressing_progress",
             current=1,
             total=1,
-            filename=self.selected_input.name,
+            filename=filename,
         )
         lbl_status.color = get_color("text")
         lbl_status.update()
@@ -108,20 +110,41 @@ class VideoCompressionController(BaseController):
         orig_bytes = self.selected_input.stat().st_size
         success = False
 
+        def file_progress_cb(
+            duration: float, processed: float, fps: float, speed: float
+        ) -> None:
+            if self.abort_requested:
+                return
+            if duration > 0.0:
+                pct = min(1.0, max(0.0, processed / duration))
+                progress_bar.value = pct
+                status_text = t(
+                    "msg_compressing_progress",
+                    current=1,
+                    total=1,
+                    filename=filename,
+                )
+                if speed > 0.0:
+                    status_text += f" ({speed:.1f}x, {fps:.0f} fps)"
+                lbl_status.value = status_text
+                progress_bar.update()
+                lbl_status.update()
+
         try:
             success = file_compressor(
                 input_path=self.selected_input,
                 output_path=out_file,
                 quality=quality,
                 cancel_event=self.cancel_event,
+                file_progress_callback=file_progress_cb,
             )
             if success:
-                print(f"[OK] {self.selected_input.name}")
+                print(f"[OK] {filename}")
             else:
-                print(f"[FAIL] {self.selected_input.name}")
+                print(f"[FAIL] {filename}")
         except Exception as err:
             success = False
-            print(f"[ERROR] {self.selected_input.name}: {err}")
+            print(f"[ERROR] {filename}: {err}")
         finally:
             redirector.stop()
 
@@ -153,7 +176,7 @@ class VideoCompressionController(BaseController):
                 if success
                 else [
                     {
-                        "file": self.selected_input.name,
+                        "file": filename,
                         "error": t("msg_error"),
                     }
                 ],
@@ -273,25 +296,30 @@ class VideoCompressionController(BaseController):
         progress_bar.value = 0
         progress_bar.update()
 
-        def update_progress(info) -> None:
+        def update_progress(info: ProgressInfo) -> None:
             if self.abort_requested:
                 raise InterruptedError("CANCELLED_BY_USER")
 
             if info.total > 0:
-                progress_bar.value = info.current / info.total
-                filename = info.file_path.name if info.file_path else ""
+                progress_bar.value = info.percentage / 100.0
+                file_name = info.file_path.name if info.file_path else ""
 
-                if info.success:
-                    print(f"[OK] {filename}")
-                else:
-                    print(f"[FAIL] {filename}")
+                if info.processed_seconds == 0.0:
+                    if info.success:
+                        print(f"[OK] {file_name}")
+                    else:
+                        print(f"[FAIL] {file_name}")
 
-                lbl_status.value = t(
+                status_text = t(
                     "msg_compressing_progress",
                     current=info.current,
                     total=info.total,
-                    filename=filename,
+                    filename=file_name,
                 )
+                if info.speed > 0.0:
+                    status_text += f" ({info.speed:.1f}x, {info.fps:.0f} fps)"
+
+                lbl_status.value = status_text
                 progress_bar.update()
                 lbl_status.update()
 

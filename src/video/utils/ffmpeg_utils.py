@@ -12,6 +12,7 @@ import re
 import subprocess
 import sys
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import cast
@@ -54,12 +55,15 @@ SAFE_VIDEO_FILTER: list[str] = [
 RESCUE_INPUT_ARGS: list[str] = ["-fflags", "+genpts", "-err_detect", "ignore_err"]
 
 # Polling interval (seconds) used to check for cancellation while FFmpeg runs.
-CANCEL_POLL_INTERVAL = 0.2
+CANCEL_POLL_INTERVAL = 0.1
 # Grace period (seconds) before a terminated FFmpeg process is force-killed.
 TERMINATE_TIMEOUT = 3.0
 
 _STREAM_RE = re.compile(r"Stream #\d+:\d+.*?: (Video|Audio): (\w+)")
 _STANDARD_PIX_FMT_RE = re.compile(r"\byuvj?420p\b")
+_DURATION_RE = re.compile(
+    r"Duration:\s*(\d{2}):(\d{2}):(\d{2}\.\d+)"
+)
 
 
 @dataclass
@@ -69,6 +73,7 @@ class StreamInfo:
     video_codec: str | None = None
     audio_codecs: list[str] = field(default_factory=list)
     standard_pix_fmt: bool = True
+    duration_seconds: float = 0.0
 
 
 def _subprocess_kwargs() -> dict:
@@ -99,6 +104,9 @@ def base_command(
         str(ffmpeg_bin),
         "-hide_banner",
         "-nostdin",
+        "-progress",
+        "pipe:1",
+        "-nostats",
         "-y",
         *(input_args or []),
         "-i",
@@ -107,7 +115,7 @@ def base_command(
 
 
 def probe_streams(ffmpeg_bin: Path, input_path: Path) -> StreamInfo:
-    """Reads main video codec, audio codecs and pixel format via `ffmpeg -i`.
+    """Reads main video codec, audio codecs, pixel format, and duration via `ffmpeg -i`.
 
     Cover-art streams (attached pictures) are ignored. Never raises; returns an
     empty StreamInfo if probing fails.
@@ -123,6 +131,14 @@ def probe_streams(ffmpeg_bin: Path, input_path: Path) -> StreamInfo:
         return info
 
     for line in result.stderr.decode("utf-8", errors="ignore").splitlines():
+        if info.duration_seconds == 0.0:
+            dur_match = _DURATION_RE.search(line)
+            if dur_match:
+                hours, minutes, seconds = map(float, dur_match.groups())
+                info.duration_seconds = round(
+                    hours * 3600.0 + minutes * 60.0 + seconds, 2
+                )
+
         match = _STREAM_RE.search(line)
         if not match:
             continue
@@ -287,6 +303,7 @@ def run_strategies(
     output_path: Path,
     display_name: str,
     cancel_event: threading.Event | None = None,
+    progress_callback: Callable[[float, float, float], None] | None = None,
 ) -> str | None:
     """Runs FFmpeg strategies in order until one produces a valid output file.
 
@@ -299,6 +316,7 @@ def run_strategies(
         output_path: Destination file produced by the commands.
         display_name: Source file name used in log messages.
         cancel_event: Optional event signaling a user cancellation request.
+        progress_callback: Optional callback receiving (processed_seconds, fps, speed).
 
     Returns:
         str | None: Label of the successful strategy, or None if all failed.
@@ -317,18 +335,71 @@ def run_strategies(
         with _active_lock:
             _active_processes[process] = output_path
 
-        try:
-            while True:
-                try:
-                    _, stderr_data = process.communicate(
-                        timeout=CANCEL_POLL_INTERVAL
+        stderr_lines: list[str] = []
+
+        def _read_stderr() -> None:
+            if process.stderr:
+                for line in iter(process.stderr.readline, b""):
+                    stderr_lines.append(
+                        line.decode("utf-8", errors="ignore")
                     )
-                    break
-                except subprocess.TimeoutExpired:
+
+        stderr_thread = threading.Thread(target=_read_stderr, daemon=True)
+        stderr_thread.start()
+
+        try:
+            curr_out_time = 0.0
+            curr_fps = 0.0
+            curr_speed = 0.0
+
+            if process.stdout:
+                for raw_line in iter(process.stdout.readline, b""):
                     if cancel_event is not None and cancel_event.is_set():
                         _terminate_process(process)
                         output_path.unlink(missing_ok=True)
                         raise InterruptedError("CANCELLED_BY_USER")
+
+                    line = raw_line.decode("utf-8", errors="ignore").strip()
+                    if not line or "=" not in line:
+                        continue
+
+                    key, value = line.split("=", 1)
+                    key = key.strip()
+                    value = value.strip()
+
+                    if key == "out_time_us":
+                        try:
+                            curr_out_time = float(value) / 1_000_000.0
+                        except ValueError:
+                            pass
+                    elif key == "out_time" and curr_out_time == 0.0:
+                        parts = value.split(":")
+                        if len(parts) == 3:
+                            try:
+                                h, m, s = map(float, parts)
+                                curr_out_time = h * 3600.0 + m * 60.0 + s
+                            except ValueError:
+                                pass
+                    elif key == "fps":
+                        try:
+                            curr_fps = float(value)
+                        except ValueError:
+                            pass
+                    elif key == "speed":
+                        cleaned = value.rstrip("xX")
+                        try:
+                            curr_speed = float(cleaned)
+                        except ValueError:
+                            pass
+                    elif key == "progress":
+                        if progress_callback:
+                            progress_callback(
+                                curr_out_time, curr_fps, curr_speed
+                            )
+
+            process.wait()
+            stderr_thread.join(timeout=1.0)
+
         finally:
             with _active_lock:
                 _active_processes.pop(process, None)
@@ -338,12 +409,14 @@ def run_strategies(
             and output_path.exists()
             and output_path.stat().st_size > 0
         ):
+            if progress_callback:
+                progress_callback(curr_out_time, curr_fps, curr_speed)
             logger.info(f"'{display_name}' processed using strategy: {label}.")
             return label
 
         output_path.unlink(missing_ok=True)
         stderr_tail = "\n".join(
-            (stderr_data or b"").decode("utf-8", errors="ignore").strip().splitlines()[-4:]
+            "".join(stderr_lines).strip().splitlines()[-4:]
         )
         logger.warning(
             f"Strategy '{label}' failed for '{display_name}': {stderr_tail}"

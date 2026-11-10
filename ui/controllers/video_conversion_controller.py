@@ -8,6 +8,7 @@ from src.formats import (
     VIDEO_TARGET_FORMATS as SUPPORTED_VIDEO_CONVERSION_FORMATS,
 )
 from src.utils.output_naming import unique_conversion_output_path
+from src.utils.progress import ProgressInfo
 from src.video.video_directory_conversion import directory_converter
 from src.video.video_file_conversion import file_converter
 from ui.components.dialog_utils import (
@@ -115,6 +116,7 @@ class VideoConversionController(BaseController):
         if not self.selected_input or not self.selected_output_dir:
             return
 
+        filename = self.selected_input.name
         self._set_processing_ui(page, progress_bar, btn_action)
         self.cancel_event.clear()
 
@@ -129,7 +131,7 @@ class VideoConversionController(BaseController):
             "msg_converting_progress",
             current=1,
             total=1,
-            filename=self.selected_input.name,
+            filename=filename,
         )
         lbl_status.color = get_color("text")
         lbl_status.update()
@@ -141,20 +143,41 @@ class VideoConversionController(BaseController):
         orig_bytes = self.selected_input.stat().st_size
         success = False
 
+        def file_progress_cb(
+            duration: float, processed: float, fps: float, speed: float
+        ) -> None:
+            if self.abort_requested:
+                return
+            if duration > 0.0:
+                pct = min(1.0, max(0.0, processed / duration))
+                progress_bar.value = pct
+                status_text = t(
+                    "msg_converting_progress",
+                    current=1,
+                    total=1,
+                    filename=filename,
+                )
+                if speed > 0.0:
+                    status_text += f" ({speed:.1f}x, {fps:.0f} fps)"
+                lbl_status.value = status_text
+                progress_bar.update()
+                lbl_status.update()
+
         try:
             success = file_converter(
                 input_path=self.selected_input,
                 output_path=out_file,
                 target_format=target_fmt,
                 cancel_event=self.cancel_event,
+                file_progress_callback=file_progress_cb,
             )
             if success:
-                print(f"[OK] {self.selected_input.name}")
+                print(f"[OK] {filename}")
             else:
-                print(f"[FAIL] {self.selected_input.name}")
+                print(f"[FAIL] {filename}")
         except Exception as err:
             success = False
-            print(f"[ERROR] {self.selected_input.name}: {err}")
+            print(f"[ERROR] {filename}: {err}")
         finally:
             redirector.stop()
 
@@ -182,7 +205,7 @@ class VideoConversionController(BaseController):
                 "terminal_log": redirector.get_logs(),
                 "errors": []
                 if success
-                else [{"file": self.selected_input.name, "error": t("msg_error")}],
+                else [{"file": filename, "error": t("msg_error")}],
             }
             show_summary_dialog(page, summary)
         else:
@@ -216,25 +239,30 @@ class VideoConversionController(BaseController):
 
         target_fmt = target_format.lower()
 
-        def update_progress(info) -> None:
+        def update_progress(info: ProgressInfo) -> None:
             if self.abort_requested:
                 raise InterruptedError("CANCELLED_BY_USER")
 
             if info.total > 0:
-                progress_bar.value = info.current / info.total
-                filename = info.file_path.name if info.file_path else ""
+                progress_bar.value = info.percentage / 100.0
+                file_name = info.file_path.name if info.file_path else ""
 
-                if info.success:
-                    print(f"[OK] {filename}")
-                else:
-                    print(f"[FAIL] {filename}")
+                if info.processed_seconds == 0.0:
+                    if info.success:
+                        print(f"[OK] {file_name}")
+                    else:
+                        print(f"[FAIL] {file_name}")
 
-                lbl_status.value = t(
+                status_text = t(
                     "msg_converting_progress",
                     current=info.current,
                     total=info.total,
-                    filename=filename,
+                    filename=file_name,
                 )
+                if info.speed > 0.0:
+                    status_text += f" ({info.speed:.1f}x, {info.fps:.0f} fps)"
+
+                lbl_status.value = status_text
                 progress_bar.update()
                 lbl_status.update()
 

@@ -33,6 +33,9 @@ def _long_encode_command(output_file) -> list[str]:
         str(get_ffmpeg_path()),
         "-hide_banner",
         "-nostdin",
+        "-progress",
+        "pipe:1",
+        "-nostats",
         "-y",
         "-f",
         "lavfi",
@@ -79,6 +82,31 @@ def test_video_compression_levels(tmp_workspace, create_sample_video, quality):
     assert success is True
     assert dst_mp4.exists()
     assert dst_mp4.stat().st_size > 0
+
+
+def test_video_conversion_realtime_progress_callback(
+    tmp_workspace, create_sample_video
+):
+    """Verifies that realtime progress callbacks receive duration, fps and speed during conversion."""
+    in_dir, out_dir = tmp_workspace
+    src_mp4 = create_sample_video(in_dir / "input.mp4", duration_sec=2)
+    dst_file = out_dir / "output.mkv"
+
+    progress_ticks = []
+
+    def progress_cb(dur: float, proc: float, fps: float, speed: float) -> None:
+        progress_ticks.append((dur, proc, fps, speed))
+
+    success = video_converter(
+        src_mp4,
+        dst_file,
+        target_format="mkv",
+        file_progress_callback=progress_cb,
+    )
+
+    assert success is True
+    assert len(progress_ticks) > 0
+    assert progress_ticks[-1][0] > 0.0
 
 
 # --- Advanced I/O & edge cases ---
