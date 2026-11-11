@@ -1,0 +1,18 @@
+FROM fedora:40
+
+RUN dnf install -y \
+    xorg-x11-server-Xvfb \
+    gtk3 \
+    gstreamer1 \
+    gstreamer1-plugins-base \
+    mpv-libs \
+    libheif \
+    findutils \
+    procps-ng \
+    && dnf clean all
+
+WORKDIR /tests
+COPY packaging/tests/scripts /tests/scripts
+RUN chmod +x /tests/scripts/*.sh
+
+CMD ["/tests/scripts/run_rpm.sh"]

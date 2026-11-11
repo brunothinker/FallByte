@@ -1,0 +1,20 @@
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    xvfb \
+    x11-utils \
+    libgtk-3-0 \
+    libgstreamer1.0-0 \
+    libgstreamer-plugins-base1.0-0 \
+    libmpv2 \
+    libheif1 \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /tests
+COPY packaging/tests/scripts /tests/scripts
+RUN chmod +x /tests/scripts/*.sh
+
+CMD ["/tests/scripts/run_deb.sh"]

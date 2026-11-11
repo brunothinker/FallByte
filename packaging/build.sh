@@ -7,12 +7,13 @@
 #
 # Options:
 #   --version=<version>, -v <version>   Specify the target release version (e.g., 2.0.0).
+#   --test, -t                          Automatically run Docker integration tests post-build.
 #   --help, -h                          Show this help message and exit.
 #
 # Examples:
-#   ./build.sh --version=2.0.0
-#   ./build.sh -v 2.0.0
-#   ./build.sh 2.0.0
+#   ./build.sh --version=2.0.0 --test
+#   ./build.sh -v 2.0.0 -t
+#   ./build.sh 2.0.0 --test
 #   ./build.sh                          (Interactive prompt)
 # ==============================================================================
 
@@ -35,24 +36,30 @@ Usage:
 
 Options:
   --version=<version>, -v <version>   Specify target release version (e.g., 2.0.0).
+  --test, -t                          Automatically run Docker integration tests post-build.
   --help, -h                          Show this help menu and exit.
 
 Examples:
-  $(basename "$0") --version=2.0.0
-  $(basename "$0") -v 2.0.0
-  $(basename "$0") 2.0.0
+  $(basename "$0") --version=2.0.0 --test
+  $(basename "$0") -v 2.0.0 -t
+  $(basename "$0") 2.0.0 --test
   $(basename "$0")                     (Triggers interactive prompt)
 EOF
 }
 
-# 1. Parse CLI arguments for version or help requests
+# 1. Parse CLI arguments for version, test flag, or help requests
 TARGET_VERSION=""
+RUN_TESTS=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --help|-h)
       show_help
       exit 0
+      ;;
+    --test|-t)
+      RUN_TESTS=true
+      shift
       ;;
     --version=*)
       TARGET_VERSION="${1#*=}"
@@ -121,6 +128,7 @@ export APP_VERSION="$TARGET_VERSION"
 echo "=================================================="
 echo " Starting FallByte Release Pipeline v${APP_VERSION}"
 echo " Selected Icon: ${ICON_SRC}"
+echo " Docker Auto-Test: ${RUN_TESTS}"
 echo "=================================================="
 
 # 2. Clean build directory workspace
@@ -148,6 +156,7 @@ pyinstaller \
     --windowed \
     --name="FallByte" \
     --icon="$ICON_SRC" \
+    --add-data "$PROJECT_ROOT/resources:resources" \
     --collect-all flet \
     --collect-all pillow_heif \
     --distpath "$PYINSTALLER_DIR/dist" \
@@ -173,3 +182,27 @@ echo "=================================================="
 echo " SUCCESS: All Linux distribution packages generated for v${APP_VERSION}"
 echo " Artifacts location: $BUILD_DIR"
 echo "=================================================="
+
+# 7. Optionally trigger Docker integration test suite
+if [ "$RUN_TESTS" = true ]; then
+    echo ""
+    echo "=================================================="
+    echo " Running Automated Docker Integration Tests..."
+    echo "=================================================="
+
+    echo "--> [Test 1/3] Testing Debian package (.deb)..."
+    docker build -t fallbyte-test-deb -f "$PROJECT_ROOT/packaging/tests/Dockerfile.test_deb" "$PROJECT_ROOT"
+    docker run --rm -v "$BUILD_DIR":/artifacts fallbyte-test-deb
+
+    echo "--> [Test 2/3] Testing RedHat package (.rpm)..."
+    docker build -t fallbyte-test-rpm -f "$PROJECT_ROOT/packaging/tests/Dockerfile.test_rpm" "$PROJECT_ROOT"
+    docker run --rm -v "$BUILD_DIR":/artifacts fallbyte-test-rpm
+
+    echo "--> [Test 3/3] Testing AppImage..."
+    docker build -t fallbyte-test-appimage -f "$PROJECT_ROOT/packaging/tests/Dockerfile.test_appimage" "$PROJECT_ROOT"
+    docker run --rm --device /dev/fuse --cap-add SYS_ADMIN -v "$BUILD_DIR":/artifacts fallbyte-test-appimage
+
+    echo "=================================================="
+    echo " SUCCESS: All Docker package validation tests passed!"
+    echo "=================================================="
+fi
