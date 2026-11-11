@@ -1,9 +1,12 @@
+import argparse
 import logging
+import sys
 from pathlib import Path
 
 import flet as ft
 
 from src.utils.config_manager import load_config
+from src.utils.smoke_check import run_smoke_check
 from ui.app_layout import create_app_layout
 from ui.i18n import TRANSLATIONS, detect_system_language, set_language, t
 from ui.theme import build_flet_theme, get_color, set_active_theme
@@ -12,6 +15,30 @@ APP_VERSION = "dev"
 
 # Setup module logger
 logger = logging.getLogger(__name__)
+
+
+def parse_cli_args() -> argparse.Namespace:
+    """Parses command-line arguments passed to FallByte executable before UI startup.
+
+    Returns:
+        argparse.Namespace: Object containing evaluated CLI flags.
+    """
+    parser = argparse.ArgumentParser(
+        description="FallByte - Local-first media optimization suite.",
+        add_help=True,
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"FallByte {APP_VERSION}",
+        help="Show application version and exit.",
+    )
+    parser.add_argument(
+        "--smoke-test",
+        action="store_true",
+        help="Execute automated runtime dependency and binary sanity checks.",
+    )
+    return parser.parse_args()
 
 
 def main(page: ft.Page) -> None:
@@ -62,4 +89,10 @@ def main(page: ft.Page) -> None:
 
 
 if __name__ == "__main__":
+    args = parse_cli_args()
+
+    if args.smoke_test:
+        success = run_smoke_check()
+        sys.exit(0 if success else 1)
+
     ft.app(target=main)
