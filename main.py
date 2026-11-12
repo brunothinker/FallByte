@@ -1,11 +1,13 @@
 import argparse
 import logging
 import sys
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
+
 
 import flet as ft
 
-from src.utils.config_manager import load_config
+from src.utils.config_manager import CONFIG_DIR, load_config
 from src.utils.smoke_check import run_smoke_check
 from ui.app_layout import create_app_layout
 from ui.i18n import TRANSLATIONS, detect_system_language, set_language, t
@@ -15,6 +17,9 @@ APP_VERSION = "dev"
 
 # Setup module logger
 logger = logging.getLogger(__name__)
+
+# Log file living next to the user configuration
+LOG_FILE = CONFIG_DIR / "fallbyte.log"
 
 
 def parse_cli_args() -> argparse.Namespace:
@@ -38,7 +43,51 @@ def parse_cli_args() -> argparse.Namespace:
         action="store_true",
         help="Execute automated runtime dependency and binary sanity checks.",
     )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug logging (default level is INFO).",
+    )
     return parser.parse_args()
+
+
+def setup_logging(debug: bool = False) -> Path:
+    """Configures root logging once at startup.
+
+    Adds a rotating file handler (1 MB, 3 backups) writing to ``LOG_FILE``
+    in the configuration directory, plus a console handler when stderr is
+    available (desktop/exe launches may not have one). Calling it again
+    does not duplicate handlers; only the level is updated.
+
+    Args:
+        debug: When True the root level is DEBUG, otherwise INFO.
+
+    Returns:
+        Path: The log file path.
+    """
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG if debug else logging.INFO)
+
+    if any(getattr(handler, "_fallbyte_handler", False) for handler in root.handlers):
+        return LOG_FILE
+
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+
+    file_handler = RotatingFileHandler(
+        LOG_FILE, maxBytes=1_000_000, backupCount=3, encoding="utf-8"
+    )
+    file_handler.setFormatter(formatter)
+    file_handler._fallbyte_handler = True
+    root.addHandler(file_handler)
+
+    if sys.stderr is not None:
+        stream_handler = logging.StreamHandler(sys.stderr)
+        stream_handler.setFormatter(formatter)
+        stream_handler._fallbyte_handler = True
+        root.addHandler(stream_handler)
+
+    return LOG_FILE
 
 
 def main(page: ft.Page) -> None:
@@ -90,6 +139,8 @@ def main(page: ft.Page) -> None:
 
 if __name__ == "__main__":
     args = parse_cli_args()
+    log_path = setup_logging(debug=args.debug)
+    logger.info(f"FallByte {APP_VERSION} starting; log file: {log_path}")
 
     if args.smoke_test:
         success = run_smoke_check()
