@@ -18,15 +18,14 @@ FallByte comes fully equipped with high-performance engines for both **Images** 
 
 * **Local-First & Private:** Your files never leave your system. No server uploads, no telemetry, no internet required.
 * **Embedded Media Engine (FFmpeg):** Native video conversion and compression powered by standalone FFmpeg binaries -- no external system installations required.
-* **Smart Video Processing:** 
-  * **Conversion:** Standardize videos across major formats (`MP4`, `MKV`, `WEBM`, `MOV`, `AVI`, `WMV`) with automatic multi-threaded codec mapping (`VP9`, `H.264`, `HEVC/H.265`, `WMV2`).
+
+- **Advanced Image Processing:**
+  * **Compression:** Reclaim storage using quality controls and advanced PNG quantization (palette reduction) while strictly keeping original file formats *(applicable to compressible formats like `JPEG`, `PNG`, `WEBP`, and `TIFF`)*.
+  * **Conversion:** Read various input formats (including `HEIC`, `HEIF`, `TIFF`, `GIF`, `PPM`, and standard web formats) and convert between `JPEG`, `PNG`, `WEBP`, `BMP`, `TIFF`, `GIF`, `ICO`, `PPM`, and `PDF`, featuring automatic background blending for transparency channels on unsupported formats.
+- **Smart Video Processing:** 
+  * **Conversion:** Convert from a wide range of inputs (`MP4`, `MKV`, `WEBM`, `MOV`, `AVI`, `WMV`, `M4V`, `FLV`, `TS`, `3GP`, `MPG`) into standardized target formats (`MP4`, `MKV`, `WEBM`, `MOV`, `AVI`, `WMV`) with automatic multi-threaded codec mapping (`VP9`, `H.264`, `HEVC/H.265`, `WMV2`).
   * **HEVC 10-bit / HDR Support:** Full preservation of 10-bit pixel formats (`yuv420p10le`) during HEVC (`libx265`) compression and conversion without downsampling to 8-bit.
   * **Compression:** Map quality scales to CRF and bitrate parameters for high space savings.
-* **Advanced Image Processing:**
-  * **Compression:** Reclaim storage using quality controls and advanced PNG quantization (palette reduction) while strictly keeping original file formats.
-  * **Conversion:** Convert between various formats (`PNG`, `JPEG`, `WEBP`, `BMP`, `ICO`) with automatic background blending for transparency channels on unsupported formats.
-* **Batch & Single File Operations:** Process individual files or entire directory structures preserving folder hierarchies.
-* **Safe Session Cancellation:** Interrupt batch processing at any point without leaving orphan or corrupted files behind.
 
 ---
 
@@ -39,8 +38,7 @@ Choose the appropriate package for your operating system on our official downloa
 | Linux (Ubuntu / Debian / Mint) | Native `.deb` Package | Supported |
 | Linux (Fedora / RHEL / openSUSE) | Native `.rpm` Package | Supported |
 | Linux (Arch / Universal Linux) | Portable `.AppImage` | Supported |
-| Windows (x64) | Portable `.zip` | Temporarily Discontinued |
-| macOS | Source execution only | Not Tested |
+| Windows (x64) | Portable `.zip` | Supported |
 
 > **[Get FallByte for your OS (Official Download Page)](https://brunothinker.github.io/page/)**
 > 
