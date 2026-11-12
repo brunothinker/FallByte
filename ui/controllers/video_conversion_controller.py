@@ -310,9 +310,16 @@ class VideoConversionController(BaseController):
                 summary["terminal_log"] = redirector.get_logs()
                 show_summary_dialog(page, summary)
 
-        except (InterruptedError, Exception) as err:
+        except InterruptedError as err:
             self.abort_requested = True
             print(f"[FAIL] {err}")
+
+        except Exception as err:
+            logger.exception(f"Batch processing failed unexpectedly: {err}")
+            print(f"[ERROR] {err}")
+            lbl_status.value = t("msg_error")
+            lbl_status.color = get_color("error")
+            lbl_status.update()
 
         finally:
             redirector.stop()

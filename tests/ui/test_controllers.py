@@ -311,12 +311,12 @@ def test_batch_cancelled_reports_cleaned_count_without_summary(ctx):
 
 
 def test_batch_engine_exception_restores_ui_without_summary(ctx):
-    """An engine crash during a batch restores the idle UI and shows no summary dialog."""
+    """An engine crash during a batch restores the idle UI, shows an error status and no summary dialog."""
     ctx.fake_dir_engine(raises=RuntimeError("boom"))
     ctx.run_batch()
 
     ctx.summary_dialog.assert_not_called()
-    assert ctx.lbl_status.value == t("msg_process_cancelled", count=0)
+    assert ctx.lbl_status.value == t("msg_error")
     _assert_idle_ui(ctx)
 
 
