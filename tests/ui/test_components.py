@@ -244,3 +244,124 @@ def test_module_registry_route_and_active_state_resolution():
     assert resolve_active_module_id("image_conversion") == "image"
     assert resolve_active_module_id("video_compression") == "video"
     assert resolve_active_module_id("unknown_route") == ""
+
+# --- Summary dialog size/reduction formatting tests ---
+
+
+def _collect_texts(control):
+    """Recursively collects every ft.Text control from a control tree."""
+    texts = []
+    if isinstance(control, ft.Text):
+        texts.append(control)
+    for child in getattr(control, "controls", None) or []:
+        texts.extend(_collect_texts(child))
+    content = getattr(control, "content", None)
+    if content is not None:
+        texts.extend(_collect_texts(content))
+    return texts
+
+
+def test_format_size_units():
+    """Covers bytes, KB, MB and GB ranges (issue #58 acceptance criteria)."""
+    from ui.components.dialog_utils import format_size
+
+    assert format_size(0) == "0 B"
+    assert format_size(512) == "512 B"
+    assert format_size(1536) == "1.5 KB"
+    assert format_size(5 * 1024 * 1024) == "5.00 MB"
+    assert format_size(3 * 1024 * 1024 * 1024) == "3.00 GB"
+
+
+def test_summary_dialog_reduction_shows_single_sign_with_success_color(mock_page):
+    """A real reduction renders one minus sign and the success color."""
+    from ui.components.dialog_utils import show_summary_dialog
+    from ui.theme import get_color
+
+    show_summary_dialog(
+        mock_page,
+        {
+            "total_files": 1,
+            "success": 1,
+            "failed": 0,
+            "elapsed_seconds": 1.0,
+            "original_bytes": 1000,
+            "compressed_bytes": 500,
+            "files": [],
+        },
+    )
+    reduction_rows = [
+        text
+        for text in _collect_texts(mock_page.dialog)
+        if text.value and text.value.split(":")[0].strip() in ("Reduction", "Reducao", "Aumento")
+    ]
+    assert len(reduction_rows) == 1
+    assert reduction_rows[0].value.count("--") == 0
+    assert reduction_rows[0].value.endswith("-50.0%")
+    assert reduction_rows[0].color == get_color("success")
+
+
+def test_summary_dialog_size_growth_never_doubles_minus(mock_page):
+    """When output is larger, the stat must not render a double minus and must use warning color."""
+    from ui.components.dialog_utils import show_summary_dialog
+    from ui.theme import get_color
+
+    show_summary_dialog(
+        mock_page,
+        {
+            "total_files": 1,
+            "success": 1,
+            "failed": 0,
+            "elapsed_seconds": 1.0,
+            "original_bytes": 1000,
+            "compressed_bytes": 1352,
+            "files": [],
+        },
+    )
+    stat_texts = [
+        text.value
+        for text in _collect_texts(mock_page.dialog)
+        if text.value and ("%" in text.value)
+    ]
+    assert stat_texts, "expected a percentage stat row in the summary dialog"
+    for value in stat_texts:
+        assert "--" not in value
+    grown_rows = [
+        text
+        for text in _collect_texts(mock_page.dialog)
+        if text.value and text.value.split(":")[0].strip() in ("Increase", "Aumento")
+    ]
+    assert len(grown_rows) == 1
+    assert grown_rows[0].color == get_color("warning")
+    assert grown_rows[0].value.endswith("+35.2%")
+
+
+def test_summary_dialog_per_file_line_never_doubles_minus(mock_page):
+    """Structured per-file log lines must not render a double minus when a file grew."""
+    from ui.components.dialog_utils import show_summary_dialog
+
+    show_summary_dialog(
+        mock_page,
+        {
+            "total_files": 1,
+            "success": 1,
+            "failed": 0,
+            "elapsed_seconds": 1.0,
+            "original_bytes": 0,
+            "compressed_bytes": 0,
+            "files": [
+                {
+                    "name": "grown.png",
+                    "orig_bytes": 1000,
+                    "comp_bytes": 1352,
+                    "success": True,
+                }
+            ],
+        },
+    )
+    log_lines = [
+        text.value
+        for text in _collect_texts(mock_page.dialog)
+        if text.value and text.value.startswith("[OK]")
+    ]
+    assert len(log_lines) == 1
+    assert "--" not in log_lines[0]

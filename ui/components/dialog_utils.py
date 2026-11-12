@@ -17,9 +17,13 @@ def format_size(size_bytes: int) -> str:
         size_bytes: The total size in bytes to be formatted.
 
     Returns:
-        Formatted string representing size in KB or MB.
+        Formatted string representing size in B, KB, MB or GB.
     """
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
     kb = size_bytes / 1024
+    if kb >= 1024 * 1024:
+        return f"{kb / (1024 * 1024):.2f} GB"
     if kb >= 1024:
         return f"{kb / 1024:.2f} MB"
     return f"{kb:.1f} KB"
@@ -157,7 +161,11 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
 
                 orig_str = format_size(item_orig)
                 comp_str = format_size(item_comp)
-                ok_line = f"[OK] {fname:<25} | {orig_str} -> {comp_str} | -{item_pct:.1f}%"
+                item_sign = "-" if item_pct >= 0 else "+"
+                ok_line = (
+                    f"[OK] {fname:<25} | {orig_str} -> {comp_str} "
+                    f"| {item_sign}{abs(item_pct):.1f}%"
+                )
                 raw_log_text_list.append(ok_line)
 
                 log_items.append(
@@ -341,6 +349,12 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
     ]
 
     if orig_bytes > 0:
+        if reduction_pct >= 0:
+            reduction_text = t("log_reduction_stat", pct=reduction_pct)
+            reduction_color = get_color("success")
+        else:
+            reduction_text = t("log_increase_stat", pct=abs(reduction_pct))
+            reduction_color = get_color("warning")
         summary_info.append(
             ft.Row(
                 [
@@ -355,9 +369,9 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
                         weight=ft.FontWeight.W_500,
                     ),
                     ft.Text(
-                        t("log_reduction_stat", pct=reduction_pct),
+                        reduction_text,
                         size=12,
-                        color=get_color("success"),
+                        color=reduction_color,
                         weight=ft.FontWeight.BOLD,
                     ),
                 ],
