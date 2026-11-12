@@ -68,9 +68,8 @@ python main.py
 - **Media Engine:** FFmpeg (Static Binaries)
 
 ---
-
 ## License & Third-Party Notices
 
-FallByte is licensed under the **GNU General Public License v3.0** (GPLv3).
+FallByte is licensed under the **[GNU General Public License v3.0](https://github.com/brunothinker/FallByte/blob/main/LICENSE)** (GPLv3).
 
-This project bundles third-party binaries (such as FFmpeg static builds) and depends on open-source libraries (Flet, Pillow, PyYAML). For detailed third-party licensing terms, source code locations, and binary build configurations, please refer to [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+This project bundles third-party binaries (such as FFmpeg static builds) and depends on open-source libraries (Flet, Pillow, PyYAML). For detailed third-party licensing terms, source code locations, and binary build configurations, please refer to [THIRD_PARTY_NOTICES.md](https://github.com/brunothinker/FallByte/blob/main/docs/THIRD_PARTY_NOTICES.md).
