@@ -1,5 +1,6 @@
 import flet as ft
 
+from ui.i18n import t
 from ui.theme import get_color
 from ui.utils.compression_utils import validate_quality_value
 
@@ -13,16 +14,20 @@ class QualitySelector(ft.Column):
     """
 
     def __init__(
-        self, initial_value: int = 80, label_text: str = "Qualidade da Compressão"
+        self, initial_value: int = 80, label_text: str | None = None
     ) -> None:
         """Initializes quality selector controls and binds bidirectional sync events.
 
         Args:
             initial_value (int, optional): Initial compression quality percentage (1-100).
                 Defaults to 80.
-            label_text (str, optional): Header title rendered above controls.
-                Defaults to "Qualidade da Compressão".
+            label_text (str | None, optional): Header title rendered above controls.
+                Defaults to translated 'lbl_quality_title' when None.
         """
+        resolved_label = (
+            label_text if label_text is not None else t("lbl_quality_title")
+        )
+
         self.slider_quality = ft.Slider(
             min=1, max=100, divisions=100, value=initial_value, expand=True
         )
@@ -45,7 +50,7 @@ class QualitySelector(ft.Column):
         super().__init__(
             controls=[
                 ft.Text(
-                    label_text,
+                    resolved_label,
                     size=13,
                     color=get_color("text"),
                     weight=ft.FontWeight.W_600,

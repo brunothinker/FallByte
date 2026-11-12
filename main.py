@@ -9,7 +9,7 @@ import flet as ft
 from src.utils.config_manager import CONFIG_DIR, load_config
 from src.utils.smoke_check import run_smoke_check
 from ui.app_layout import create_app_layout
-from ui.i18n import TRANSLATIONS, detect_system_language, set_language, t
+from ui.i18n import AVAILABLE_LANGUAGES, detect_system_language, set_language, t
 from ui.theme import build_flet_theme, get_color, set_active_theme
 
 APP_VERSION = "dev"
@@ -100,7 +100,7 @@ def main(page: ft.Page) -> None:
     saved_theme = user_config.get("theme", "blue_dark")
 
     # Configure active language setting: use saved choice or detect system locale
-    if saved_lang in TRANSLATIONS:
+    if saved_lang in AVAILABLE_LANGUAGES:
         set_language(saved_lang)
     else:
         set_language(detect_system_language())

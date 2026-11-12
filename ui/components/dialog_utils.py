@@ -210,11 +210,7 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
         if full_plain_log:
             page.set_clipboard(full_plain_log)
             page.snack_bar = ft.SnackBar(
-                content=ft.Text(
-                    t("msg_log_copied")
-                    if t("msg_log_copied") != "msg_log_copied"
-                    else "Log copiado para a área de transferência!"
-                ),
+                content=ft.Text(t("msg_log_copied")),
                 duration=2000,
             )
             page.snack_bar.open = True
@@ -223,9 +219,7 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
     btn_copy_log = ft.IconButton(
         icon=ft.icons.COPY,
         icon_size=16,
-        tooltip=t("btn_copy_log")
-        if t("btn_copy_log") != "btn_copy_log"
-        else "Copiar Log",
+        tooltip=t("btn_copy_log"),
         on_click=copy_log_to_clipboard,
     )
 
