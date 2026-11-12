@@ -1,21 +1,23 @@
 import logging
 import os
-import shutil
 import tempfile
 import threading
 from collections.abc import Callable
 from pathlib import Path
 
+from src.utils.cleanup import copy_original_file_atomically
 from src.video.utils.binary_manager import get_ffmpeg_path
 from src.video.utils.ffmpeg_utils import (
+    HEVC_COMPRESSION_CONTAINERS,
     RESCUE_INPUT_ARGS,
     RESCUE_STREAM_MAP,
     SAFE_STREAM_MAP,
-    SAFE_VIDEO_FILTER,
     base_command,
     container_flags,
     copy_compatibility,
     get_codec_args,
+    get_video_filter,
+    has_encoder,
     is_same_file,
     probe_streams,
     run_strategies,
@@ -33,17 +35,32 @@ def _build_strategies(
     video_codec: str | None,
     video_ok: bool,
     audio_ok: bool,
+    is_10bit: bool = False,
 ) -> list[tuple[str, list[str]]]:
     """Builds the ordered (label, command) strategies targeting a temporary output file."""
     base = base_command(ffmpeg_bin, input_path)
     out = [str(tmp_path)]
     flags = container_flags(target_fmt)
-    codec_args = get_codec_args(target_fmt)
+
+    keep_hevc = (
+        video_codec == "hevc"
+        and target_fmt in HEVC_COMPRESSION_CONTAINERS
+        and has_encoder(ffmpeg_bin, "libx265")
+    )
+    if keep_hevc:
+        # Use libx265 to preserve 10-bit HEVC during conversion when possible
+        codec_args = [
+            "-c:v", "libx265", "-preset", "fast",
+            "-c:a", "aac",
+        ]
+    else:
+        codec_args = get_codec_args(target_fmt)
     hevc_tag = (
         ["-tag:v", "hvc1"]
-        if video_codec == "hevc" and target_fmt in ("mp4", "mov")
+        if keep_hevc and target_fmt in ("mp4", "mov")
         else []
     )
+    video_filter = get_video_filter(is_10bit=is_10bit, keep_hevc=keep_hevc)
 
     strategies: list[tuple[str, list[str]]] = []
 
@@ -76,7 +93,7 @@ def _build_strategies(
     strategies.append(
         (
             "safe re-encode",
-            base + SAFE_STREAM_MAP + SAFE_VIDEO_FILTER + codec_args + flags + out,
+            base + SAFE_STREAM_MAP + video_filter + codec_args + flags + out,
         )
     )
 
@@ -86,7 +103,7 @@ def _build_strategies(
             "rescue re-encode",
             base_command(ffmpeg_bin, input_path, RESCUE_INPUT_ARGS)
             + RESCUE_STREAM_MAP
-            + SAFE_VIDEO_FILTER
+            + video_filter
             + ["-ac", "2"]
             + codec_args
             + flags
@@ -110,7 +127,7 @@ def file_converter(
 
     1. Remux (stream copy) when the source codecs fit the target container.
     2. Copy the video and re-encode only the audio when just audio is incompatible.
-    3. Full re-encode with safe stream mapping, yuv420p and even dimensions.
+    3. Full re-encode with safe stream mapping, pixel format and even dimensions.
     4. Rescue re-encode (regenerated timestamps, ignored decode errors,
        main video + first audio track only).
 
@@ -167,16 +184,17 @@ def file_converter(
 
         # Bypass FFmpeg re-encoding if extensions match and media streams are valid
         if input_ext == target_fmt:
-            logger.info(
-                f"Skipping re-encoding for '{input_path.name}': already .{target_fmt}. Copying file..."
+            return copy_original_file_atomically(
+                input_path,
+                output_path,
+                f"already .{target_fmt}, skipping re-encoding",
             )
-            shutil.copy2(input_path, output_path)
-            return True
 
         video_ok, audio_ok = copy_compatibility(target_fmt, info)
         logger.info(
             f"Detected streams for '{input_path.name}': video={info.video_codec}, "
-            f"audio={info.audio_codecs}, standard_pix_fmt={info.standard_pix_fmt}"
+            f"audio={info.audio_codecs}, standard_pix_fmt={info.standard_pix_fmt}, "
+            f"is_10bit={info.is_10bit}"
         )
 
         with tempfile.NamedTemporaryFile(
@@ -195,6 +213,7 @@ def file_converter(
             info.video_codec,
             video_ok,
             audio_ok,
+            info.is_10bit,
         )
 
         def _inner_progress(out_time: float, fps: float, speed: float) -> None:
