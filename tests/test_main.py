@@ -31,7 +31,11 @@ def isolated_logging(tmp_path, monkeypatch):
 
 
 def _fallbyte_handlers():
-    return [h for h in logging.getLogger().handlers if getattr(h, "_fallbyte_handler", False)]
+    return [
+        h
+        for h in logging.getLogger().handlers
+        if (h.name or "").startswith("fallbyte_")
+    ]
 
 
 def test_setup_logging_creates_file_and_captures_info(isolated_logging):

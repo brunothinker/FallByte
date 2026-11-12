@@ -4,7 +4,6 @@ import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-
 import flet as ft
 
 from src.utils.config_manager import CONFIG_DIR, load_config
@@ -68,7 +67,7 @@ def setup_logging(debug: bool = False) -> Path:
     root = logging.getLogger()
     root.setLevel(logging.DEBUG if debug else logging.INFO)
 
-    if any(getattr(handler, "_fallbyte_handler", False) for handler in root.handlers):
+    if any((handler.name or "").startswith("fallbyte_") for handler in root.handlers):
         return LOG_FILE
 
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
@@ -78,13 +77,13 @@ def setup_logging(debug: bool = False) -> Path:
         LOG_FILE, maxBytes=1_000_000, backupCount=3, encoding="utf-8"
     )
     file_handler.setFormatter(formatter)
-    file_handler._fallbyte_handler = True
+    file_handler.name = "fallbyte_file"
     root.addHandler(file_handler)
 
     if sys.stderr is not None:
         stream_handler = logging.StreamHandler(sys.stderr)
         stream_handler.setFormatter(formatter)
-        stream_handler._fallbyte_handler = True
+        stream_handler.name = "fallbyte_stream"
         root.addHandler(stream_handler)
 
     return LOG_FILE
