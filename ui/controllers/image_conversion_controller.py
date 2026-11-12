@@ -1,3 +1,5 @@
+import logging
+
 import threading
 import time
 
@@ -16,6 +18,7 @@ from ui.theme import get_color
 from ui.utils.conversion_utils import resolve_color_key_to_hex
 from ui.utils.format_utils import image_input_formats
 from ui.utils.log_capture import TextRedirector
+logger = logging.getLogger(__name__)
 
 
 class ConversionController(BaseController):
@@ -277,9 +280,16 @@ class ConversionController(BaseController):
                 summary["terminal_log"] = redirector.get_logs()
                 show_summary_dialog(page, summary)
 
-        except (InterruptedError, Exception) as err:
+        except InterruptedError as err:
             self.abort_requested = True
             print(f"[FAIL] {err}")
+
+        except Exception as err:
+            logger.exception(f"Batch processing failed unexpectedly: {err}")
+            print(f"[ERROR] {err}")
+            lbl_status.value = t("msg_error")
+            lbl_status.color = get_color("error")
+            lbl_status.update()
 
         finally:
             redirector.stop()
