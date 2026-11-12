@@ -123,6 +123,35 @@ def test_format_utils_lists_follow_scanners():
     assert {"MP4", "MKV", "WEBM", "MOV", "AVI", "WMV", "FLV", "M4V"} <= set(video_input_formats())
 
 
+def test_format_size_units():
+    """Validates format_size across byte, KB, MB, and GB thresholds."""
+    from ui.components.dialog_utils import format_size
+
+    assert format_size(0) == "0 B"
+    assert format_size(512) == "512 B"
+    assert format_size(1536) == "1.5 KB"
+    assert format_size(5 * 1024 * 1024) == "5.00 MB"
+    assert format_size(3 * 1024 * 1024 * 1024) == "3.00 GB"
+
+
+def test_format_reduction_text_positive_and_negative():
+    """Validates format_reduction_text correctly handles positive reduction and negative growth."""
+    from ui.components.dialog_utils import format_reduction_text, get_reduction_color
+    from ui.i18n import set_language
+    from ui.theme import get_color
+
+    set_language("en")
+    assert format_reduction_text(35.2) == "Reduction: -35.2%"
+    assert get_reduction_color(35.2) == get_color("success")
+
+    assert format_reduction_text(-35.2) == "Increase: +35.2%"
+    assert get_reduction_color(-35.2) == get_color("warning")
+
+    assert format_reduction_text(0.0) == "Reduction: -0.0%"
+    assert get_reduction_color(0.0) == get_color("success")
+
+
+
 def test_no_supported_files_dialog_lists_formats(mock_page):
     """The dialog must be opened on the page and mention the accepted formats."""
     from ui.components.dialog_utils import show_no_supported_files_dialog

@@ -17,12 +17,39 @@ def format_size(size_bytes: int) -> str:
         size_bytes: The total size in bytes to be formatted.
 
     Returns:
-        Formatted string representing size in KB or MB.
+        Formatted string representing size in B, KB, MB, or GB.
     """
-    kb = size_bytes / 1024
-    if kb >= 1024:
-        return f"{kb / 1024:.2f} MB"
-    return f"{kb:.1f} KB"
+    size_int = max(0, int(size_bytes))
+    if size_int < 1024:
+        return f"{size_int} B"
+    kb = size_int / 1024
+    if kb < 1024:
+        return f"{kb:.1f} KB"
+    mb = kb / 1024
+    if mb < 1024:
+        return f"{mb:.2f} MB"
+    gb = mb / 1024
+    return f"{gb:.2f} GB"
+
+
+def format_reduction_text(pct: float) -> str:
+    """Formats percentage change for reduction or increase summary text.
+
+    Args:
+        pct: The percentage reduction ((orig - comp) / orig) * 100.
+             Positive indicates size reduction; negative indicates size increase.
+
+    Returns:
+        Translated formatted string (e.g., 'Reduction: -15.0%' or 'Increase: +35.2%').
+    """
+    if pct >= 0:
+        return t("log_reduction_stat", pct=abs(pct))
+    return t("log_increase_stat", pct=abs(pct))
+
+
+def get_reduction_color(pct: float) -> str:
+    """Returns the theme color key for reduction: success if size reduced, warning if grew."""
+    return get_color("success") if pct >= 0 else get_color("warning")
 
 
 def get_log_line_color(line_str: str) -> str:
@@ -157,14 +184,16 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
 
                 orig_str = format_size(item_orig)
                 comp_str = format_size(item_comp)
-                ok_line = f"[OK] {fname:<25} | {orig_str} -> {comp_str} | -{item_pct:.1f}%"
+                sign_str = f"-{abs(item_pct):.1f}%" if item_pct >= 0 else f"+{abs(item_pct):.1f}%"
+                ok_line = f"[OK] {fname:<25} | {orig_str} -> {comp_str} | {sign_str}"
                 raw_log_text_list.append(ok_line)
 
+                item_color = get_color("success") if item_pct >= 0 else get_color("warning")
                 log_items.append(
                     ft.Text(
                         ok_line,
                         size=11,
-                        color=get_color("success"),
+                        color=item_color,
                         font_family="monospace",
                     )
                 )
@@ -355,9 +384,9 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
                         weight=ft.FontWeight.W_500,
                     ),
                     ft.Text(
-                        t("log_reduction_stat", pct=reduction_pct),
+                        format_reduction_text(reduction_pct),
                         size=12,
-                        color=get_color("success"),
+                        color=get_reduction_color(reduction_pct),
                         weight=ft.FontWeight.BOLD,
                     ),
                 ],

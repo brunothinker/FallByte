@@ -114,6 +114,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "log_no_errors": "Nenhum erro registrado durante o processamento.",
         "log_size_stat": "Tamanho: {orig} -> {comp}",
         "log_reduction_stat": "Redução: -{pct:.1f}%",
+        "log_increase_stat": "Aumento: +{pct:.1f}%",
         # Video Hub Navigation Modules
         "video_hub_header_title": "Ferramentas de Vídeo",
         "video_hub_heading": "Processamento de Vídeos",
@@ -224,6 +225,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "log_no_errors": "No errors recorded during processing.",
         "log_size_stat": "Size: {orig} -> {comp}",
         "log_reduction_stat": "Reduction: -{pct:.1f}%",
+        "log_increase_stat": "Increase: +{pct:.1f}%",
         # Video Hub Navigation Modules
         "video_hub_header_title": "Video Tools",
         "video_hub_heading": "Video Processing",
@@ -334,6 +336,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "log_no_errors": "No se registraron errores durante el procesamiento.",
         "log_size_stat": "Tamaño: {orig} -> {comp}",
         "log_reduction_stat": "Reducción: -{pct:.1f}%",
+        "log_increase_stat": "Aumento: +{pct:.1f}%",
         # Video Hub Navigation Modules
         "video_hub_header_title": "Herramientas de Video",
         "video_hub_heading": "Procesamiento de Videos",
