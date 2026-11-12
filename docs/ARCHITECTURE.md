@@ -128,8 +128,3 @@ Before opening a Pull Request, please ensure your contribution meets all the cri
   1. Copy `resources/locales/_template.yaml` to `resources/locales/<lang_code>.yaml`.
   2. Translate all keys while preserving formatting placeholders.
   3. Register the language option in `ui/i18n.py` and verify with `pytest tests/ui/test_i18n.py`.
-
-### 5. Commits & Pull Request Descriptions
-* **Scope your changes**: Keep PRs focused and well-mapped to a single feature, fix, or refactor.
-* **Detailed Commits**: Write clear, descriptive commit messages explaining *what* changed and *why*.
-* **Thorough PR Description**: Provide a detailed summary of your changes, how they were tested, any pending locale updates, and screenshots/recordings if UI layouts were modified.
