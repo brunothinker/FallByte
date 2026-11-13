@@ -128,3 +128,7 @@ Before opening a Pull Request, please ensure your contribution meets all the cri
   1. Copy `resources/locales/_template.yaml` to `resources/locales/<lang_code>.yaml`.
   2. Translate all keys while preserving formatting placeholders.
   3. Register the language option in `ui/i18n.py` and verify with `pytest tests/ui/test_i18n.py`.
+
+### 5. Configuration & Logging (`src/utils/config_manager.py`)
+* **OS-Standard Paths**: Persists `config.yaml` and `fallbyte.log` in `$XDG_CONFIG_HOME/fallbyte` (`~/.config/fallbyte`) on Linux and `%APPDATA%\FallByte` on Windows, migrating legacy `~/.fallbyte/config.yaml` automatically on first run.
+* **Atomic Writes**: Updates configuration via temporary files and `os.replace()` to prevent file corruption.
