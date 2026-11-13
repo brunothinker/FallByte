@@ -10,6 +10,14 @@ from PIL import Image
 logger = logging.getLogger(__name__)
 
 
+def _write_failure(message: str) -> None:
+    """Writes smoke check failure diagnostics to stderr when available, falling back to logger."""
+    if sys.stderr is not None:
+        sys.stderr.write(f"{message}\n")
+    else:
+        logger.error(message)
+
+
 def run_smoke_check() -> bool:
     """Exercises heavy system dependencies and bundled binaries to ensure runtime integrity.
 
@@ -36,7 +44,9 @@ def run_smoke_check() -> bool:
 
         ffmpeg_bin = get_ffmpeg_path()
         if not ffmpeg_bin.exists():
-            sys.stderr.write(f"Smoke check failed: FFmpeg binary not found at '{ffmpeg_bin}'.\n")
+            _write_failure(
+                f"Smoke check failed: FFmpeg binary not found at '{ffmpeg_bin}'."
+            )
             return False
 
         if not ffmpeg_utils.has_encoder(ffmpeg_bin, "libx265"):
@@ -49,7 +59,9 @@ def run_smoke_check() -> bool:
         webp_buf = io.BytesIO()
         img.save(webp_buf, format="WEBP")
         if webp_buf.getvalue() == b"":
-            sys.stderr.write("Smoke check failed: WEBP image encoding generated empty buffer.\n")
+            _write_failure(
+                "Smoke check failed: WEBP image encoding generated empty buffer."
+            )
             return False
 
         # Convert to JPEG (requires flattening transparency)
@@ -58,13 +70,15 @@ def run_smoke_check() -> bool:
         rgb_img.paste(img, mask=img.getchannel("A"))
         rgb_img.save(jpeg_buf, format="JPEG")
         if jpeg_buf.getvalue() == b"":
-            sys.stderr.write("Smoke check failed: JPEG image encoding generated empty buffer.\n")
+            _write_failure(
+                "Smoke check failed: JPEG image encoding generated empty buffer."
+            )
             return False
 
         logger.info("Smoke check completed successfully.")
         return True
 
     except Exception as e:
-        sys.stderr.write(f"Smoke check failed with exception: {e}\n")
+        _write_failure(f"Smoke check failed with exception: {e}")
         logger.error(f"Smoke check execution failure: {e}", exc_info=True)
         return False

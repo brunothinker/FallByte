@@ -13,18 +13,20 @@ class TextRedirector(logging.Handler):
         self._stderr = sys.stderr
 
     def write(self, message: str) -> None:
-        """Writes a message to the buffer and forwards it to the original stdout stream.
+        """Writes a message to the buffer and forwards it to the original stdout stream when available.
 
         Args:
             message: The string message to write to the console stream.
         """
         if message:
             self._buffer.append(message)
-            self._stdout.write(message)
+            if self._stdout is not None:
+                self._stdout.write(message)
 
     def flush(self) -> None:
-        """Flushes the original stdout stream buffer."""
-        self._stdout.flush()
+        """Flushes the original stdout stream buffer when available."""
+        if self._stdout is not None:
+            self._stdout.flush()
 
     def emit(self, record: logging.LogRecord) -> None:
         """Captures Python logging module records into the internal buffer.

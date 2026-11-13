@@ -4,6 +4,7 @@ Exercises Flet controls and reusable UI helpers headlessly through the
 `mock_page` fixture, without starting a real Flet application.
 """
 
+import sys
 from unittest.mock import MagicMock
 
 import flet as ft
@@ -245,6 +246,7 @@ def test_module_registry_route_and_active_state_resolution():
     assert resolve_active_module_id("video_compression") == "video"
     assert resolve_active_module_id("unknown_route") == ""
 
+
 # --- Summary dialog size/reduction formatting tests ---
 
 
@@ -365,3 +367,32 @@ def test_summary_dialog_per_file_line_never_doubles_minus(mock_page):
     ]
     assert len(log_lines) == 1
     assert "--" not in log_lines[0]
+
+
+# --- Log capture / TextRedirector tests ---
+
+
+def test_text_redirector_handles_none_standard_streams(monkeypatch):
+    """Ensures TextRedirector works without AttributeError when sys.stdout/sys.stderr are None (windowed builds)."""
+    from ui.utils.log_capture import TextRedirector
+
+    monkeypatch.setattr(sys, "stdout", None)
+    monkeypatch.setattr(sys, "stderr", None)
+
+    redirector = TextRedirector()
+    redirector.start()
+    try:
+        print("[OK] processed sample.mp4")
+        sys.stdout.flush()
+    finally:
+        redirector.stop()
+
+    assert "[OK] processed sample.mp4" in redirector.get_logs(), (
+        "TextRedirector failed to buffer stdout output when underlying sys.stdout was None."
+    )
+    assert sys.stdout is None, (
+        "TextRedirector.stop() failed to restore original None sys.stdout stream."
+    )
+    assert sys.stderr is None, (
+        "TextRedirector.stop() failed to restore original None sys.stderr stream."
+    )
