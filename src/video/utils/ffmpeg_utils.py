@@ -2,8 +2,17 @@
 
 Centralizes stream probing, safe stream mapping, per-container codec selection
 and the "try strategies until one works" runner, so both engines behave the
-same way on unusual files (10-bit, odd dimensions, extra subtitle/data
+same way on unusual files (10-bit/12-bit, odd dimensions, extra subtitle/data
 streams, exotic audio codecs, broken timestamps, etc.).
+
+Architecture decision (single-module cohesion):
+This module is intentionally kept as a single file rather than split into
+multiple submodules. All public symbols, signatures, and module-level patch
+targets (e.g., `ffmpeg_utils.subprocess.Popen`, `_active_processes`) are shared
+directly by `video_file_conversion`, `video_file_compression`, `smoke_check`,
+and the engine test suite. Internal parsing logic is modularized into pure
+helper functions (`parse_ffmpeg_stderr`, `_parse_progress_line`) so it can be
+unit-tested in isolation without breaking existing imports.
 """
 
 import atexit
@@ -12,6 +21,7 @@ import re
 import subprocess
 import sys
 import threading
+from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -51,17 +61,18 @@ SAFE_VIDEO_FILTER: list[str] = BASE_SCALE_FILTER + ["-pix_fmt", "yuv420p"]
 # Input options that help with damaged files / broken timestamps.
 RESCUE_INPUT_ARGS: list[str] = ["-fflags", "+genpts", "-err_detect", "ignore_err"]
 
-# Polling interval (seconds) used to check for cancellation while FFmpeg runs.
-CANCEL_POLL_INTERVAL = 0.1
 # Grace period (seconds) before a terminated FFmpeg process is force-killed.
 TERMINATE_TIMEOUT = 3.0
+# Maximum number of trailing stderr lines retained per FFmpeg strategy attempt.
+STDERR_TAIL_BUFFER_SIZE = 50
 
 _STREAM_RE = re.compile(r"Stream #\d+:\d+.*?: (Video|Audio): (\w+)")
 _STANDARD_PIX_FMT_RE = re.compile(r"\byuvj?420p\b")
 _PIX_FMT_RE = re.compile(r",\s*([a-zA-Z0-9_]+(?:\([^\)]+\))?)(?:,|\s|\[)")
-_DURATION_RE = re.compile(
-    r"Duration:\s*(\d{2}):(\d{2}):(\d{2}\.\d+)"
+_HIGH_BIT_DEPTH_PIX_FMT_RE = re.compile(
+    r"(?:p(?:10|12|14|16)|(?:10|12|14|16)(?:le|be)?$|(?:rgb|bgr|rgba|bgra|gray)(?:48|64|10|12|14|16))"
 )
+_DURATION_RE = re.compile(r"Duration:\s*(\d{2}):(\d{2}):(\d{2}\.\d+)")
 
 
 @dataclass
@@ -74,6 +85,15 @@ class StreamInfo:
     standard_pix_fmt: bool = True
     is_10bit: bool = False
     duration_seconds: float = 0.0
+
+
+@dataclass
+class _ProgressState:
+    """Mutable state tracking real-time metrics emitted via `-progress pipe:1`."""
+
+    out_time: float = 0.0
+    fps: float = 0.0
+    speed: float = 0.0
 
 
 def _subprocess_kwargs() -> dict:
@@ -114,23 +134,22 @@ def base_command(
     ]
 
 
-def probe_streams(ffmpeg_bin: Path, input_path: Path) -> StreamInfo:
-    """Reads main video codec, audio codecs, pixel format, 10-bit flag, and duration via `ffmpeg -i`.
+def _is_high_bit_depth_pix_fmt(pix_fmt: str) -> bool:
+    """Returns True if the extracted pixel format token indicates >8-bit color depth (10-bit/12-bit/etc.)."""
+    return bool(_HIGH_BIT_DEPTH_PIX_FMT_RE.search(pix_fmt.lower()))
 
-    Cover-art streams (attached pictures) are ignored. Never raises; returns an
-    empty StreamInfo if probing fails.
+
+def parse_ffmpeg_stderr(stderr_text: str) -> StreamInfo:
+    """Parses `ffmpeg -i` stderr output into a `StreamInfo` summary.
+
+    Evaluates only the extracted pixel format token for bit-depth detection to
+    avoid false positives from stream titles or metadata tags. When duration is
+    unavailable (e.g., `Duration: N/A`), `duration_seconds` remains `0.0`.
+    Cover-art streams (`attached pic`) are ignored.
     """
     info = StreamInfo()
-    try:
-        result = subprocess.run(
-            [str(ffmpeg_bin), "-hide_banner", "-i", str(input_path)],
-            timeout=60,
-            **_subprocess_kwargs(),
-        )
-    except (OSError, subprocess.SubprocessError):
-        return info
 
-    for line in result.stderr.decode("utf-8", errors="ignore").splitlines():
+    for line in stderr_text.splitlines():
         if info.duration_seconds == 0.0:
             dur_match = _DURATION_RE.search(line)
             if dur_match:
@@ -142,6 +161,7 @@ def probe_streams(ffmpeg_bin: Path, input_path: Path) -> StreamInfo:
         match = _STREAM_RE.search(line)
         if not match:
             continue
+
         kind, codec = match.group(1), match.group(2).lower()
         if kind == "Video" and info.video_codec is None and "attached pic" not in line:
             info.video_codec = codec
@@ -151,14 +171,31 @@ def probe_streams(ffmpeg_bin: Path, input_path: Path) -> StreamInfo:
             if pix_match:
                 extracted_fmt = pix_match.group(1).split("(")[0].strip()
                 info.pix_fmt = extracted_fmt
-                if "10" in extracted_fmt or "10bit" in line or "10-bit" in line:
-                    info.is_10bit = True
-            elif "10bit" in line or "10-bit" in line:
-                info.is_10bit = True
+                info.is_10bit = _is_high_bit_depth_pix_fmt(extracted_fmt)
 
         elif kind == "Audio":
             info.audio_codecs.append(codec)
+
     return info
+
+
+def probe_streams(ffmpeg_bin: Path, input_path: Path) -> StreamInfo:
+    """Reads main video codec, audio codecs, pixel format, high-bit-depth flag, and duration via `ffmpeg -i`.
+
+    Cover-art streams (attached pictures) are ignored. Never raises; returns an
+    empty StreamInfo if probing fails.
+    """
+    try:
+        result = subprocess.run(
+            [str(ffmpeg_bin), "-hide_banner", "-i", str(input_path)],
+            timeout=60,
+            **_subprocess_kwargs(),
+        )
+    except (OSError, subprocess.SubprocessError):
+        return StreamInfo()
+
+    stderr_text = result.stderr.decode("utf-8", errors="ignore")
+    return parse_ffmpeg_stderr(stderr_text)
 
 
 def get_video_filter(is_10bit: bool = False, keep_hevc: bool = False) -> list[str]:
@@ -168,7 +205,7 @@ def get_video_filter(is_10bit: bool = False, keep_hevc: bool = False) -> list[st
     yuv420p (8-bit) for all other codecs/scenarios to ensure maximum playback compatibility.
 
     Args:
-        is_10bit (bool): Whether the source video has 10-bit pixel depth.
+        is_10bit (bool): Whether the source video has 10-bit (or higher) pixel depth.
         keep_hevc (bool): Whether the target encoder is HEVC (libx265).
 
     Returns:
@@ -325,6 +362,50 @@ def _terminate_process(process: subprocess.Popen[bytes]) -> None:
         process.wait()
 
 
+def _parse_progress_line(line: str, state: _ProgressState) -> bool:
+    """Parses a single `key=value` line from FFmpeg's `-progress pipe:1` output.
+
+    Updates `state` in place and returns True when a `progress=` boundary tick is
+    reached and listeners should be notified.
+    """
+    stripped = line.strip()
+    if not stripped or "=" not in stripped:
+        return False
+
+    key, value = stripped.split("=", 1)
+    key = key.strip()
+    value = value.strip()
+
+    if key == "out_time_us":
+        try:
+            state.out_time = float(value) / 1_000_000.0
+        except ValueError:
+            pass
+    elif key == "out_time" and state.out_time == 0.0:
+        parts = value.split(":")
+        if len(parts) == 3:
+            try:
+                hours, minutes, seconds = map(float, parts)
+                state.out_time = hours * 3600.0 + minutes * 60.0 + seconds
+            except ValueError:
+                pass
+    elif key == "fps":
+        try:
+            state.fps = float(value)
+        except ValueError:
+            pass
+    elif key == "speed":
+        cleaned = value.rstrip("xX")
+        try:
+            state.speed = float(cleaned)
+        except ValueError:
+            pass
+    elif key == "progress":
+        return True
+
+    return False
+
+
 def run_strategies(
     strategies: list[tuple[str, list[str]]],
     output_path: Path,
@@ -362,23 +443,21 @@ def run_strategies(
         with _active_lock:
             _active_processes[process] = output_path
 
-        stderr_lines: list[str] = []
+        stderr_lines: deque[str] = deque(maxlen=STDERR_TAIL_BUFFER_SIZE)
 
         def _read_stderr() -> None:
             if process.stderr:
-                for line in iter(process.stderr.readline, b""):
+                for raw_err in iter(process.stderr.readline, b""):
                     stderr_lines.append(
-                        line.decode("utf-8", errors="ignore")
+                        raw_err.decode("utf-8", errors="ignore")
                     )
 
         stderr_thread = threading.Thread(target=_read_stderr, daemon=True)
         stderr_thread.start()
 
-        try:
-            curr_out_time = 0.0
-            curr_fps = 0.0
-            curr_speed = 0.0
+        progress_state = _ProgressState()
 
+        try:
             if process.stdout:
                 for raw_line in iter(process.stdout.readline, b""):
                     if cancel_event is not None and cancel_event.is_set():
@@ -386,42 +465,13 @@ def run_strategies(
                         output_path.unlink(missing_ok=True)
                         raise InterruptedError("CANCELLED_BY_USER")
 
-                    line = raw_line.decode("utf-8", errors="ignore").strip()
-                    if not line or "=" not in line:
-                        continue
-
-                    key, value = line.split("=", 1)
-                    key = key.strip()
-                    value = value.strip()
-
-                    if key == "out_time_us":
-                        try:
-                            curr_out_time = float(value) / 1_000_000.0
-                        except ValueError:
-                            pass
-                    elif key == "out_time" and curr_out_time == 0.0:
-                        parts = value.split(":")
-                        if len(parts) == 3:
-                            try:
-                                h, m, s = map(float, parts)
-                                curr_out_time = h * 3600.0 + m * 60.0 + s
-                            except ValueError:
-                                pass
-                    elif key == "fps":
-                        try:
-                            curr_fps = float(value)
-                        except ValueError:
-                            pass
-                    elif key == "speed":
-                        cleaned = value.rstrip("xX")
-                        try:
-                            curr_speed = float(cleaned)
-                        except ValueError:
-                            pass
-                    elif key == "progress":
+                    decoded_line = raw_line.decode("utf-8", errors="ignore")
+                    if _parse_progress_line(decoded_line, progress_state):
                         if progress_callback:
                             progress_callback(
-                                curr_out_time, curr_fps, curr_speed
+                                progress_state.out_time,
+                                progress_state.fps,
+                                progress_state.speed,
                             )
 
             process.wait()
@@ -444,7 +494,11 @@ def run_strategies(
             and output_path.stat().st_size > 0
         ):
             if progress_callback:
-                progress_callback(curr_out_time, curr_fps, curr_speed)
+                progress_callback(
+                    progress_state.out_time,
+                    progress_state.fps,
+                    progress_state.speed,
+                )
             logger.info(f"'{display_name}' processed using strategy: {label}.")
             return label
 
