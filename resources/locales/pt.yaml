@@ -118,3 +118,15 @@ strings:
   dialog_no_files_title: "Nenhum Arquivo Suportado"
   dialog_no_files_body: "A pasta selecionada não contém arquivos compatíveis com esta operação."
   dialog_no_files_formats: "Formatos suportados: {formats}"
+
+  # Home Dashboard
+  home_mod_audio_title: "Módulo de Áudio"
+  home_mod_audio_desc: "Conversão e compressão de áudio em múltiplos formatos."
+
+  # Audio Hub Navigation Modules 
+  audio_hub_heading: "Processamento de Áudio"
+  audio_hub_subheading: "Selecione a ferramenta que deseja utilizar"
+  audio_hub_card_conversion_title: "Conversão de Áudio"
+  audio_hub_card_conversion_desc: "Converta faixas de áudio entre formatos individualmente ou em lote."
+  audio_hub_card_compression_title: "Compressão de Áudio"
+  audio_hub_card_compression_desc: "Reduza o tamanho de arquivos de áudio preservando a clareza."

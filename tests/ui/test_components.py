@@ -112,6 +112,9 @@ def test_theme_get_color_danger_resolution():
 def test_format_utils_lists_follow_scanners():
     """Format lists shown in the UI must come from the scanners and not drift."""
     from ui.utils.format_utils import (
+        audio_compression_formats,
+        audio_input_formats,
+        audio_output_formats,
         image_compression_formats,
         image_input_formats,
         video_input_formats,
@@ -122,6 +125,14 @@ def test_format_utils_lists_follow_scanners():
     assert not {"BMP", "PPM", "GIF", "ICO"} & set(image_compression_formats())
     assert {"JPG", "PNG", "WEBP"} <= set(image_compression_formats())
     assert {"MP4", "MKV", "WEBM", "MOV", "AVI", "WMV", "FLV", "M4V"} <= set(video_input_formats())
+
+    # Audio input, target output, and lossy-only compression formats
+    assert {"MP3", "M4A", "AAC", "OGG", "OPUS", "FLAC", "WAV", "WMA", "AIFF"} <= set(
+        audio_input_formats()
+    )
+    assert {"MP3", "M4A", "OPUS", "OGG", "FLAC", "WAV"} == set(audio_output_formats())
+    assert not {"FLAC", "WAV", "AAC", "WMA", "AIFF"} & set(audio_compression_formats())
+    assert {"MP3", "M4A", "OGG", "OPUS"} == set(audio_compression_formats())
 
 
 def test_no_supported_files_dialog_lists_formats(mock_page):
@@ -236,14 +247,20 @@ def test_module_registry_route_and_active_state_resolution():
     assert "home" in routes
     assert "image_hub" in routes
     assert "video_hub" in routes
+    assert "audio_hub" in routes
     assert "image_conversion" in routes
     assert "video_compression" in routes
+    assert "audio_conversion" in routes
+    assert "audio_compression" in routes
 
     # Active module ID resolution without string splitting
     assert resolve_active_module_id("home") == "home"
     assert resolve_active_module_id("image_hub") == "image"
     assert resolve_active_module_id("image_conversion") == "image"
     assert resolve_active_module_id("video_compression") == "video"
+    assert resolve_active_module_id("audio_hub") == "audio"
+    assert resolve_active_module_id("audio_conversion") == "audio"
+    assert resolve_active_module_id("audio_compression") == "audio"
     assert resolve_active_module_id("unknown_route") == ""
 
 
@@ -396,3 +413,18 @@ def test_text_redirector_handles_none_standard_streams(monkeypatch):
     assert sys.stderr is None, (
         "TextRedirector.stop() failed to restore original None sys.stderr stream."
     )
+
+
+def test_audio_pages_render_and_register_pickers(mock_page):
+    """Verifies that audio conversion and compression pages build without error and attach FilePickers."""
+    from ui.pages.audio_compression_page import create_audio_compression_page
+    from ui.pages.audio_conversion_page import create_audio_conversion_page
+
+    conv_view = create_audio_conversion_page(mock_page, {}, lambda _: None)
+    assert isinstance(conv_view, ft.Container)
+    assert len(mock_page.overlay) == 3
+
+    mock_page.overlay.clear()
+    comp_view = create_audio_compression_page(mock_page, {}, lambda _: None)
+    assert isinstance(comp_view, ft.Container)
+    assert len(mock_page.overlay) == 3

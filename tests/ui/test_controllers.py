@@ -20,6 +20,8 @@ from unittest.mock import MagicMock, patch
 import flet as ft
 import pytest
 
+from ui.controllers.audio_compression_controller import AudioCompressionController
+from ui.controllers.audio_conversion_controller import AudioConversionController
 from ui.controllers.image_compression_controller import CompressionController
 from ui.controllers.image_conversion_controller import ConversionController
 from ui.controllers.video_compression_controller import VideoCompressionController
@@ -76,6 +78,30 @@ SPECS = [
         "kwargs": {"target_format": "mp4"},
         "has_cancel_event": True,
         "in_name": "clip.mp4",
+    },
+    {
+        "id": "audio-compression",
+        "module": "ui.controllers.audio_compression_controller",
+        "cls": "AudioCompressionController",
+        "file_engine": "file_compressor",
+        "dir_engine": "directory_compressor",
+        "entry": "prepare_and_execute",
+        "batch": "_run_batch_compression",
+        "kwargs": {"quality": 80},
+        "has_cancel_event": True,
+        "in_name": "track.mp3",
+    },
+    {
+        "id": "audio-conversion",
+        "module": "ui.controllers.audio_conversion_controller",
+        "cls": "AudioConversionController",
+        "file_engine": "file_converter",
+        "dir_engine": "directory_converter",
+        "entry": "execute_conversion",
+        "batch": "_execute_batch_directory",
+        "kwargs": {"target_format": "opus"},
+        "has_cancel_event": True,
+        "in_name": "track.wav",
     },
 ]
 
@@ -859,3 +885,102 @@ def test_single_file_compression_cancellation_preserves_preexisting_file(tmp_wor
     # Pre-existing file must NOT be deleted upon cancellation
     assert preexisting_file.exists()
     assert preexisting_file.read_bytes() == b"preexisting user video"
+
+
+def test_audio_compression_preflight_blocks_uncompressible_only_directory(
+    tmp_workspace, mock_page
+):
+    """Preflight must stop early when directory contains only lossless/uncompressible audio files."""
+    in_dir, out_dir = tmp_workspace
+    (in_dir / "master.wav").write_bytes(b"wav data")
+    (in_dir / "archive.flac").write_bytes(b"flac data")
+
+    controller = AudioCompressionController()
+    controller.selected_input = in_dir
+    controller.selected_output_dir = out_dir
+
+    lbl_status = MagicMock(spec=ft.Text)
+    progress_bar = MagicMock(spec=ft.ProgressBar)
+    btn_action = MagicMock(spec=ft.ElevatedButton)
+
+    with patch(
+        "ui.controllers.audio_compression_controller.show_no_supported_files_dialog"
+    ) as mock_no_files, patch(
+        "ui.controllers.audio_compression_controller.threading.Thread"
+    ) as mock_thread:
+        controller._preflight_batch_execution(
+            page=mock_page,
+            quality=80,
+            lbl_status=lbl_status,
+            progress_bar=progress_bar,
+            btn_action=btn_action,
+        )
+
+        mock_no_files.assert_called_once()
+        formats = mock_no_files.call_args.args[1]
+        assert "MP3" in formats and "OPUS" in formats
+        assert "WAV" not in formats and "FLAC" not in formats
+        mock_thread.assert_not_called()
+
+
+def test_audio_compression_preflight_warns_when_uncompressible_mixed_with_lossy(
+    tmp_workspace, mock_page
+):
+    """Preflight must display incompatible-files warning when WAV/FLAC is mixed with MP3."""
+    in_dir, out_dir = tmp_workspace
+    (in_dir / "song.mp3").write_bytes(b"mp3 data")
+    (in_dir / "lossless.wav").write_bytes(b"wav data")
+
+    controller = AudioCompressionController()
+    controller.selected_input = in_dir
+    controller.selected_output_dir = out_dir
+
+    lbl_status = MagicMock(spec=ft.Text)
+    progress_bar = MagicMock(spec=ft.ProgressBar)
+    btn_action = MagicMock(spec=ft.ElevatedButton)
+
+    with patch(
+        "ui.controllers.audio_compression_controller.threading.Thread"
+    ) as mock_thread:
+        controller._preflight_batch_execution(
+            page=mock_page,
+            quality=80,
+            lbl_status=lbl_status,
+            progress_bar=progress_bar,
+            btn_action=btn_action,
+        )
+
+        assert mock_page.dialog is not None and mock_page.dialog.open is True
+        mock_thread.assert_not_called()
+
+
+def test_audio_conversion_batch_no_supported_files(tmp_workspace, mock_page):
+    """Verifies audio conversion controller handles empty/unsupported batch directories gracefully."""
+    in_dir, out_dir = tmp_workspace
+    (in_dir / "notes.txt").write_bytes(b"text data")
+
+    controller = AudioConversionController()
+    controller.selected_input = in_dir
+    controller.selected_output_dir = out_dir
+
+    lbl_status = MagicMock(spec=ft.Text)
+    progress_bar = MagicMock(spec=ft.ProgressBar)
+    btn_action = MagicMock(spec=ft.ElevatedButton)
+
+    with patch(
+        "ui.controllers.audio_conversion_controller.show_summary_dialog"
+    ) as mock_summary, patch(
+        "ui.controllers.audio_conversion_controller.show_no_supported_files_dialog"
+    ) as mock_no_files:
+        controller._execute_batch_directory(
+            page=mock_page,
+            target_format="mp3",
+            lbl_status=lbl_status,
+            progress_bar=progress_bar,
+            btn_action=btn_action,
+        )
+
+        mock_summary.assert_not_called()
+        mock_no_files.assert_called_once()
+        assert "FLAC" in mock_no_files.call_args.args[1]
+        assert progress_bar.visible is False

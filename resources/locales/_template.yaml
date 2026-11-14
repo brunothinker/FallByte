@@ -118,3 +118,15 @@ strings:
   dialog_no_files_title: ""
   dialog_no_files_body: ""
   dialog_no_files_formats: ""
+
+  # Home Dashboard
+  home_mod_audio_title: ""
+  home_mod_audio_desc: ""
+
+  # Audio Hub Navigation Modules
+  audio_hub_heading: ""
+  audio_hub_subheading: ""
+  audio_hub_card_conversion_title: ""
+  audio_hub_card_conversion_desc: ""
+  audio_hub_card_compression_title: ""
+  audio_hub_card_compression_desc: ""

@@ -6,8 +6,11 @@ of sync with the processing code.
 """
 
 from src.formats import (
+    AUDIO_TARGET_FORMATS,
+    SUPPORTED_AUDIO_EXTENSIONS,
     SUPPORTED_IMAGE_EXTENSIONS,
     SUPPORTED_VIDEO_EXTENSIONS,
+    UNCOMPRESSIBLE_AUDIO_FORMATS,
     UNCOMPRESSIBLE_FORMATS,
 )
 
@@ -34,6 +37,25 @@ def image_compression_formats() -> list[str]:
 def video_input_formats() -> list[str]:
     """Video formats accepted as input by both video modules."""
     return _to_names(SUPPORTED_VIDEO_EXTENSIONS)
+
+
+def audio_input_formats() -> list[str]:
+    """Audio formats accepted as input by the audio conversion module."""
+    return _to_names(SUPPORTED_AUDIO_EXTENSIONS)
+
+
+def audio_output_formats() -> list[str]:
+    """Target output formats available in the audio conversion dropdown."""
+    return [fmt.upper() for fmt in AUDIO_TARGET_FORMATS]
+
+
+def audio_compression_formats() -> list[str]:
+    """Audio formats that are really re-encoded by the compression module."""
+    return [
+        name
+        for name in audio_input_formats()
+        if name not in UNCOMPRESSIBLE_AUDIO_FORMATS
+    ]
 
 
 def format_list(formats: list[str]) -> str:

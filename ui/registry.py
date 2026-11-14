@@ -5,6 +5,8 @@ from typing import Any
 
 import flet as ft
 
+from ui.pages.audio_compression_page import create_audio_compression_page
+from ui.pages.audio_conversion_page import create_audio_conversion_page
 from ui.pages.home_page import create_home_page
 from ui.pages.image_compression_page import create_compression_page
 from ui.pages.image_conversion_page import create_conversion_page
@@ -137,6 +139,54 @@ MODULE_REGISTRY: list[ModuleDefinition] = [
                 icon=ft.icons.COMPRESS,
                 route_key="video_compression",
                 builder=create_video_compression_page,
+            ),
+        ],
+    ),
+    ModuleDefinition(
+        id="audio",
+        title_key="home_mod_audio_title",
+        desc_key="home_mod_audio_desc",
+        icon=ft.icons.AUDIOTRACK,
+        sidebar_icon=ft.icons.AUDIOTRACK_OUTLINED,
+        route_key="audio_hub",
+        builder=lambda page, paths, navigate: create_media_hub_page(
+            page=page,
+            selected_paths=paths,
+            on_navigate=navigate,
+            main_icon=ft.icons.AUDIOTRACK_OUTLINED,
+            heading_key="audio_hub_heading",
+            subheading_key="audio_hub_subheading",
+            options=[
+                {
+                    "title_key": "audio_hub_card_conversion_title",
+                    "desc_key": "audio_hub_card_conversion_desc",
+                    "icon": ft.icons.TRANSFORM,
+                    "route_key": "audio_conversion",
+                },
+                {
+                    "title_key": "audio_hub_card_compression_title",
+                    "desc_key": "audio_hub_card_compression_desc",
+                    "icon": ft.icons.COMPRESS,
+                    "route_key": "audio_compression",
+                },
+            ],
+        ),
+        options=[
+            ModuleOption(
+                id="audio_conversion",
+                title_key="audio_hub_card_conversion_title",
+                desc_key="audio_hub_card_conversion_desc",
+                icon=ft.icons.TRANSFORM,
+                route_key="audio_conversion",
+                builder=create_audio_conversion_page,
+            ),
+            ModuleOption(
+                id="audio_compression",
+                title_key="audio_hub_card_compression_title",
+                desc_key="audio_hub_card_compression_desc",
+                icon=ft.icons.COMPRESS,
+                route_key="audio_compression",
+                builder=create_audio_compression_page,
             ),
         ],
     ),

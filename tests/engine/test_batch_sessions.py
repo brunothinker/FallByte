@@ -1,6 +1,6 @@
 """Batch orchestration tests: session folders, name collisions and cancel cleanup.
 
-Covers the directory orchestrators of the four engines (image/video x
+Covers the directory orchestrators of the six engines (image/video/audio x
 conversion/compression) using fake file processors, the generic `run_batch`
 statistics contract, plus the shared helpers `create_unique_output_dir` and
 `safe_cleanup_session_files`.
@@ -12,6 +12,8 @@ from pathlib import Path
 
 import pytest
 
+from src.audio import audio_directory_compression as audio_compression
+from src.audio import audio_directory_conversion as audio_conversion
 from src.image import image_directory_compression as image_compression
 from src.image import image_directory_conversion as image_conversion
 from src.utils.batch_runner import run_batch
@@ -54,6 +56,22 @@ PROCESSORS = [
         "converted",
         {"target_format": "mp4"},
         id="video-conversion",
+    ),
+    pytest.param(
+        audio_compression,
+        "scan_audio_files",
+        "file_compressor",
+        "compressed",
+        {"quality": 80},
+        id="audio-compression",
+    ),
+    pytest.param(
+        audio_conversion,
+        "scan_audio_files",
+        "file_converter",
+        "converted",
+        {"target_format": "mp3"},
+        id="audio-conversion",
     ),
 ]
 
@@ -147,7 +165,13 @@ def test_directory_processor_creates_separate_session_folder(
     input_dir.mkdir()
     output_dir.mkdir()
 
-    extension = ".png" if "image" in module.__name__ else ".mp4"
+    if "image" in module.__name__:
+        extension = ".png"
+    elif "video" in module.__name__:
+        extension = ".mp4"
+    else:
+        extension = ".mp3"
+
     source = input_dir / f"sample{extension}"
     source.write_bytes(b"source data")
 
@@ -401,6 +425,44 @@ def test_video_batch_conversion_avoids_output_name_collisions(
     )
 
 
+def test_audio_batch_conversion_avoids_output_name_collisions(
+    tmp_workspace, monkeypatch
+):
+    """Ensures audio batch conversion creates distinct outputs for matching stems."""
+    in_dir, out_dir = tmp_workspace
+    (in_dir / "track.wav").write_bytes(b"wav source")
+    (in_dir / "track.flac").write_bytes(b"flac source")
+
+    def fake_converter(
+        input_path, output_path, target_format, cancel_event=None, **_kwargs
+    ):
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_bytes(input_path.read_bytes())
+        return True
+
+    monkeypatch.setattr(
+        audio_conversion, "file_converter", fake_converter
+    )
+
+    stats = audio_conversion.directory_converter(
+        in_dir, out_dir, target_format="mp3"
+    )
+
+    outputs = list((out_dir / "converted").glob("*.mp3"))
+
+    assert stats["success"] == 2
+    assert stats["failed"] == 0
+    assert len(outputs) == 2
+    assert len({path.name for path in outputs}) == 2
+    assert {path.read_bytes() for path in outputs} == {
+        b"wav source",
+        b"flac source",
+    }
+    assert stats["compressed_bytes"] == sum(
+        path.stat().st_size for path in outputs
+    )
+
+
 def test_image_batch_conversion_preserves_existing_output(
     tmp_workspace, monkeypatch
 ):
@@ -492,6 +554,36 @@ def test_video_batch_compression_removes_empty_session_folder_when_cancelled(
 
     assert stats["cancelled"] is True
     assert list(out_dir.iterdir()) == []
+
+
+def test_audio_batch_conversion_cleans_up_when_cancelled(
+    tmp_workspace, monkeypatch
+):
+    """Ensures an interruption inside the audio file processor triggers session cleanup."""
+    in_dir, out_dir = tmp_workspace
+    (in_dir / "a_track.wav").write_bytes(b"first source")
+    (in_dir / "b_track.flac").write_bytes(b"second source")
+
+    def fake_converter(
+        input_path, output_path, target_format, cancel_event=None, **_kwargs
+    ):
+        if input_path.name == "b_track.flac":
+            raise InterruptedError("CANCELLED_BY_USER")
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_bytes(input_path.read_bytes())
+        return True
+
+    monkeypatch.setattr(
+        audio_conversion, "file_converter", fake_converter
+    )
+
+    stats = audio_conversion.directory_converter(
+        in_dir, out_dir, target_format="mp3", cancel_event=threading.Event()
+    )
+
+    assert stats["cancelled"] is True
+    assert stats["cleaned_files_count"] == 1
+    assert not (out_dir / "converted").exists()
 
 
 def test_safe_cleanup_preserves_user_files(tmp_workspace):
