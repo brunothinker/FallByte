@@ -31,6 +31,19 @@ SUPPORTED_VIDEO_EXTENSIONS: set[str] = {
     ".mpg",
 }
 
+# Supported input audio extensions (lowercase with leading dot)
+SUPPORTED_AUDIO_EXTENSIONS: set[str] = {
+    ".mp3",
+    ".m4a",
+    ".aac",
+    ".ogg",
+    ".opus",
+    ".flac",
+    ".wav",
+    ".wma",
+    ".aiff",
+}
+
 # Target output formats available for image conversion
 IMAGE_TARGET_FORMATS: list[str] = [
     "JPEG",
@@ -54,5 +67,18 @@ VIDEO_TARGET_FORMATS: list[str] = [
     "wmv",
 ]
 
+# Target output formats available for audio conversion (without leading dot)
+AUDIO_TARGET_FORMATS: list[str] = [
+    "mp3",
+    "m4a",
+    "opus",
+    "ogg",
+    "flac",
+    "wav",
+]
+
 # Image formats that cannot be further compressed via PIL (caps, no dot)
 UNCOMPRESSIBLE_FORMATS: set[str] = {"BMP", "PPM", "GIF", "ICO", "HEIC", "HEIF"}
+
+# Audio formats that are not re-encoded during compression (caps, no dot)
+UNCOMPRESSIBLE_AUDIO_FORMATS: set[str] = {"FLAC", "WAV", "AAC", "WMA", "AIFF"}
