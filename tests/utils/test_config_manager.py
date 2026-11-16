@@ -43,7 +43,7 @@ def test_linux_default_config_dir(
     expected = patched_env / ".config" / "fallbyte"
     resolved = config_manager.get_config_dir()
     assert resolved == expected, (
-        f"Linux default configuration directory changed! Expected '{expected}', "
+        f"[config] Linux default configuration directory changed! Expected '{expected}', "
         f"got '{resolved}'. Check `get_config_dir()` POSIX fallback logic."
     )
 
@@ -59,7 +59,7 @@ def test_linux_xdg_config_home_respected(
     expected = custom_xdg / "fallbyte"
     resolved = config_manager.get_config_dir()
     assert resolved == expected, (
-        f"XDG_CONFIG_HOME environment variable was ignored on Linux! Expected '{expected}', "
+        f"[config] XDG_CONFIG_HOME environment variable was ignored on Linux! Expected '{expected}', "
         f"got '{resolved}'. Check `os.environ.get('XDG_CONFIG_HOME')` handling in `get_config_dir()`."
     )
 
@@ -75,7 +75,7 @@ def test_windows_appdata_config_dir(
     expected = fake_appdata / "FallByte"
     resolved = config_manager.get_config_dir()
     assert resolved == expected, (
-        f"Windows configuration directory changed or ignored %APPDATA%! Expected '{expected}', "
+        f"[config] Windows configuration directory changed or ignored %APPDATA%! Expected '{expected}', "
         f"got '{resolved}'. Check `win32` branch and `APPDATA` resolution in `get_config_dir()`."
     )
 
@@ -89,7 +89,7 @@ def test_windows_fallback_without_appdata_env(
     expected = patched_env / "AppData" / "Roaming" / "FallByte"
     resolved = config_manager.get_config_dir()
     assert resolved == expected, (
-        f"Windows fallback directory changed when APPDATA is missing! Expected '{expected}', "
+        f"[config] Windows fallback directory changed when APPDATA is missing! Expected '{expected}', "
         f"got '{resolved}'. Check the `AppData/Roaming` fallback path in `get_config_dir()`."
     )
 
@@ -130,21 +130,21 @@ def test_migrates_legacy_config_once_on_both_platforms(
     loaded = config_manager.load_config()
 
     assert new_file.exists(), (
-        f"Legacy configuration file '{legacy_file}' was not migrated to '{new_file}' "
+        f"[config] Legacy configuration file '{legacy_file}' was not migrated to '{new_file}' "
         f"on platform '{platform_name}'. Check `_migrate_legacy_config()` in `load_config()`."
     )
     assert loaded == {"theme": "emerald_light", "language": "pt"}, (
-        f"Migrated preferences were lost or altered! Expected {{'theme': 'emerald_light', 'language': 'pt'}}, "
+        f"[config] Migrated preferences were lost or altered! Expected {{'theme': 'emerald_light', 'language': 'pt'}}, "
         f"got {loaded}. Ensure existing keys like `theme` and `language` are preserved during migration."
     )
     assert "theme_mode" not in loaded, (
-        "Deprecated `theme_mode` key leaked into migrated config! "
+        "[config] Deprecated `theme_mode` key leaked into migrated config! "
         "Ensure `_migrate_legacy_config()` strips obsolete keys."
     )
 
     persisted = yaml.safe_load(new_file.read_text(encoding="utf-8"))
     assert persisted == {"theme": "emerald_light", "language": "pt"}, (
-        f"Migrated config on disk at '{new_file}' does not match expected values. "
+        f"[config] Migrated config on disk at '{new_file}' does not match expected values. "
         f"Got {persisted} on disk."
     )
 
@@ -155,7 +155,7 @@ def test_migrates_legacy_config_once_on_both_platforms(
     )
     second_load = config_manager.load_config()
     assert second_load["theme"] == "emerald_light" and second_load["language"] == "pt", (
-        "Legacy config was re-read after the new config file already existed! "
+        "[config] Legacy config was re-read after the new config file already existed! "
         "Migration must run only once when `CONFIG_FILE` is absent."
     )
 
@@ -170,15 +170,15 @@ def test_fresh_install_writes_default_config_without_theme_mode(
     loaded = config_manager.load_config()
 
     assert new_file.exists(), (
-        f"Fresh startup did not create the default configuration file at '{new_file}'. "
+        f"[config] Fresh startup did not create the default configuration file at '{new_file}'. "
         "Check `load_config()` initialization path."
     )
     assert loaded == {"theme": "blue_dark"}, (
-        f"Default configuration keys changed! Expected {{'theme': 'blue_dark'}}, got {loaded}. "
+        f"[config] Default configuration keys changed! Expected {{'theme': 'blue_dark'}}, got {loaded}. "
         "Check `DEFAULT_CONFIG` definition."
     )
     assert "theme_mode" not in loaded, (
-        "Orphaned `theme_mode` key is still present in `DEFAULT_CONFIG`. "
+        "[config] Orphaned `theme_mode` key is still present in `DEFAULT_CONFIG`. "
         "Remove it since theme mode is inferred from the theme suffix."
     )
 
@@ -198,17 +198,17 @@ def test_save_config_is_atomic_and_leaves_no_temp_files(
     config_manager.save_config({"theme": "purple_dark", "language": "es"})
 
     assert cfg_file.exists(), (
-        f"`save_config()` failed to commit configuration to '{cfg_file}'. "
+        f"[config] `save_config()` failed to commit configuration to '{cfg_file}'. "
         "Verify `os.replace()` target path."
     )
     leftover_tmps = list(cfg_dir.glob(".*_tmp_*"))
     assert leftover_tmps == [], (
-        f"Temporary files were left behind in '{cfg_dir}' after `save_config()`: {leftover_tmps}. "
+        f"[config] Temporary files were left behind in '{cfg_dir}' after `save_config()`: {leftover_tmps}. "
         "Ensure `os.replace()` moves the temp file atomically without leaving artifacts."
     )
     saved_data = yaml.safe_load(cfg_file.read_text(encoding="utf-8"))
     assert saved_data == {"theme": "purple_dark", "language": "es"}, (
-        f"Saved YAML content at '{cfg_file}' does not match input data. Got {saved_data}."
+        f"[config] Saved YAML content at '{cfg_file}' does not match input data. Got {saved_data}."
     )
 
 
@@ -230,16 +230,16 @@ def test_save_config_preserves_existing_file_on_write_failure(
     config_manager.save_config({"theme": "red_light", "language": "en"})
 
     assert cfg_file.exists(), (
-        f"Existing configuration file '{cfg_file}' was deleted after a failed write! "
+        f"[config] Existing configuration file '{cfg_file}' was deleted after a failed write! "
         "Atomic writes must preserve the previous valid file on error."
     )
     assert cfg_file.read_text(encoding="utf-8") == original_content, (
-        f"Existing configuration file '{cfg_file}' was truncated or corrupted when `yaml.dump` failed! "
+        f"[config] Existing configuration file '{cfg_file}' was truncated or corrupted when `yaml.dump` failed! "
         "Ensure serialization writes to a temporary file before calling `os.replace()`."
     )
     leftover_tmps = list(cfg_dir.glob(".*_tmp_*"))
     assert leftover_tmps == [], (
-        f"Failed `save_config()` leaked temporary files in '{cfg_dir}': {leftover_tmps}. "
+        f"[config] Failed `save_config()` leaked temporary files in '{cfg_dir}': {leftover_tmps}. "
         "Ensure the `except` block unlinks `tmp_path` on failure."
     )
 
@@ -256,9 +256,9 @@ def test_corrupted_yaml_falls_back_to_defaults_without_raising(
     loaded = config_manager.load_config()
 
     assert loaded == {"theme": "blue_dark"}, (
-        f"Corrupted YAML at '{cfg_file}' did not fall back to `DEFAULT_CONFIG`! "
+        f"[config] Corrupted YAML at '{cfg_file}' did not fall back to `DEFAULT_CONFIG`! "
         f"Got {loaded}. Check `yaml.YAMLError` handling in `load_config()`."
     )
     assert "theme_mode" not in loaded, (
-        "Corrupted YAML fallback reintroduced the deprecated `theme_mode` key."
+        "[config] Corrupted YAML fallback reintroduced the deprecated `theme_mode` key."
     )
