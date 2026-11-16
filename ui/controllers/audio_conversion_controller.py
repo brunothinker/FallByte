@@ -117,15 +117,16 @@ class AudioConversionController(BaseController):
             return
 
         filename = self.selected_input.name
-        self._set_processing_ui(page, progress_bar, btn_action)
-        self.cancel_event.clear()
-
         target_fmt = target_format.lower()
         out_file = unique_conversion_output_path(
             input_path=self.selected_input,
             output_dir=self.selected_output_dir,
             target_format=target_fmt,
         )
+        pre_existed = out_file.exists()
+
+        self._set_processing_ui(page, progress_bar, btn_action)
+        self.cancel_event.clear()
 
         lbl_status.value = t(
             "msg_converting_progress",
@@ -209,7 +210,7 @@ class AudioConversionController(BaseController):
             }
             show_summary_dialog(page, summary)
         else:
-            if out_file.exists():
+            if not pre_existed and out_file.exists():
                 try:
                     out_file.unlink()
                 except OSError:
