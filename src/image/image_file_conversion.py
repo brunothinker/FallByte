@@ -7,7 +7,7 @@ from typing import Any
 import pillow_heif
 from PIL import Image, ImageOps, ImageSequence
 
-from src.image.utils.remove_transparency import (
+from src.image.utils.image_remove_transparency import (
     ALPHA_SUPPORTED_FORMATS,
     NON_ALPHA_FORMATS,
     has_transparency,

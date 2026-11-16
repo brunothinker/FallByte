@@ -20,7 +20,8 @@ from src.audio import (
     audio_file_compression,
     audio_file_conversion,
 )
-from src.audio.utils import audio_scanner, binary_manager, ffmpeg_audio_utils
+from src.audio.utils import audio_scanner, audio_ffmpeg_utils
+from src.utils import binary_manager
 from src.formats import (
     AUDIO_TARGET_FORMATS,
     SUPPORTED_AUDIO_EXTENSIONS,
@@ -306,7 +307,7 @@ def test_binary_manager_resolves_linux_and_windows(tmp_path: Path, monkeypatch):
     linux_bin.chmod(0o644)
     win_bin.write_bytes(b"MZ")
 
-    fake_module_file = fake_root / "src" / "audio" / "utils" / "binary_manager.py"
+    fake_module_file = fake_root / "src" / "utils" / "binary_manager.py"
     fake_module_file.parent.mkdir(parents=True)
     monkeypatch.setattr(binary_manager, "__file__", str(fake_module_file))
 
@@ -336,7 +337,7 @@ def test_binary_manager_resolves_linux_and_windows(tmp_path: Path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# 4. FFmpeg Audio Utils (`src/audio/utils/ffmpeg_audio_utils.py`)
+# 4. FFmpeg Audio Utils (`src/audio/utils/audio_ffmpeg_utils.py`)
 # ---------------------------------------------------------------------------
 
 
@@ -348,7 +349,7 @@ def test_parse_audio_stderr_extracts_duration_codec_samplerate_and_layout():
         "  Stream #0:0: Audio: mp3 (mp3float), 44100 Hz, stereo, fltp, 320 kb/s\n"
         "  Stream #0:1: Video: mjpeg (Baseline), yuvj420p(pc), 500x500 [SAR 1:1 DAR 1:1], 90k tbr (attached pic)\n"
     )
-    info = ffmpeg_audio_utils.parse_audio_stderr(sample_stderr)
+    info = audio_ffmpeg_utils.parse_audio_stderr(sample_stderr)
 
     assert info.duration_seconds == 135.5, (
         f"Expected parsed duration 135.5s, got {info.duration_seconds}s."
@@ -370,7 +371,7 @@ def test_parse_audio_stderr_extracts_duration_codec_samplerate_and_layout():
         "  Duration: 00:00:10.00, start: 0.000000, bitrate: 128 kb/s\n"
         "  Stream #0:0: Audio: vorbis, 44100 Hz, mono, fltp, 128 kb/s\n"
     )
-    mono_info = ffmpeg_audio_utils.parse_audio_stderr(mono_stderr)
+    mono_info = audio_ffmpeg_utils.parse_audio_stderr(mono_stderr)
     assert mono_info.channel_layout == "mono" and mono_info.channels == 1, (
         f"Expected mono (channels=1), got layout={mono_info.channel_layout!r}, channels={mono_info.channels}."
     )
@@ -383,7 +384,7 @@ def test_parse_audio_stderr_accepts_streams_without_explicit_sample_rate():
         "  Duration: 00:01:05.00, start: 0.000000, bitrate: 128 kb/s\n"
         "  Stream #0:0(eng): Audio: wmav2 (a[1][0][0] / 0x0161), stereo, fltp, 128 kb/s\n"
     )
-    info = ffmpeg_audio_utils.parse_audio_stderr(exotic_stderr)
+    info = audio_ffmpeg_utils.parse_audio_stderr(exotic_stderr)
 
     assert info.audio_codecs == ["wmav2"], (
         f"Expected audio_codecs=['wmav2'] when sample rate is omitted, got {info.audio_codecs}."
@@ -402,7 +403,7 @@ def test_parse_audio_stderr_accepts_streams_without_explicit_sample_rate():
         "  Duration: 00:00:12.00, bitrate: 64 kb/s\n"
         "  Stream #0:0: Audio: pcm_s16be, mono, s16, 64 kb/s\n"
     )
-    mono_info = ffmpeg_audio_utils.parse_audio_stderr(mono_exotic_stderr)
+    mono_info = audio_ffmpeg_utils.parse_audio_stderr(mono_exotic_stderr)
     assert mono_info.primary_codec == "pcm_s16be" and mono_info.channels == 1, (
         f"Expected mono pcm_s16be stream without sample rate to parse cleanly, got {mono_info}."
     )
@@ -410,7 +411,7 @@ def test_parse_audio_stderr_accepts_streams_without_explicit_sample_rate():
 
 def test_parse_audio_stderr_returns_empty_info_when_no_audio_stream():
     """`parse_audio_stderr` must return empty `audio_codecs` for non-audio or invalid inputs."""
-    info = ffmpeg_audio_utils.parse_audio_stderr("Invalid data found when processing input")
+    info = audio_ffmpeg_utils.parse_audio_stderr("Invalid data found when processing input")
     assert info.audio_codecs == [] and info.primary_codec is None, (
         f"Expected empty AudioStreamInfo for invalid input, got {info}."
     )
@@ -418,40 +419,40 @@ def test_parse_audio_stderr_returns_empty_info_when_no_audio_stream():
 
 def test_quality_to_bitrate_kbps_bounds_and_vorbis_mono_ceiling():
     """`quality_to_bitrate_kbps` must map 1..100 linearly, enforce codec floors, clamp out-of-range inputs, and cap mono OGG at 256k."""
-    assert ffmpeg_audio_utils.quality_to_bitrate_kbps("mp3", 1) == 48, (
+    assert audio_ffmpeg_utils.quality_to_bitrate_kbps("mp3", 1) == 48, (
         "Quality 1 for MP3 must map to minimum bitrate 48 kbps."
     )
-    assert ffmpeg_audio_utils.quality_to_bitrate_kbps("mp3", 100) == 320, (
+    assert audio_ffmpeg_utils.quality_to_bitrate_kbps("mp3", 100) == 320, (
         "Quality 100 for MP3 must map to maximum bitrate 320 kbps."
     )
-    assert ffmpeg_audio_utils.quality_to_bitrate_kbps("m4a", 1) == 64, (
+    assert audio_ffmpeg_utils.quality_to_bitrate_kbps("m4a", 1) == 64, (
         "Quality 1 for M4A must map to minimum bitrate 64 kbps to preserve stereo AAC quality."
     )
-    assert ffmpeg_audio_utils.quality_to_bitrate_kbps("m4a", 100) == 320, (
+    assert audio_ffmpeg_utils.quality_to_bitrate_kbps("m4a", 100) == 320, (
         "Quality 100 for M4A must map to maximum bitrate 320 kbps."
     )
-    assert ffmpeg_audio_utils.quality_to_bitrate_kbps("aac", 1) == 64, (
+    assert audio_ffmpeg_utils.quality_to_bitrate_kbps("aac", 1) == 64, (
         "Quality 1 for AAC must map to minimum bitrate 64 kbps to preserve stereo AAC quality."
     )
-    assert ffmpeg_audio_utils.quality_to_bitrate_kbps("aac", 100) == 320, (
+    assert audio_ffmpeg_utils.quality_to_bitrate_kbps("aac", 100) == 320, (
         "Quality 100 for AAC must map to maximum bitrate 320 kbps."
     )
-    assert ffmpeg_audio_utils.quality_to_bitrate_kbps("ogg", 100, channels=2) == 320, (
+    assert audio_ffmpeg_utils.quality_to_bitrate_kbps("ogg", 100, channels=2) == 320, (
         "Stereo OGG at quality 100 must retain full 320 kbps ceiling."
     )
-    assert ffmpeg_audio_utils.quality_to_bitrate_kbps("ogg", 100, channels=1) == 256, (
+    assert audio_ffmpeg_utils.quality_to_bitrate_kbps("ogg", 100, channels=1) == 256, (
         "Mono OGG at quality 100 must cap at 256 kbps to satisfy libvorbis single-channel limits."
     )
-    assert ffmpeg_audio_utils.quality_to_bitrate_kbps("opus", 1) == 32, (
+    assert audio_ffmpeg_utils.quality_to_bitrate_kbps("opus", 1) == 32, (
         "Quality 1 for Opus must map to minimum bitrate 32 kbps."
     )
-    assert ffmpeg_audio_utils.quality_to_bitrate_kbps("opus", 100) == 192, (
+    assert audio_ffmpeg_utils.quality_to_bitrate_kbps("opus", 100) == 192, (
         "Quality 100 for Opus must map to maximum bitrate 192 kbps."
     )
-    assert ffmpeg_audio_utils.quality_to_bitrate_kbps("mp3", -20) == 48, (
+    assert audio_ffmpeg_utils.quality_to_bitrate_kbps("mp3", -20) == 48, (
         "Negative quality values must be clamped to 1 (48 kbps)."
     )
-    assert ffmpeg_audio_utils.quality_to_bitrate_kbps("mp3", 999) == 320, (
+    assert audio_ffmpeg_utils.quality_to_bitrate_kbps("mp3", 999) == 320, (
         "Quality values > 100 must be clamped to 100 (320 kbps)."
     )
 
@@ -477,7 +478,7 @@ def test_get_audio_codec_args_supported_formats(
     fmt, quality, channels, expected_tokens
 ):
     """`get_audio_codec_args` must return valid encoder flags for every target format and channel count."""
-    args = ffmpeg_audio_utils.get_audio_codec_args(
+    args = audio_ffmpeg_utils.get_audio_codec_args(
         fmt, quality=quality, channels=channels
     )
     assert args == expected_tokens, (
@@ -489,24 +490,24 @@ def test_get_audio_codec_args_supported_formats(
 def test_get_audio_codec_args_rejects_unknown_format():
     """`get_audio_codec_args` must raise ValueError for unsupported target formats."""
     with pytest.raises(ValueError, match="Unsupported target audio format"):
-        ffmpeg_audio_utils.get_audio_codec_args("wma")
+        audio_ffmpeg_utils.get_audio_codec_args("wma")
 
 
 def test_parse_progress_line_tracks_time_and_speed():
     """`_parse_progress_line` must accumulate `out_time` and `speed` and emit on `progress=`."""
-    state = ffmpeg_audio_utils._ProgressState()
+    state = audio_ffmpeg_utils._ProgressState()
 
-    assert ffmpeg_audio_utils._parse_progress_line("out_time_us=1500000", state) is False
+    assert audio_ffmpeg_utils._parse_progress_line("out_time_us=1500000", state) is False
     assert state.out_time == pytest.approx(1.5), (
         f"Expected out_time=1.5s from out_time_us=1500000, got {state.out_time}."
     )
 
-    assert ffmpeg_audio_utils._parse_progress_line("speed=12.5x", state) is False
+    assert audio_ffmpeg_utils._parse_progress_line("speed=12.5x", state) is False
     assert state.speed == pytest.approx(12.5), (
         f"Expected speed=12.5 from '12.5x', got {state.speed}."
     )
 
-    assert ffmpeg_audio_utils._parse_progress_line("progress=continue", state) is True
+    assert audio_ffmpeg_utils._parse_progress_line("progress=continue", state) is True
 
 
 def test_run_audio_strategies_falls_back_and_cleans_partial_output(
@@ -542,10 +543,10 @@ def test_run_audio_strategies_falls_back_and_cleans_partial_output(
         attempts.append(label)
         return _FakeProc(should_succeed=(label == "rescue_cmd"))
 
-    monkeypatch.setattr(ffmpeg_audio_utils.subprocess, "Popen", _fake_popen)
+    monkeypatch.setattr(audio_ffmpeg_utils.subprocess, "Popen", _fake_popen)
 
     progress_ticks: list[tuple[float, float, float]] = []
-    used = ffmpeg_audio_utils.run_audio_strategies(
+    used = audio_ffmpeg_utils.run_audio_strategies(
         strategies=[
             ("primary", ["primary_cmd"]),
             ("rescue", ["rescue_cmd"]),
@@ -576,7 +577,7 @@ def test_run_audio_strategies_raises_interrupted_error_when_cancelled(tmp_path: 
     out = tmp_path / "cancelled.mp3"
 
     with pytest.raises(InterruptedError, match="CANCELLED_BY_USER"):
-        ffmpeg_audio_utils.run_audio_strategies(
+        audio_ffmpeg_utils.run_audio_strategies(
             strategies=[("primary", ["ffmpeg"])],
             output_path=out,
             display_name="track.wav",
@@ -632,10 +633,10 @@ def test_terminate_active_processes_kills_orphans_and_removes_partials(
         created_procs.append(proc)
         return proc
 
-    monkeypatch.setattr(ffmpeg_audio_utils.subprocess, "Popen", _fake_popen)
+    monkeypatch.setattr(audio_ffmpeg_utils.subprocess, "Popen", _fake_popen)
 
     worker = threading.Thread(
-        target=ffmpeg_audio_utils.run_audio_strategies,
+        target=audio_ffmpeg_utils.run_audio_strategies,
         kwargs={
             "strategies": [("primary", ["ffmpeg", "-i", "in.wav", str(partial_file)])],
             "output_path": partial_file,
@@ -646,7 +647,7 @@ def test_terminate_active_processes_kills_orphans_and_removes_partials(
     worker.start()
     assert started.wait(timeout=3.0), "Simulated FFmpeg process did not start in time."
 
-    ffmpeg_audio_utils.terminate_active_processes()
+    audio_ffmpeg_utils.terminate_active_processes()
     worker.join(timeout=3.0)
 
     assert created_procs and (created_procs[0].terminated or created_procs[0].killed), (
@@ -684,7 +685,7 @@ def test_file_converter_converts_wav_to_all_target_formats(
         f"Converted file '{dst}' was not created or is empty."
     )
 
-    probed = ffmpeg_audio_utils.probe_audio_streams(
+    probed = audio_ffmpeg_utils.probe_audio_streams(
         binary_manager.get_ffmpeg_path(), dst
     )
     assert probed.audio_codecs, (
@@ -720,7 +721,7 @@ def test_file_converter_full_format_matrix(
         f"Matrix conversion '{source_fmt}' -> '{target_fmt}' produced missing or empty output at '{dst}'."
     )
 
-    probed = ffmpeg_audio_utils.probe_audio_streams(
+    probed = audio_ffmpeg_utils.probe_audio_streams(
         binary_manager.get_ffmpeg_path(), dst
     )
     assert probed.audio_codecs, (
@@ -941,7 +942,7 @@ def test_file_compressor_copies_wma_uncompressible_format_atomically(
     monkeypatch.setattr(
         audio_file_compression,
         "probe_audio_streams",
-        lambda *_args, **_kwargs: ffmpeg_audio_utils.AudioStreamInfo(
+        lambda *_args, **_kwargs: audio_ffmpeg_utils.AudioStreamInfo(
             duration_seconds=12.0,
             audio_codecs=["wmav2"],
             sample_rate=44100,
@@ -1230,7 +1231,7 @@ def test_file_converter_handles_non_standard_sample_rates(
     assert ok is True, (
         f"Conversion from {sample_rate} Hz WAV to Opus unexpectedly failed."
     )
-    probed = ffmpeg_audio_utils.probe_audio_streams(ffmpeg_bin, dst)
+    probed = audio_ffmpeg_utils.probe_audio_streams(ffmpeg_bin, dst)
     assert probed.primary_codec == "opus" and probed.sample_rate == 48000, (
         f"Expected Opus output resampled to 48000 Hz from {sample_rate} Hz source, "
         f"got codec={probed.primary_codec!r}, sample_rate={probed.sample_rate}."
@@ -1248,7 +1249,7 @@ def test_file_converter_and_compressor_trigger_rescue_stereo_fallback(
     conv_dst = tmp_path / "rescued_conv.ogg"
     comp_dst = tmp_path / "rescued_comp.mp3"
 
-    real_run = ffmpeg_audio_utils.run_audio_strategies
+    real_run = audio_ffmpeg_utils.run_audio_strategies
 
     def _fail_first_strategy(
         strategies, output_path, display_name, cancel_event=None, progress_callback=None

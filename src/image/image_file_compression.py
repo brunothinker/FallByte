@@ -8,7 +8,7 @@ import pillow_heif
 from PIL import Image, ImageOps, ImageSequence
 
 from src.formats import UNCOMPRESSIBLE_FORMATS
-from src.image.utils.remove_transparency import has_transparency
+from src.image.utils.image_remove_transparency import has_transparency
 from src.utils.cleanup import copy_original_file_atomically
 
 # Register HEIC/HEIF opener at startup for Pillow integration

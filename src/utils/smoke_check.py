@@ -39,8 +39,8 @@ def run_smoke_check() -> bool:
             pillow_heif.register_heif_opener()
 
         # 2. Verify bundled FFmpeg binary execution and libx265 encoder support
-        from src.video.utils import ffmpeg_utils
-        from src.video.utils.binary_manager import get_ffmpeg_path
+        from src.video.utils import video_ffmpeg_utils
+        from src.utils.binary_manager import get_ffmpeg_path
 
         ffmpeg_bin = get_ffmpeg_path()
         if not ffmpeg_bin.exists():
@@ -49,7 +49,7 @@ def run_smoke_check() -> bool:
             )
             return False
 
-        if not ffmpeg_utils.has_encoder(ffmpeg_bin, "libx265"):
+        if not video_ffmpeg_utils.has_encoder(ffmpeg_bin, "libx265"):
             logger.warning("Bundled FFmpeg does not report libx265 encoder availability.")
 
         # 3. Perform in-memory image conversion (PNG -> WEBP & JPEG)

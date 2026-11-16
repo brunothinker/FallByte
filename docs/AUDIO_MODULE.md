@@ -75,7 +75,7 @@ Both compression and conversion rely on a two-stage fallback pipeline (`run_audi
 Known v1 behaviors intentionally preserved to maintain initial domain isolation:
 
 1. **Dual Active Process Registries (`atexit`):**
-   * `src/audio/utils/ffmpeg_audio_utils.py` and `src/video/utils/ffmpeg_utils.py` maintain separate `_active_processes` registries and `atexit` hooks (verified via `test_terminate_active_processes_kills_orphans_and_removes_partials`). Any explicit UI shutdown routine (e.g., main window `closeEvent`) must terminate both until unified.
+   * `../src/audio/utils/audio_ffmpeg_utils.py` and `../src/video/utils/video_ffmpeg_utils.py` maintain separate `_active_processes` registries and `atexit` hooks (verified via `test_terminate_active_processes_kills_orphans_and_removes_partials`). Any explicit UI shutdown routine (e.g., main window `closeEvent`) must terminate both until unified.
 2. **Directory Depth Sensitivity in `binary_manager.py`:**
    * Bundled binary resolution relies on `Path(__file__).resolve().parents[3]`. Moving the module requires updating the `parents` index.
 3. **Stream Probing Regex (`_AUDIO_STREAM_RE`) — Resolved:**

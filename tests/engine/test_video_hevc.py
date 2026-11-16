@@ -15,9 +15,9 @@ from pathlib import Path
 import pytest
 
 from src.video import video_file_compression as vc
-from src.video.utils import ffmpeg_utils
-from src.video.utils.binary_manager import get_ffmpeg_path
-from src.video.utils.ffmpeg_utils import (
+from src.video.utils import video_ffmpeg_utils
+from src.utils.binary_manager import get_ffmpeg_path
+from src.video.utils.video_ffmpeg_utils import (
     get_codec_args,
     get_video_filter,
     probe_streams,
@@ -70,7 +70,7 @@ def _x265_available() -> bool:
     """Checks whether the bundled FFmpeg binary exists and supports libx265 encoding."""
     try:
         ffmpeg_bin = get_ffmpeg_path()
-        return ffmpeg_utils.has_encoder(ffmpeg_bin, "libx265")
+        return video_ffmpeg_utils.has_encoder(ffmpeg_bin, "libx265")
     except (FileNotFoundError, OSError):
         return False
 

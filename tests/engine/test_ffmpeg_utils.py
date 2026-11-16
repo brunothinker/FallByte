@@ -12,8 +12,8 @@ from pathlib import Path
 
 import pytest
 
-from src.video.utils import ffmpeg_utils
-from src.video.utils.ffmpeg_utils import (
+from src.video.utils import video_ffmpeg_utils
+from src.video.utils.video_ffmpeg_utils import (
     STDERR_TAIL_BUFFER_SIZE,
     _parse_progress_line,
     _ProgressState,
@@ -156,7 +156,7 @@ def test_probe_streams_delegates_to_stderr_parser(monkeypatch):
             args=args[0], returncode=1, stdout=b"", stderr=sample_stderr
         )
 
-    monkeypatch.setattr(ffmpeg_utils.subprocess, "run", fake_run)
+    monkeypatch.setattr(video_ffmpeg_utils.subprocess, "run", fake_run)
 
     info = probe_streams(Path("ffmpeg"), Path("video.webm"))
     assert info.video_codec == "vp9", (
@@ -292,11 +292,11 @@ def test_run_strategies_caps_stderr_buffer_and_logs_only_tail(
             pass
 
     monkeypatch.setattr(
-        ffmpeg_utils.subprocess, "Popen", lambda *a, **kw: FakeFailingProcess()
+        video_ffmpeg_utils.subprocess, "Popen", lambda *a, **kw: FakeFailingProcess()
     )
 
     output_file = tmp_path / "failed_out.mp4"
-    with caplog.at_level("WARNING", logger=ffmpeg_utils.__name__):
+    with caplog.at_level("WARNING", logger=video_ffmpeg_utils.__name__):
         result = run_strategies(
             [("mock strategy", ["ffmpeg", "-i", "in.mp4", str(output_file)])],
             output_file,

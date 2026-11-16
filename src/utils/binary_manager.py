@@ -24,7 +24,7 @@ def get_ffmpeg_path() -> Path:
     system = platform.system().lower()
 
     # Locate the resources/bin directory relative to the project root
-    project_root = Path(__file__).resolve().parents[3]
+    project_root = Path(__file__).resolve().parents[2]
     bin_dir = project_root / "resources" / "bin"
 
     if system == "linux":

@@ -23,7 +23,7 @@ if hasattr(pillow_heif, "register_heif_opener"):
 import pytest
 from PIL import Image
 
-from src.video.utils.binary_manager import get_ffmpeg_path
+from src.utils.binary_manager import get_ffmpeg_path
 
 
 class DummyControl(ft.Control):

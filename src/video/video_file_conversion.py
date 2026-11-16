@@ -6,8 +6,8 @@ from collections.abc import Callable
 from pathlib import Path
 
 from src.utils.cleanup import copy_original_file_atomically
-from src.video.utils.binary_manager import get_ffmpeg_path
-from src.video.utils.ffmpeg_utils import (
+from src.utils.binary_manager import get_ffmpeg_path
+from src.video.utils.video_ffmpeg_utils import (
     HEVC_COMPRESSION_CONTAINERS,
     RESCUE_INPUT_ARGS,
     RESCUE_STREAM_MAP,

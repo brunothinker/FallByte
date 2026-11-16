@@ -5,8 +5,8 @@ import threading
 from collections.abc import Callable
 from pathlib import Path
 
-from src.audio.utils.binary_manager import get_ffmpeg_path
-from src.audio.utils.ffmpeg_audio_utils import (
+from src.utils.binary_manager import get_ffmpeg_path
+from src.audio.utils.audio_ffmpeg_utils import (
     RESCUE_INPUT_ARGS,
     SAFE_AUDIO_MAP,
     base_command,

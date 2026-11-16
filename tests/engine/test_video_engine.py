@@ -13,8 +13,8 @@ import time
 import pytest
 
 from src.image.image_file_conversion import file_converter
-from src.video.utils import ffmpeg_utils
-from src.video.utils.binary_manager import get_ffmpeg_path
+from src.video.utils import video_ffmpeg_utils
+from src.utils.binary_manager import get_ffmpeg_path
 from src.video.video_file_compression import file_compressor as video_compressor
 from src.video.video_file_conversion import file_converter as video_converter
 
@@ -210,7 +210,7 @@ def test_run_strategies_terminates_running_ffmpeg(tmp_path, monkeypatch):
         spawned.append(process)
         return process
 
-    monkeypatch.setattr(ffmpeg_utils.subprocess, "Popen", recording_popen)
+    monkeypatch.setattr(video_ffmpeg_utils.subprocess, "Popen", recording_popen)
 
     cancel_event = threading.Event()
     timer = threading.Timer(1.0, cancel_event.set)
@@ -219,7 +219,7 @@ def test_run_strategies_terminates_running_ffmpeg(tmp_path, monkeypatch):
     start = time.perf_counter()
     try:
         with pytest.raises(InterruptedError):
-            ffmpeg_utils.run_strategies(
+            video_ffmpeg_utils.run_strategies(
                 [("long encode", cmd)], output_file, "long_encode.mp4", cancel_event
             )
     finally:
@@ -272,7 +272,7 @@ def test_terminate_active_processes_kills_ffmpeg_and_removes_output(tmp_path):
     cmd = _long_encode_command(output_file)
 
     worker = threading.Thread(
-        target=ffmpeg_utils.run_strategies,
+        target=video_ffmpeg_utils.run_strategies,
         args=([("long encode", cmd)], output_file, "long_encode.mp4"),
         daemon=True,
     )
@@ -280,19 +280,19 @@ def test_terminate_active_processes_kills_ffmpeg_and_removes_output(tmp_path):
 
     # Wait until the process is registered in the active-process registry.
     deadline = time.perf_counter() + 5
-    while not ffmpeg_utils._active_processes and time.perf_counter() < deadline:
+    while not video_ffmpeg_utils._active_processes and time.perf_counter() < deadline:
         time.sleep(0.05)
 
-    registered = list(ffmpeg_utils._active_processes)
+    registered = list(video_ffmpeg_utils._active_processes)
     assert len(registered) == 1
 
-    ffmpeg_utils.terminate_active_processes()
+    video_ffmpeg_utils.terminate_active_processes()
     worker.join(timeout=10)
 
     assert not worker.is_alive()
     assert registered[0].poll() is not None
     assert not output_file.exists()
-    assert not ffmpeg_utils._active_processes
+    assert not video_ffmpeg_utils._active_processes
 
 
 def test_run_strategies_terminates_process_on_callback_exception(tmp_path, monkeypatch):
@@ -308,13 +308,13 @@ def test_run_strategies_terminates_process_on_callback_exception(tmp_path, monke
         spawned.append(process)
         return process
 
-    monkeypatch.setattr(ffmpeg_utils.subprocess, "Popen", recording_popen)
+    monkeypatch.setattr(video_ffmpeg_utils.subprocess, "Popen", recording_popen)
 
     def throwing_callback(out_time, fps, speed):
         raise InterruptedError("CANCELLED_IN_CALLBACK")
 
     with pytest.raises(InterruptedError):
-        ffmpeg_utils.run_strategies(
+        video_ffmpeg_utils.run_strategies(
             [("long encode", cmd)],
             output_file,
             "long_encode.mp4",
@@ -324,7 +324,7 @@ def test_run_strategies_terminates_process_on_callback_exception(tmp_path, monke
     assert len(spawned) == 1
     assert spawned[0].poll() is not None
     assert not output_file.exists()
-    assert len(ffmpeg_utils._active_processes) == 0
+    assert len(video_ffmpeg_utils._active_processes) == 0
 
 
 def test_video_compression_atomic_keep_original_on_failure(
