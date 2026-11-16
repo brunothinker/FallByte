@@ -32,9 +32,11 @@ TERMINATE_TIMEOUT = 3.0
 STDERR_TAIL_BUFFER_SIZE = 50
 
 # Quality (1-100) to bitrate (kbps) bounds per lossy target format.
+# AAC/M4A enforces a 64 kbps floor so stereo streams avoid severe native encoder artifacts.
 BITRATE_RANGES_KBPS: dict[str, tuple[int, int]] = {
     "mp3": (48, 320),
-    "m4a": (48, 320),
+    "m4a": (64, 320),
+    "aac": (64, 320),
     "ogg": (48, 320),
     "opus": (32, 192),
 }
@@ -43,7 +45,7 @@ BITRATE_RANGES_KBPS: dict[str, tuple[int, int]] = {
 VORBIS_MONO_MAX_KBPS = 256
 
 _AUDIO_STREAM_RE = re.compile(
-    r"Stream #\d+:\d+.*?: Audio:\s*(\w+).*?(\d+)\s*Hz,\s*([^,\r\n]+)"
+    r"Stream #\d+:\d+.*?: Audio:\s*(\w+)[^,\r\n]*(?:,\s*(\d+)\s*Hz)?,\s*([^,\r\n]+)"
 )
 _DURATION_RE = re.compile(r"Duration:\s*(\d{2}):(\d{2}):(\d{2}\.\d+)")
 
@@ -135,7 +137,7 @@ def parse_audio_stderr(stderr_text: str) -> AudioStreamInfo:
             continue
 
         codec = match.group(1).lower()
-        sample_rate = int(match.group(2))
+        sample_rate = int(match.group(2)) if match.group(2) else 0
         layout = match.group(3).strip()
 
         if not info.audio_codecs:
@@ -189,7 +191,7 @@ def get_audio_codec_args(
 
     Args:
         target_fmt: Target container/format without leading dot
-            ('mp3', 'm4a', 'opus', 'ogg', 'flac', 'wav').
+            ('mp3', 'm4a', 'aac', 'opus', 'ogg', 'flac', 'wav').
         quality: Compression quality (1-100). When None, uses high-quality
             conversion defaults.
         channels: Channel count of the audio stream (1 for mono, >=2 for stereo+).
@@ -211,6 +213,14 @@ def get_audio_codec_args(
             else "192k"
         )
         return ["-c:a", "aac", "-b:a", bitrate, "-movflags", "+faststart"]
+
+    if fmt == "aac":
+        bitrate = (
+            f"{quality_to_bitrate_kbps('aac', quality, channels)}k"
+            if quality is not None
+            else "192k"
+        )
+        return ["-c:a", "aac", "-b:a", bitrate, "-f", "adts"]
 
     if fmt == "opus":
         bitrate = (

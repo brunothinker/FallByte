@@ -131,8 +131,8 @@ def test_format_utils_lists_follow_scanners():
         audio_input_formats()
     )
     assert {"MP3", "M4A", "OPUS", "OGG", "FLAC", "WAV"} == set(audio_output_formats())
-    assert not {"FLAC", "WAV", "AAC", "WMA", "AIFF"} & set(audio_compression_formats())
-    assert {"MP3", "M4A", "OGG", "OPUS"} == set(audio_compression_formats())
+    assert not {"FLAC", "WAV", "WMA", "AIFF"} & set(audio_compression_formats())
+    assert {"MP3", "M4A", "AAC", "OGG", "OPUS"} == set(audio_compression_formats())
 
 
 def test_no_supported_files_dialog_lists_formats(mock_page):

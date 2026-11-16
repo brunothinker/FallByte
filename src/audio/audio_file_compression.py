@@ -64,28 +64,16 @@ def file_compressor(
     cancel_event: threading.Event | None = None,
     file_progress_callback: Callable[[float, float, float, float], None] | None = None,
 ) -> bool:
-    """Compresses a single audio file while preserving its original container/format.
+    """ 
+    Compresses a single audio file while preserving its original container/format.
 
-    Lossy formats (MP3, M4A, OGG, OPUS) are re-encoded using a bitrate mapped
-    from `quality` (1-100). Non-compressible formats (FLAC, WAV, AAC, WMA, AIFF)
+    Lossy formats (MP3, M4A, AAC, OGG, OPUS) are re-encoded using a bitrate mapped
+    from `quality` (1-100). Non-compressible formats (FLAC, WAV, WMA, AIFF)
     are copied untouched via `copy_original_file_atomically`, matching the image
     compression behavior. If the compressed result is not smaller than the
     original, the original file is kept as the output.
-
-    Args:
-        input_path (Path): Path to the source audio file.
-        output_path (Path): Destination path where compressed audio will be saved.
-        quality (int, optional): Compression quality percentage (1-100). Defaults to 80.
-        cancel_event (threading.Event, optional): Event terminating FFmpeg when set.
-        file_progress_callback (Callable[[float, float, float, float], None], optional):
-            Callback receiving (duration_seconds, processed_seconds, fps, speed).
-
-    Returns:
-        bool: True if compression succeeded, False otherwise.
-
-    Raises:
-        InterruptedError: If cancellation was requested via cancel_event.
     """
+
     tmp_path = None
     try:
         quality = max(1, min(100, int(quality)))

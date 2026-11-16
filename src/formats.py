@@ -80,5 +80,5 @@ AUDIO_TARGET_FORMATS: list[str] = [
 # Image formats that cannot be further compressed via PIL (caps, no dot)
 UNCOMPRESSIBLE_FORMATS: set[str] = {"BMP", "PPM", "GIF", "ICO", "HEIC", "HEIF"}
 
-# Audio formats that are not re-encoded during compression (caps, no dot)
-UNCOMPRESSIBLE_AUDIO_FORMATS: set[str] = {"FLAC", "WAV", "AAC", "WMA", "AIFF"}
+# Audio formats copied atomically without recompression (lossless PCM/containers or legacy encoders)
+UNCOMPRESSIBLE_AUDIO_FORMATS: frozenset[str] = frozenset({"FLAC", "WAV", "WMA", "AIFF"})

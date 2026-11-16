@@ -5,6 +5,8 @@ both the broken invariant and the observed state.
 """
 
 import ast
+import functools
+import re
 import subprocess
 import threading
 from pathlib import Path
@@ -24,6 +26,89 @@ from src.formats import (
     SUPPORTED_AUDIO_EXTENSIONS,
     UNCOMPRESSIBLE_AUDIO_FORMATS,
 )
+
+# ---------------------------------------------------------------------------
+# Encoder Availability Helpers & Matrix Constants
+# ---------------------------------------------------------------------------
+
+ALL_TESTABLE_AUDIO_FORMATS: tuple[str, ...] = (
+    "mp3",
+    "m4a",
+    "aac",
+    "ogg",
+    "opus",
+    "flac",
+    "wav",
+    "aiff",
+)
+
+FORMAT_REQUIRED_ENCODER: dict[str, str | None] = {
+    "mp3": "libmp3lame",
+    "m4a": "aac",
+    "aac": "aac",
+    "ogg": "libvorbis",
+    "opus": "libopus",
+    "flac": "flac",
+    "wav": "pcm_s16le",
+    "aiff": "pcm_s16be",
+}
+
+
+@functools.lru_cache(maxsize=1)
+def _available_ffmpeg_encoders() -> frozenset[str]:
+    """Queries `ffmpeg -encoders` once per test session and caches available encoder names."""
+    try:
+        ffmpeg_bin = binary_manager.get_ffmpeg_path()
+        result = subprocess.run(
+            [str(ffmpeg_bin), "-hide_banner", "-encoders"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return frozenset()
+
+    encoders: set[str] = set()
+    for line in result.stdout.splitlines():
+        match = re.match(r"^\s*[A-Z\.]{6}\s+([a-zA-Z0-9_-]+)\s+", line)
+        if match:
+            encoders.add(match.group(1))
+    return frozenset(encoders)
+
+
+def has_encoder(encoder_name: str) -> bool:
+    """Returns True if the bundled FFmpeg build includes `encoder_name`."""
+    return encoder_name in _available_ffmpeg_encoders()
+
+
+def _skip_if_format_encoders_unavailable(*formats: str) -> None:
+    """Skips the active test if any required FFmpeg encoder for `formats` is absent."""
+    missing = sorted(
+        {
+            enc
+            for fmt in formats
+            if (enc := FORMAT_REQUIRED_ENCODER.get(fmt.lower())) is not None
+            and not has_encoder(enc)
+        }
+    )
+    if missing:
+        pytest.skip(f"Bundled FFmpeg lacks required encoder(s): {', '.join(missing)}")
+
+
+requires_libmp3lame = pytest.mark.skipif(
+    not has_encoder("libmp3lame"),
+    reason="Bundled FFmpeg build does not provide 'libmp3lame'.",
+)
+requires_libvorbis = pytest.mark.skipif(
+    not has_encoder("libvorbis"),
+    reason="Bundled FFmpeg build does not provide 'libvorbis'.",
+)
+requires_libopus = pytest.mark.skipif(
+    not has_encoder("libopus"),
+    reason="Bundled FFmpeg build does not provide 'libopus'.",
+)
+
 
 # ---------------------------------------------------------------------------
 # Fixtures (self-contained so the suite runs without editing conftest.py)
@@ -46,6 +131,7 @@ def sample_audio_factory(tmp_path: Path):
         out_path = tmp_path / filename
         out_path.parent.mkdir(parents=True, exist_ok=True)
         ext = out_path.suffix.lower().lstrip(".")
+        _skip_if_format_encoders_unavailable(ext)
 
         cmd = [
             str(ffmpeg_bin),
@@ -290,6 +376,38 @@ def test_parse_audio_stderr_extracts_duration_codec_samplerate_and_layout():
     )
 
 
+def test_parse_audio_stderr_accepts_streams_without_explicit_sample_rate():
+    """`parse_audio_stderr` must parse exotic streams (e.g., WMA/AIFF) that omit `<N> Hz`."""
+    exotic_stderr = (
+        "Input #0, asf, from 'legacy.wma':\n"
+        "  Duration: 00:01:05.00, start: 0.000000, bitrate: 128 kb/s\n"
+        "  Stream #0:0(eng): Audio: wmav2 (a[1][0][0] / 0x0161), stereo, fltp, 128 kb/s\n"
+    )
+    info = ffmpeg_audio_utils.parse_audio_stderr(exotic_stderr)
+
+    assert info.audio_codecs == ["wmav2"], (
+        f"Expected audio_codecs=['wmav2'] when sample rate is omitted, got {info.audio_codecs}."
+    )
+    assert info.primary_codec == "wmav2", (
+        f"Expected primary_codec='wmav2', got {info.primary_codec!r}."
+    )
+    assert info.sample_rate == 0, (
+        f"Expected default sample_rate=0 when omitted from stream line, got {info.sample_rate}."
+    )
+    assert info.channel_layout == "stereo" and info.channels == 2, (
+        f"Expected stereo (channels=2), got layout={info.channel_layout!r}, channels={info.channels}."
+    )
+
+    mono_exotic_stderr = (
+        "  Duration: 00:00:12.00, bitrate: 64 kb/s\n"
+        "  Stream #0:0: Audio: pcm_s16be, mono, s16, 64 kb/s\n"
+    )
+    mono_info = ffmpeg_audio_utils.parse_audio_stderr(mono_exotic_stderr)
+    assert mono_info.primary_codec == "pcm_s16be" and mono_info.channels == 1, (
+        f"Expected mono pcm_s16be stream without sample rate to parse cleanly, got {mono_info}."
+    )
+
+
 def test_parse_audio_stderr_returns_empty_info_when_no_audio_stream():
     """`parse_audio_stderr` must return empty `audio_codecs` for non-audio or invalid inputs."""
     info = ffmpeg_audio_utils.parse_audio_stderr("Invalid data found when processing input")
@@ -299,12 +417,24 @@ def test_parse_audio_stderr_returns_empty_info_when_no_audio_stream():
 
 
 def test_quality_to_bitrate_kbps_bounds_and_vorbis_mono_ceiling():
-    """`quality_to_bitrate_kbps` must map 1..100 linearly, clamp out-of-range inputs, and cap mono OGG at 256k."""
+    """`quality_to_bitrate_kbps` must map 1..100 linearly, enforce codec floors, clamp out-of-range inputs, and cap mono OGG at 256k."""
     assert ffmpeg_audio_utils.quality_to_bitrate_kbps("mp3", 1) == 48, (
         "Quality 1 for MP3 must map to minimum bitrate 48 kbps."
     )
     assert ffmpeg_audio_utils.quality_to_bitrate_kbps("mp3", 100) == 320, (
         "Quality 100 for MP3 must map to maximum bitrate 320 kbps."
+    )
+    assert ffmpeg_audio_utils.quality_to_bitrate_kbps("m4a", 1) == 64, (
+        "Quality 1 for M4A must map to minimum bitrate 64 kbps to preserve stereo AAC quality."
+    )
+    assert ffmpeg_audio_utils.quality_to_bitrate_kbps("m4a", 100) == 320, (
+        "Quality 100 for M4A must map to maximum bitrate 320 kbps."
+    )
+    assert ffmpeg_audio_utils.quality_to_bitrate_kbps("aac", 1) == 64, (
+        "Quality 1 for AAC must map to minimum bitrate 64 kbps to preserve stereo AAC quality."
+    )
+    assert ffmpeg_audio_utils.quality_to_bitrate_kbps("aac", 100) == 320, (
+        "Quality 100 for AAC must map to maximum bitrate 320 kbps."
     )
     assert ffmpeg_audio_utils.quality_to_bitrate_kbps("ogg", 100, channels=2) == 320, (
         "Stereo OGG at quality 100 must retain full 320 kbps ceiling."
@@ -332,6 +462,9 @@ def test_quality_to_bitrate_kbps_bounds_and_vorbis_mono_ceiling():
         ("mp3", None, 2, ["-c:a", "libmp3lame", "-b:a", "192k"]),
         ("mp3", 50, 2, ["-c:a", "libmp3lame", "-b:a", "183k"]),
         ("m4a", None, 2, ["-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart"]),
+        ("m4a", 50, 2, ["-c:a", "aac", "-b:a", "191k", "-movflags", "+faststart"]),
+        ("aac", None, 2, ["-c:a", "aac", "-b:a", "192k", "-f", "adts"]),
+        ("aac", 50, 2, ["-c:a", "aac", "-b:a", "191k", "-f", "adts"]),
         ("opus", None, 2, ["-c:a", "libopus", "-b:a", "128k", "-ar", "48000"]),
         ("ogg", None, 2, ["-c:a", "libvorbis", "-b:a", "192k"]),
         ("ogg", 100, 2, ["-c:a", "libvorbis", "-b:a", "320k"]),
@@ -451,6 +584,79 @@ def test_run_audio_strategies_raises_interrupted_error_when_cancelled(tmp_path: 
         )
 
 
+def test_terminate_active_processes_kills_orphans_and_removes_partials(
+    tmp_path: Path, monkeypatch
+):
+    """`terminate_active_processes` must terminate running FFmpeg processes and delete tracked partial files."""
+    partial_file = tmp_path / "orphan_partial.mp3"
+    started = threading.Event()
+    release = threading.Event()
+
+    class _HangingProc:
+        def __init__(self, *args, **kwargs):
+            self.returncode = None
+            self.terminated = False
+            self.killed = False
+            self.stdout = MagicMock()
+            self.stdout.readline = MagicMock(side_effect=self._read_stdout)
+            self.stderr = MagicMock()
+            self.stderr.readline = MagicMock(return_value=b"")
+            partial_file.write_bytes(b"partial-audio-stream")
+            started.set()
+
+        def _read_stdout(self):
+            release.wait(timeout=5.0)
+            return b""
+
+        def poll(self):
+            return self.returncode
+
+        def terminate(self):
+            self.terminated = True
+            self.returncode = -15
+            release.set()
+
+        def kill(self):
+            self.killed = True
+            self.returncode = -9
+            release.set()
+
+        def wait(self, timeout=None):
+            release.wait(timeout=5.0)
+            return self.returncode if self.returncode is not None else -15
+
+    created_procs: list[_HangingProc] = []
+
+    def _fake_popen(*args, **kwargs):
+        proc = _HangingProc(*args, **kwargs)
+        created_procs.append(proc)
+        return proc
+
+    monkeypatch.setattr(ffmpeg_audio_utils.subprocess, "Popen", _fake_popen)
+
+    worker = threading.Thread(
+        target=ffmpeg_audio_utils.run_audio_strategies,
+        kwargs={
+            "strategies": [("primary", ["ffmpeg", "-i", "in.wav", str(partial_file)])],
+            "output_path": partial_file,
+            "display_name": "in.wav",
+        },
+        daemon=True,
+    )
+    worker.start()
+    assert started.wait(timeout=3.0), "Simulated FFmpeg process did not start in time."
+
+    ffmpeg_audio_utils.terminate_active_processes()
+    worker.join(timeout=3.0)
+
+    assert created_procs and (created_procs[0].terminated or created_procs[0].killed), (
+        "Expected `terminate_active_processes` to call terminate() or kill() on active FFmpeg process."
+    )
+    assert not partial_file.exists(), (
+        f"Expected `terminate_active_processes` to delete tracked partial file '{partial_file}'."
+    )
+
+    
 # ---------------------------------------------------------------------------
 # 5. Single File Conversion (`src/audio/audio_file_conversion.py`)
 # ---------------------------------------------------------------------------
@@ -461,6 +667,7 @@ def test_file_converter_converts_wav_to_all_target_formats(
     sample_audio_factory, tmp_path: Path, target_fmt: str
 ):
     """Real FFmpeg conversion from WAV must succeed and produce a playable audio stream for all target formats."""
+    _skip_if_format_encoders_unavailable("wav", target_fmt)
     src = sample_audio_factory("source.wav", duration=1.0)
     dst = tmp_path / "converted" / f"source.{target_fmt}"
     progress_calls: list[tuple[float, float, float, float]] = []
@@ -489,6 +696,39 @@ def test_file_converter_converts_wav_to_all_target_formats(
         )
 
 
+@pytest.mark.parametrize("source_fmt", ALL_TESTABLE_AUDIO_FORMATS)
+@pytest.mark.parametrize("target_fmt", AUDIO_TARGET_FORMATS)
+def test_file_converter_full_format_matrix(
+    sample_audio_factory, tmp_path: Path, source_fmt: str, target_fmt: str
+):
+    """Every supported source format (`.mp3`, `.m4a`, `.aac`, `.ogg`, `.opus`, `.flac`, `.wav`, `.aiff`) must convert cleanly into every target format."""
+    _skip_if_format_encoders_unavailable(source_fmt, target_fmt)
+
+    src = sample_audio_factory(f"matrix_src_{source_fmt}.{source_fmt}", duration=0.6)
+    dst = tmp_path / "matrix" / f"{source_fmt}_to_{target_fmt}.{target_fmt}"
+
+    ok = audio_file_conversion.file_converter(
+        input_path=src,
+        output_path=dst,
+        target_format=target_fmt,
+    )
+
+    assert ok is True, (
+        f"Matrix conversion '{source_fmt}' -> '{target_fmt}' unexpectedly returned False."
+    )
+    assert dst.exists() and dst.stat().st_size > 0, (
+        f"Matrix conversion '{source_fmt}' -> '{target_fmt}' produced missing or empty output at '{dst}'."
+    )
+
+    probed = ffmpeg_audio_utils.probe_audio_streams(
+        binary_manager.get_ffmpeg_path(), dst
+    )
+    assert probed.audio_codecs, (
+        f"Probing converted '{dst.name}' ({source_fmt} -> {target_fmt}) found no audio stream."
+    )
+
+
+@requires_libmp3lame
 def test_file_converter_bypasses_reencoding_when_extensions_match(
     sample_audio_factory, tmp_path: Path, monkeypatch
 ):
@@ -517,6 +757,8 @@ def test_file_converter_bypasses_reencoding_when_extensions_match(
     )
 
 
+@requires_libmp3lame
+@requires_libvorbis
 def test_file_converter_strips_cover_art_and_converts_audio(
     sample_audio_factory, tmp_path: Path
 ):
@@ -598,21 +840,24 @@ def test_file_converter_cleans_temp_file_on_cancellation(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("ext", ["mp3", "m4a", "ogg", "opus"])
+@pytest.mark.parametrize("ext", ["mp3", "m4a", "aac", "ogg", "opus"])
 def test_file_compressor_reduces_size_for_lossy_formats(
     sample_audio_factory, tmp_path: Path, ext: str
 ):
-    """Compressing high-bitrate stereo lossy audio at low quality must yield a smaller valid file."""
+    """Compressing high-bitrate stereo lossy audio at low quality must yield a smaller valid file and report progress."""
+    _skip_if_format_encoders_unavailable(ext)
     high_bitrate = "192k" if ext == "opus" else "320k"
     src = sample_audio_factory(
         f"high.{ext}", duration=2.0, bitrate=high_bitrate, channels=2
     )
     dst = tmp_path / "compressed" / f"high.{ext}"
+    progress_calls: list[tuple[float, float, float, float]] = []
 
     ok = audio_file_compression.file_compressor(
         input_path=src,
         output_path=dst,
         quality=15,
+        file_progress_callback=lambda d, p, f, s: progress_calls.append((d, p, f, s)),
     )
 
     assert ok is True, f"Compression of '{src.name}' at quality=15 returned False."
@@ -623,8 +868,15 @@ def test_file_compressor_reduces_size_for_lossy_formats(
         f"Expected compressed '{ext}' ({dst.stat().st_size} B) to be smaller than "
         f"source ({src.stat().st_size} B)."
     )
+    assert progress_calls, (
+        f"Expected `file_progress_callback` to be invoked during '{ext}' compression."
+    )
+    assert all(d > 0 and 0.0 <= p <= d + 0.5 for d, p, _, _ in progress_calls), (
+        f"Invalid progress bounds reported during '{ext}' compression: {progress_calls}."
+    )
 
 
+@requires_libvorbis
 def test_file_compressor_handles_mono_ogg_at_max_quality_without_vorbis_error(
     sample_audio_factory, tmp_path: Path
 ):
@@ -648,7 +900,7 @@ def test_file_compressor_handles_mono_ogg_at_max_quality_without_vorbis_error(
     )
 
 
-@pytest.mark.parametrize("ext", ["wav", "flac", "aac", "aiff"])
+@pytest.mark.parametrize("ext", ["wav", "flac", "aiff"])
 def test_file_compressor_copies_uncompressible_formats_atomically(
     sample_audio_factory, tmp_path: Path, ext: str, monkeypatch
 ):
@@ -677,6 +929,49 @@ def test_file_compressor_copies_uncompressible_formats_atomically(
     )
 
 
+def test_file_compressor_copies_wma_uncompressible_format_atomically(
+    tmp_path: Path, monkeypatch
+):
+    """`WMA` in `UNCOMPRESSIBLE_AUDIO_FORMATS` must bypass FFmpeg transcoding and copy atomically."""
+    src = tmp_path / "legacy_track.wma"
+    payload = b"ASF_WMA_HEADER_AND_AUDIO_PAYLOAD_BYTES"
+    src.write_bytes(payload)
+    dst = tmp_path / "compressed" / "legacy_track.wma"
+
+    monkeypatch.setattr(
+        audio_file_compression,
+        "probe_audio_streams",
+        lambda *_args, **_kwargs: ffmpeg_audio_utils.AudioStreamInfo(
+            duration_seconds=12.0,
+            audio_codecs=["wmav2"],
+            sample_rate=44100,
+            channels=2,
+            channel_layout="stereo",
+        ),
+    )
+
+    def _forbid_strategies(*args, **kwargs):
+        raise AssertionError(
+            "run_audio_strategies must NOT be called for uncompressible format 'WMA'."
+        )
+
+    monkeypatch.setattr(
+        audio_file_compression, "run_audio_strategies", _forbid_strategies
+    )
+
+    ok = audio_file_compression.file_compressor(
+        input_path=src,
+        output_path=dst,
+        quality=50,
+    )
+
+    assert ok is True, "Uncompressible format 'wma' should succeed via atomic copy."
+    assert dst.exists() and dst.read_bytes() == payload, (
+        "Uncompressible format 'wma' must preserve exact source bytes."
+    )
+
+
+@requires_libmp3lame
 def test_file_compressor_keeps_original_when_compressed_is_not_smaller(
     sample_audio_factory, tmp_path: Path
 ):
@@ -696,6 +991,7 @@ def test_file_compressor_keeps_original_when_compressed_is_not_smaller(
     )
 
 
+@requires_libmp3lame
 def test_file_compressor_rejects_invalid_and_handles_cancellation(
     sample_audio_factory, tmp_path: Path
 ):
@@ -735,6 +1031,8 @@ def test_file_compressor_rejects_invalid_and_handles_cancellation(
 # ---------------------------------------------------------------------------
 
 
+@requires_libmp3lame
+@requires_libvorbis
 def test_directory_converter_preserves_hierarchy_and_handles_name_collisions(
     sample_audio_factory, tmp_path: Path
 ):
@@ -778,6 +1076,7 @@ def test_directory_converter_preserves_hierarchy_and_handles_name_collisions(
     )
 
 
+@requires_libmp3lame
 def test_directory_compressor_preserves_hierarchy_and_formats(
     sample_audio_factory, tmp_path: Path
 ):
@@ -866,6 +1165,7 @@ def test_file_compressor_monotonic_size_across_quality_curve(
     sample_audio_factory, tmp_path: Path, ext: str
 ):
     """Higher quality values (20 < 60 < 95) must produce strictly larger files on lossy encoders."""
+    _skip_if_format_encoders_unavailable(ext)
     src = sample_audio_factory(
         f"master_{ext}.wav", duration=2.5, channels=2
     )
@@ -892,6 +1192,7 @@ def test_file_compressor_monotonic_size_across_quality_curve(
     )
 
 
+@requires_libopus
 @pytest.mark.parametrize("sample_rate", [22050, 48000, 96000])
 def test_file_converter_handles_non_standard_sample_rates(
     tmp_path: Path, sample_rate: int
@@ -936,6 +1237,8 @@ def test_file_converter_handles_non_standard_sample_rates(
     )
 
 
+@requires_libmp3lame
+@requires_libvorbis
 def test_file_converter_and_compressor_trigger_rescue_stereo_fallback(
     sample_audio_factory, tmp_path: Path, monkeypatch
 ):
