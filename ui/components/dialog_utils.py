@@ -195,9 +195,7 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
     else:
         no_err_line = f"[OK] {t('log_no_errors')}"
         raw_log_text_list.append(no_err_line)
-        log_items.append(
-            ft.Text(no_err_line, size=11, color=get_color("success"))
-        )
+        log_items.append(ft.Text(no_err_line, size=11, color=get_color("success")))
 
     full_plain_log = "\n".join(raw_log_text_list)
 
@@ -231,9 +229,7 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
         """
         log_container.visible = not log_container.visible
         btn_toggle_log.text = (
-            t("log_btn_hide_logs")
-            if log_container.visible
-            else t("log_btn_view_logs")
+            t("log_btn_hide_logs") if log_container.visible else t("log_btn_view_logs")
         )
         dialog.update()
 
@@ -331,7 +327,9 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
                             str(failed),
                             size=16,
                             weight=ft.FontWeight.BOLD,
-                            color=get_color("error") if failed > 0 else get_color("text"),
+                            color=get_color("error")
+                            if failed > 0
+                            else get_color("text"),
                         ),
                     ],
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,

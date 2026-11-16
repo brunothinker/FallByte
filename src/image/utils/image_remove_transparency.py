@@ -51,8 +51,6 @@ def remove_transparency(
         return background
 
     except (ValueError, OSError) as e:
-        logger.error(
-            f"Failed to remove transparency from image: {e}", exc_info=True
-        )
+        logger.error(f"Failed to remove transparency from image: {e}", exc_info=True)
         # Fallback to standard RGB conversion if pasting fails
         return image.convert("RGB")

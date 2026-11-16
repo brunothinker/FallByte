@@ -120,9 +120,7 @@ def test_video_compressor_raises_when_cancelled(tmp_workspace, create_sample_vid
     cancel_event.set()
 
     with pytest.raises(InterruptedError):
-        video_compressor(
-            src_mp4, dst_file, quality=60, cancel_event=cancel_event
-        )
+        video_compressor(src_mp4, dst_file, quality=60, cancel_event=cancel_event)
 
     assert not dst_file.exists(), (
         "[video] Pre-cancelled video compression must not produce an output file."

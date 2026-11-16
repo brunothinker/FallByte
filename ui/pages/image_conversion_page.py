@@ -37,9 +37,7 @@ def create_conversion_page(
         label=t("lbl_target_format"),
         value=SUPPORTED_CONVERSION_FORMATS[0],
         width=385,
-        options=[
-            ft.dropdown.Option(fmt) for fmt in SUPPORTED_CONVERSION_FORMATS
-        ],
+        options=[ft.dropdown.Option(fmt) for fmt in SUPPORTED_CONVERSION_FORMATS],
     )
 
     color_options = get_color_options()
@@ -47,27 +45,19 @@ def create_conversion_page(
         label=t("lbl_transparency_color"),
         value=color_options[0][0],
         width=385,
-        options=[
-            ft.dropdown.Option(key, text=label) for key, label in color_options
-        ],
+        options=[ft.dropdown.Option(key, text=label) for key, label in color_options],
     )
 
     allowed_exts = [f.lower() for f in image_input_formats()]
 
     picker_in_file = ft.FilePicker(
-        on_result=lambda e: controller.handle_input_result(
-            e, lbl_in_path, lbl_status
-        )
+        on_result=lambda e: controller.handle_input_result(e, lbl_in_path, lbl_status)
     )
     picker_in_dir = ft.FilePicker(
-        on_result=lambda e: controller.handle_input_result(
-            e, lbl_in_path, lbl_status
-        )
+        on_result=lambda e: controller.handle_input_result(e, lbl_in_path, lbl_status)
     )
     picker_out = ft.FilePicker(
-        on_result=lambda e: controller.handle_output_result(
-            e, lbl_out_path, lbl_status
-        )
+        on_result=lambda e: controller.handle_output_result(e, lbl_out_path, lbl_status)
     )
 
     for p in (picker_in_file, picker_in_dir, picker_out):
@@ -104,7 +94,10 @@ def create_conversion_page(
     )
 
     lbl_notice = ft.Text(
-        t("msg_supported_formats_notice_conversion", formats=format_list(image_input_formats())),
+        t(
+            "msg_supported_formats_notice_conversion",
+            formats=format_list(image_input_formats()),
+        ),
         size=11,
         color=get_color("subtext"),
         text_align=ft.TextAlign.CENTER,

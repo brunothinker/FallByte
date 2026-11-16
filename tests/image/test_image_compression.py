@@ -25,9 +25,7 @@ def test_image_compression_keep_original_when_uncompressible(
     )
 
 
-def test_heic_image_compression_keeps_original(
-    tmp_workspace, create_sample_image
-):
+def test_heic_image_compression_keeps_original(tmp_workspace, create_sample_image):
     """Ensures HEIC files are handled safely by keeping the original file untouched."""
     in_dir, out_dir = tmp_workspace
 

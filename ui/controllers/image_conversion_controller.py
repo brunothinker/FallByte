@@ -1,5 +1,4 @@
 import logging
-
 import threading
 import time
 
@@ -18,6 +17,7 @@ from ui.theme import get_color
 from ui.utils.conversion_utils import resolve_color_key_to_hex
 from ui.utils.format_utils import image_input_formats
 from ui.utils.log_capture import TextRedirector
+
 logger = logging.getLogger(__name__)
 
 
@@ -40,9 +40,7 @@ class ConversionController(BaseController):
     ) -> None:
         """Routes trigger button click to execute process or request cancellation."""
         if self.is_processing:
-            self._confirm_cancel_process(
-                page, lbl_status, progress_bar, btn_action
-            )
+            self._confirm_cancel_process(page, lbl_status, progress_bar, btn_action)
         else:
             self.execute_conversion(
                 page,
@@ -263,9 +261,7 @@ class ConversionController(BaseController):
                 progress_bar.value = 1.0
                 progress_bar.update()
 
-                success_cnt = summary.get(
-                    "success", summary.get("successful", 0)
-                )
+                success_cnt = summary.get("success", summary.get("successful", 0))
                 total_cnt = summary.get("total_files", summary.get("total", 0))
 
                 lbl_status.value = t(
@@ -297,9 +293,7 @@ class ConversionController(BaseController):
 
             if self.abort_requested:
                 cleaned_count = summary.get("cleaned_files_count", 0)
-                lbl_status.value = t(
-                    "msg_process_cancelled", count=cleaned_count
-                )
+                lbl_status.value = t("msg_process_cancelled", count=cleaned_count)
                 lbl_status.color = get_color("error")
                 lbl_status.update()
 

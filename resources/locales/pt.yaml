@@ -123,7 +123,7 @@ strings:
   home_mod_audio_title: "Módulo de Áudio"
   home_mod_audio_desc: "Conversão e compressão de áudio em múltiplos formatos."
 
-  # Audio Hub Navigation Modules 
+  # Audio Hub Navigation Modules
   audio_hub_heading: "Processamento de Áudio"
   audio_hub_subheading: "Selecione a ferramenta que deseja utilizar"
   audio_hub_card_conversion_title: "Conversão de Áudio"

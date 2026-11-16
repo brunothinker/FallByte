@@ -45,9 +45,7 @@ class AudioCompressionController(BaseController):
     ) -> None:
         """Routes trigger button click to execute process or request cancellation."""
         if self.is_processing:
-            self._confirm_cancel_process(
-                page, lbl_status, progress_bar, btn_action
-            )
+            self._confirm_cancel_process(page, lbl_status, progress_bar, btn_action)
         else:
             self.prepare_and_execute(
                 page, quality, lbl_status, progress_bar, btn_action
@@ -157,9 +155,7 @@ class AudioCompressionController(BaseController):
             redirector.stop()
 
         elapsed = time.time() - start_time
-        comp_bytes = (
-            out_file.stat().st_size if success and out_file.exists() else 0
-        )
+        comp_bytes = out_file.stat().st_size if success and out_file.exists() else 0
 
         self._close_cancel_dialog(page)
 
@@ -239,9 +235,7 @@ class AudioCompressionController(BaseController):
         if len(unsupported_files) > 0:
             ext_set = {f.suffix.upper() for f in unsupported_files if f.suffix}
             sample_exts = (
-                ", ".join(list(ext_set)[:4])
-                if ext_set
-                else t("lbl_no_extension")
+                ", ".join(list(ext_set)[:4]) if ext_set else t("lbl_no_extension")
             )
 
             def close_dialog(_: ft.ControlEvent) -> None:
@@ -367,9 +361,7 @@ class AudioCompressionController(BaseController):
                 progress_bar.update()
 
                 successful_count = summary.get("success", 0)
-                total_count = summary.get("success", 0) + summary.get(
-                    "failed", 0
-                )
+                total_count = summary.get("success", 0) + summary.get("failed", 0)
 
                 lbl_status.value = t(
                     "msg_success_summary",
@@ -400,9 +392,7 @@ class AudioCompressionController(BaseController):
 
             if self.abort_requested:
                 cleaned_count = summary.get("cleaned_files_count", 0)
-                lbl_status.value = t(
-                    "msg_process_cancelled", count=cleaned_count
-                )
+                lbl_status.value = t("msg_process_cancelled", count=cleaned_count)
                 lbl_status.color = get_color("error")
                 lbl_status.update()
 

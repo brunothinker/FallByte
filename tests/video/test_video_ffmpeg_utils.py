@@ -269,8 +269,7 @@ def test_run_strategies_caps_stderr_buffer_and_logs_only_tail(
     """Ensures stderr accumulation stays bounded (`STDERR_TAIL_BUFFER_SIZE`) on verbose failures."""
     total_lines = STDERR_TAIL_BUFFER_SIZE * 10
     verbose_stderr = "".join(
-        f"frame={i} diagnostic error detail line {i}\n"
-        for i in range(total_lines)
+        f"frame={i} diagnostic error detail line {i}\n" for i in range(total_lines)
     ).encode("utf-8")
 
     class FakeFailingProcess:

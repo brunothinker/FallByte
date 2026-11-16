@@ -30,7 +30,9 @@ def test_ui_log_reflects_failed_compression(tmp_workspace, mock_page):
     btn_action = MagicMock(spec=ft.ElevatedButton)
 
     # Intercept summary dialog invocation to inspect injected summary payload
-    with patch("ui.controllers.image_compression_controller.show_summary_dialog") as mock_show_dialog:
+    with patch(
+        "ui.controllers.image_compression_controller.show_summary_dialog"
+    ) as mock_show_dialog:
         # Execute batch processing synchronously in test environment
         controller._run_batch_compression(
             page=mock_page,
@@ -91,11 +93,14 @@ def test_video_compression_preflight_empty_supported_files(tmp_workspace, mock_p
     progress_bar = MagicMock(spec=ft.ProgressBar)
     btn_action = MagicMock(spec=ft.ElevatedButton)
 
-    with patch(
-        "ui.controllers.video_compression_controller.show_no_supported_files_dialog"
-    ) as mock_no_files, patch(
-        "ui.controllers.video_compression_controller.threading.Thread"
-    ) as mock_thread:
+    with (
+        patch(
+            "ui.controllers.video_compression_controller.show_no_supported_files_dialog"
+        ) as mock_no_files,
+        patch(
+            "ui.controllers.video_compression_controller.threading.Thread"
+        ) as mock_thread,
+    ):
         controller._preflight_batch_execution(
             page=mock_page,
             quality=80,
@@ -126,9 +131,14 @@ def test_image_compression_batch_no_supported_files(tmp_workspace, mock_page):
     progress_bar = MagicMock(spec=ft.ProgressBar)
     btn_action = MagicMock(spec=ft.ElevatedButton)
 
-    with patch("ui.controllers.image_compression_controller.show_summary_dialog") as mock_summary, patch(
-        "ui.controllers.image_compression_controller.show_no_supported_files_dialog"
-    ) as mock_no_files:
+    with (
+        patch(
+            "ui.controllers.image_compression_controller.show_summary_dialog"
+        ) as mock_summary,
+        patch(
+            "ui.controllers.image_compression_controller.show_no_supported_files_dialog"
+        ) as mock_no_files,
+    ):
         controller._run_batch_compression(
             page=mock_page,
             quality=80,
@@ -160,9 +170,14 @@ def test_image_conversion_batch_no_supported_files(tmp_workspace, mock_page):
     progress_bar = MagicMock(spec=ft.ProgressBar)
     btn_action = MagicMock(spec=ft.ElevatedButton)
 
-    with patch("ui.controllers.image_conversion_controller.show_summary_dialog") as mock_summary, patch(
-        "ui.controllers.image_conversion_controller.show_no_supported_files_dialog"
-    ) as mock_no_files:
+    with (
+        patch(
+            "ui.controllers.image_conversion_controller.show_summary_dialog"
+        ) as mock_summary,
+        patch(
+            "ui.controllers.image_conversion_controller.show_no_supported_files_dialog"
+        ) as mock_no_files,
+    ):
         controller._execute_batch_directory(
             page=mock_page,
             target_format="webp",
@@ -195,9 +210,14 @@ def test_video_conversion_batch_no_supported_files(tmp_workspace, mock_page):
     progress_bar = MagicMock(spec=ft.ProgressBar)
     btn_action = MagicMock(spec=ft.ElevatedButton)
 
-    with patch("ui.controllers.video_conversion_controller.show_summary_dialog") as mock_summary, patch(
-        "ui.controllers.video_conversion_controller.show_no_supported_files_dialog"
-    ) as mock_no_files:
+    with (
+        patch(
+            "ui.controllers.video_conversion_controller.show_summary_dialog"
+        ) as mock_summary,
+        patch(
+            "ui.controllers.video_conversion_controller.show_no_supported_files_dialog"
+        ) as mock_no_files,
+    ):
         controller._execute_batch_directory(
             page=mock_page,
             target_format="mp4",
@@ -216,7 +236,9 @@ def test_video_conversion_batch_no_supported_files(tmp_workspace, mock_page):
         )
 
 
-def test_single_file_compression_does_not_overwrite_preexisting_file(tmp_workspace, mock_page, monkeypatch):
+def test_single_file_compression_does_not_overwrite_preexisting_file(
+    tmp_workspace, mock_page, monkeypatch
+):
     """Verifies that single-file compression uses unique output naming and does not overwrite existing destination files."""
     in_dir, out_dir = tmp_workspace
     src_file = in_dir / "sample.png"
@@ -234,10 +256,14 @@ def test_single_file_compression_does_not_overwrite_preexisting_file(tmp_workspa
     progress_bar = MagicMock(spec=ft.ProgressBar)
     btn_action = MagicMock(spec=ft.ElevatedButton)
 
-    monkeypatch.setattr("ui.controllers.image_compression_controller.show_summary_dialog", MagicMock())
+    monkeypatch.setattr(
+        "ui.controllers.image_compression_controller.show_summary_dialog", MagicMock()
+    )
     monkeypatch.setattr(
         "ui.controllers.image_compression_controller.file_compressor",
-        lambda input_path, output_path, quality: output_path.write_bytes(b"compressed data") or True,
+        lambda input_path, output_path, quality: (
+            output_path.write_bytes(b"compressed data") or True
+        ),
     )
 
     controller._execute_single_file(
@@ -262,7 +288,9 @@ def test_single_file_compression_does_not_overwrite_preexisting_file(tmp_workspa
     )
 
 
-def test_single_file_compression_cancellation_preserves_preexisting_file(tmp_workspace, mock_page, monkeypatch):
+def test_single_file_compression_cancellation_preserves_preexisting_file(
+    tmp_workspace, mock_page, monkeypatch
+):
     """Verifies that cancelling single-file compression does not delete pre-existing user files in the destination."""
     in_dir, out_dir = tmp_workspace
     src_file = in_dir / "sample.mp4"
@@ -281,7 +309,9 @@ def test_single_file_compression_cancellation_preserves_preexisting_file(tmp_wor
     progress_bar = MagicMock(spec=ft.ProgressBar)
     btn_action = MagicMock(spec=ft.ElevatedButton)
 
-    monkeypatch.setattr("ui.controllers.video_compression_controller.show_summary_dialog", MagicMock())
+    monkeypatch.setattr(
+        "ui.controllers.video_compression_controller.show_summary_dialog", MagicMock()
+    )
     monkeypatch.setattr(
         "ui.controllers.video_compression_controller.file_compressor",
         lambda **kwargs: False,
@@ -320,11 +350,14 @@ def test_audio_compression_preflight_blocks_uncompressible_only_directory(
     progress_bar = MagicMock(spec=ft.ProgressBar)
     btn_action = MagicMock(spec=ft.ElevatedButton)
 
-    with patch(
-        "ui.controllers.audio_compression_controller.show_no_supported_files_dialog"
-    ) as mock_no_files, patch(
-        "ui.controllers.audio_compression_controller.threading.Thread"
-    ) as mock_thread:
+    with (
+        patch(
+            "ui.controllers.audio_compression_controller.show_no_supported_files_dialog"
+        ) as mock_no_files,
+        patch(
+            "ui.controllers.audio_compression_controller.threading.Thread"
+        ) as mock_thread,
+    ):
         controller._preflight_batch_execution(
             page=mock_page,
             quality=80,
@@ -390,11 +423,14 @@ def test_audio_conversion_batch_no_supported_files(tmp_workspace, mock_page):
     progress_bar = MagicMock(spec=ft.ProgressBar)
     btn_action = MagicMock(spec=ft.ElevatedButton)
 
-    with patch(
-        "ui.controllers.audio_conversion_controller.show_summary_dialog"
-    ) as mock_summary, patch(
-        "ui.controllers.audio_conversion_controller.show_no_supported_files_dialog"
-    ) as mock_no_files:
+    with (
+        patch(
+            "ui.controllers.audio_conversion_controller.show_summary_dialog"
+        ) as mock_summary,
+        patch(
+            "ui.controllers.audio_conversion_controller.show_no_supported_files_dialog"
+        ) as mock_no_files,
+    ):
         controller._execute_batch_directory(
             page=mock_page,
             target_format="mp3",

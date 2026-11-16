@@ -62,9 +62,7 @@ def _normalize_format(fmt: str) -> str:
 def _to_8bit(frame: Image.Image) -> Image.Image:
     """Scales 16/32-bit images down to 8-bit grayscale instead of clipping."""
     if frame.mode in HIGH_DEPTH_MODES:
-        return (
-            frame.convert("I").point(lambda p: p * (1 / 256)).convert("L")
-        )
+        return frame.convert("I").point(lambda p: p * (1 / 256)).convert("L")
     if frame.mode == "F":
         return frame.convert("L")
     return frame
@@ -75,9 +73,7 @@ def _square_for_ico(frame: Image.Image) -> Image.Image:
     side = max(frame.size)
     if frame.size != (side, side):
         canvas = Image.new("RGBA", (side, side), (0, 0, 0, 0))
-        canvas.paste(
-            frame, ((side - frame.width) // 2, (side - frame.height) // 2)
-        )
+        canvas.paste(frame, ((side - frame.width) // 2, (side - frame.height) // 2))
         frame = canvas
     if side > 256:
         frame = frame.resize((256, 256), Image.Resampling.LANCZOS)
@@ -86,9 +82,7 @@ def _square_for_ico(frame: Image.Image) -> Image.Image:
     return frame
 
 
-def _prepare_frame(
-    frame: Image.Image, fmt: str, background_color: str
-) -> Image.Image:
+def _prepare_frame(frame: Image.Image, fmt: str, background_color: str) -> Image.Image:
     """Converts a frame into a pixel mode the target format can write."""
     if fmt in NON_ALPHA_FORMATS:
         frame = remove_transparency(frame, background_color)
@@ -190,8 +184,7 @@ def file_converter(
 
             frames, durations = _load_frames(img, src_fmt, fmt)
             prepared = [
-                _prepare_frame(f, fmt, transparency_replacement_color)
-                for f in frames
+                _prepare_frame(f, fmt, transparency_replacement_color) for f in frames
             ]
             multi = len(prepared) > 1
             if multi and fmt == "WEBP":
@@ -222,15 +215,11 @@ def file_converter(
 
         os.replace(tmp_path, output_path)
 
-        logger.info(
-            f"Successfully converted '{input_path.name}' to '{fmt}'."
-        )
+        logger.info(f"Successfully converted '{input_path.name}' to '{fmt}'.")
         return True
 
     except Exception as e:
-        logger.error(
-            f"Failed to convert '{input_path.name}': {e}", exc_info=True
-        )
+        logger.error(f"Failed to convert '{input_path.name}': {e}", exc_info=True)
         if tmp_path and tmp_path.exists():
             tmp_path.unlink(missing_ok=True)
         return False

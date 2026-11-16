@@ -45,9 +45,7 @@ def test_image_conversion_matrix(
     )
 
 
-def test_heic_image_conversion_to_target_formats(
-    tmp_workspace, create_sample_image
-):
+def test_heic_image_conversion_to_target_formats(tmp_workspace, create_sample_image):
     """Verifies HEIC/HEIF image input conversion to other supported target formats."""
     in_dir, out_dir = tmp_workspace
 
@@ -94,9 +92,7 @@ def test_ico_sizing_clamp(tmp_workspace, create_sample_image):
     assert success is True, (
         "[image] ICO conversion of a 500x500 PNG unexpectedly returned False."
     )
-    assert dst_ico.exists(), (
-        "[image] Converted ICO file was not written to disk."
-    )
+    assert dst_ico.exists(), "[image] Converted ICO file was not written to disk."
 
     with Image.open(dst_ico) as img:
         assert img.size[0] <= 256, (

@@ -45,19 +45,13 @@ def create_video_conversion_page(
     allowed_exts = [f.lower() for f in video_input_formats()]
 
     picker_in_file = ft.FilePicker(
-        on_result=lambda e: controller.handle_input_result(
-            e, lbl_in_path, lbl_status
-        )
+        on_result=lambda e: controller.handle_input_result(e, lbl_in_path, lbl_status)
     )
     picker_in_dir = ft.FilePicker(
-        on_result=lambda e: controller.handle_input_result(
-            e, lbl_in_path, lbl_status
-        )
+        on_result=lambda e: controller.handle_input_result(e, lbl_in_path, lbl_status)
     )
     picker_out = ft.FilePicker(
-        on_result=lambda e: controller.handle_output_result(
-            e, lbl_out_path, lbl_status
-        )
+        on_result=lambda e: controller.handle_output_result(e, lbl_out_path, lbl_status)
     )
 
     for p in (picker_in_file, picker_in_dir, picker_out):
@@ -94,7 +88,10 @@ def create_video_conversion_page(
     )
 
     lbl_notice = ft.Text(
-        t("msg_supported_formats_notice_conversion", formats=format_list(video_input_formats())),
+        t(
+            "msg_supported_formats_notice_conversion",
+            formats=format_list(video_input_formats()),
+        ),
         size=11,
         color=get_color("subtext"),
         text_align=ft.TextAlign.CENTER,

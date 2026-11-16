@@ -152,14 +152,13 @@ def test_file_converter_rejects_invalid_inputs_safely(
     empty = tmp_path / "empty.wav"
     empty.write_bytes(b"")
     assert (
-        audio_file_conversion.file_converter(empty, tmp_path / "o.mp3", "mp3")
-        is False
+        audio_file_conversion.file_converter(empty, tmp_path / "o.mp3", "mp3") is False
     ), "[audio] Zero-byte source file must return False."
 
     valid = sample_audio_factory("valid.wav", duration=0.5)
-    assert (
-        audio_file_conversion.file_converter(valid, valid, "mp3") is False
-    ), "[audio] Converter must refuse to overwrite the source file when input_path == output_path."
+    assert audio_file_conversion.file_converter(valid, valid, "mp3") is False, (
+        "[audio] Converter must refuse to overwrite the source file when input_path == output_path."
+    )
 
     corrupt = tmp_path / "corrupt.mp3"
     corrupt.write_bytes(b"not-a-valid-audio-stream-at-all")
@@ -279,17 +278,17 @@ def test_file_converter_and_compressor_trigger_rescue_stereo_fallback(
     )
 
     assert (
-        audio_file_conversion.file_converter(src, conv_dst, target_format="ogg")
-        is True
-    ), "[audio] file_converter did not recover using the rescue stereo transcode strategy."
+        audio_file_conversion.file_converter(src, conv_dst, target_format="ogg") is True
+    ), (
+        "[audio] file_converter did not recover using the rescue stereo transcode strategy."
+    )
     assert conv_dst.exists() and conv_dst.stat().st_size > 0, (
         "[audio] Rescue conversion did not produce a non-empty output file."
     )
 
-    assert (
-        audio_file_compression.file_compressor(src, comp_dst, quality=30)
-        is True
-    ), "[audio] file_compressor did not recover using the rescue stereo compression strategy."
+    assert audio_file_compression.file_compressor(src, comp_dst, quality=30) is True, (
+        "[audio] file_compressor did not recover using the rescue stereo compression strategy."
+    )
     assert comp_dst.exists() and comp_dst.stat().st_size > 0, (
         "[audio] Rescue compression did not produce a non-empty output file."
     )

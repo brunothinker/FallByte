@@ -28,9 +28,7 @@ def image_input_formats() -> list[str]:
 def image_compression_formats() -> list[str]:
     """Image formats that are really re-encoded by the compression module."""
     return [
-        name
-        for name in image_input_formats()
-        if name not in UNCOMPRESSIBLE_FORMATS
+        name for name in image_input_formats() if name not in UNCOMPRESSIBLE_FORMATS
     ]
 
 

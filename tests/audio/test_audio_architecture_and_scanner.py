@@ -42,7 +42,15 @@ def test_audio_module_has_zero_cross_imports_from_video_or_image():
 def test_audio_format_constants_consistency():
     """Verifies that target and uncompressible audio formats align with supported extensions."""
     expected_exts = {
-        ".mp3", ".m4a", ".aac", ".ogg", ".opus", ".flac", ".wav", ".wma", ".aiff"
+        ".mp3",
+        ".m4a",
+        ".aac",
+        ".ogg",
+        ".opus",
+        ".flac",
+        ".wav",
+        ".wma",
+        ".aiff",
     }
     assert SUPPORTED_AUDIO_EXTENSIONS == expected_exts, (
         f"[audio] SUPPORTED_AUDIO_EXTENSIONS mismatch: got {SUPPORTED_AUDIO_EXTENSIONS}, "

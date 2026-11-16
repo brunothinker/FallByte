@@ -1,6 +1,4 @@
-def validate_quality_value(
-    val: float | str, default: int = 80
-) -> int:
+def validate_quality_value(val: float | str, default: int = 80) -> int:
     """
     Validates and clamps quality value strictly between 1 and 100.
     Returns 'default' if input parsing fails.

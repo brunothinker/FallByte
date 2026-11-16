@@ -41,9 +41,7 @@ def copy_original_file_atomically(
         logger.info(f"'{input_path.name}' kept as-is: {reason}.")
         return True
     except Exception as e:
-        logger.error(
-            f"Failed to copy original file for '{input_path.name}': {e}"
-        )
+        logger.error(f"Failed to copy original file for '{input_path.name}': {e}")
         if tmp_path and tmp_path.exists():
             tmp_path.unlink(missing_ok=True)
         return False
@@ -91,9 +89,7 @@ def safe_cleanup_session_files(
 
         # Never delete files that pre-existed before the batch session started
         if file_key in pre_existing_set:
-            logger.info(
-                f"Preserving pre-existing file from deletion: '{file_path}'"
-            )
+            logger.info(f"Preserving pre-existing file from deletion: '{file_path}'")
             continue
 
         if file_path.exists():
@@ -107,13 +103,9 @@ def safe_cleanup_session_files(
                 file_path.unlink()
                 cleaned_count += 1
             except OSError as e:
-                logger.warning(
-                    f"Failed to remove session file '{file_path}': {e}"
-                )
+                logger.warning(f"Failed to remove session file '{file_path}': {e}")
 
-    for folder in sorted(
-        affected_dirs, key=lambda p: len(p.parts), reverse=True
-    ):
+    for folder in sorted(affected_dirs, key=lambda p: len(p.parts), reverse=True):
         try:
             if (
                 base_path is not None
@@ -130,8 +122,6 @@ def safe_cleanup_session_files(
             if not any(base_path.iterdir()):
                 base_path.rmdir()
         except OSError as e:
-            logger.warning(
-                f"Failed to remove empty session folder '{base_path}': {e}"
-            )
+            logger.warning(f"Failed to remove empty session folder '{base_path}': {e}")
 
     return cleaned_count

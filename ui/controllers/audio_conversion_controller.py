@@ -51,9 +51,7 @@ class AudioConversionController(BaseController):
     ) -> None:
         """Routes trigger button click to execute process or request cancellation."""
         if self.is_processing:
-            self._confirm_cancel_process(
-                page, lbl_status, progress_bar, btn_action
-            )
+            self._confirm_cancel_process(page, lbl_status, progress_bar, btn_action)
         else:
             self.execute_conversion(
                 page,
@@ -328,9 +326,7 @@ class AudioConversionController(BaseController):
 
             if self.abort_requested:
                 cleaned_count = summary.get("cleaned_files_count", 0)
-                lbl_status.value = t(
-                    "msg_process_cancelled", count=cleaned_count
-                )
+                lbl_status.value = t("msg_process_cancelled", count=cleaned_count)
                 lbl_status.color = get_color("error")
                 lbl_status.update()
 

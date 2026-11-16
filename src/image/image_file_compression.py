@@ -58,9 +58,7 @@ def _quantize_png(img: Image.Image, quality: int) -> Image.Image:
         return img
 
 
-def file_compressor(
-    input_path: Path, output_path: Path, quality: int = 80
-) -> bool:
+def file_compressor(input_path: Path, output_path: Path, quality: int = 80) -> bool:
     """Compresses a single image file while strictly maintaining its original format.
 
     Uses format-specific optimizations: quality levels for JPEG/WEBP,
@@ -139,9 +137,7 @@ def file_compressor(
             exif = final_img.info.get("exif")
 
             if fmt == "JPEG":
-                save_kwargs.update(
-                    quality=quality, optimize=True, progressive=True
-                )
+                save_kwargs.update(quality=quality, optimize=True, progressive=True)
                 if exif:
                     save_kwargs["exif"] = exif
             elif fmt == "WEBP":

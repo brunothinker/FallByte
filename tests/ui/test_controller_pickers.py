@@ -130,7 +130,9 @@ def test_handle_output_result_cancelled_keeps_state(ctx):
 def test_open_picker_uses_get_safe_initial_directory(ctx, monkeypatch):
     """Regression test ensuring open_picker uses get_safe_initial_directory to prevent OS picker crashes."""
     mock_get_safe = MagicMock(return_value=str(Path.home()))
-    monkeypatch.setattr("ui.controllers.base_controller.get_safe_initial_directory", mock_get_safe)
+    monkeypatch.setattr(
+        "ui.controllers.base_controller.get_safe_initial_directory", mock_get_safe
+    )
 
     picker = MagicMock()
     non_existent_path = ctx.in_dir / "deleted_folder"
@@ -139,7 +141,9 @@ def test_open_picker_uses_get_safe_initial_directory(ctx, monkeypatch):
     ctx.controller.open_picker(picker, allow_directory=True)
 
     mock_get_safe.assert_called_once_with(non_existent_path)
-    picker.get_directory_path.assert_called_once_with(initial_directory=str(Path.home()))
+    picker.get_directory_path.assert_called_once_with(
+        initial_directory=str(Path.home())
+    )
 
 
 def test_open_picker_fallback_to_home_on_deleted_directory(ctx):
@@ -151,5 +155,7 @@ def test_open_picker_fallback_to_home_on_deleted_directory(ctx):
     ctx.controller.open_picker(picker, allow_directory=False)
 
     picker.pick_files.assert_called_once_with(
-        allow_multiple=False, initial_directory=str(Path.home()), allowed_extensions=None
+        allow_multiple=False,
+        initial_directory=str(Path.home()),
+        allowed_extensions=None,
     )

@@ -133,9 +133,7 @@ def create_app_layout(
                 page.dark_theme = build_flet_theme()
 
                 page.theme_mode = (
-                    ft.ThemeMode.LIGHT
-                    if key.endswith("_light")
-                    else ft.ThemeMode.DARK
+                    ft.ThemeMode.LIGHT if key.endswith("_light") else ft.ThemeMode.DARK
                 )
 
                 theme_dialog.open = False
@@ -342,7 +340,12 @@ def create_app_layout(
 
     # Navigation items setup built dynamically from central registry
     nav_items_data = [
-        {"id": "home", "route": "home", "title_key": "nav_home", "icon": ft.icons.HOME_OUTLINED}
+        {
+            "id": "home",
+            "route": "home",
+            "title_key": "nav_home",
+            "icon": ft.icons.HOME_OUTLINED,
+        }
     ] + [
         {
             "id": mod.id,
@@ -389,12 +392,16 @@ def create_app_layout(
             ink=True,
             tooltip=None,
             on_click=lambda _: navigate_to(route),
-            on_hover=lambda e: setattr(
-                e.control,
-                "bgcolor",
-                get_color("card_hover") if e.data == "true" or is_active else ft.colors.TRANSPARENT,
-            )
-            or e.control.update(),
+            on_hover=lambda e: (
+                setattr(
+                    e.control,
+                    "bgcolor",
+                    get_color("card_hover")
+                    if e.data == "true" or is_active
+                    else ft.colors.TRANSPARENT,
+                )
+                or e.control.update()
+            ),
         )
         container.data = {
             "id": module_id,
@@ -414,16 +421,24 @@ def create_app_layout(
         for btn in sidebar_buttons:
             if isinstance(btn, ft.Container) and isinstance(btn.data, dict):
                 is_active = btn.data["id"] == active_module
-                btn.bgcolor = get_color("card_hover") if is_active else ft.colors.TRANSPARENT
+                btn.bgcolor = (
+                    get_color("card_hover") if is_active else ft.colors.TRANSPARENT
+                )
 
                 icon_ctrl = btn.data["icon_control"]
                 text_ctrl = btn.data["text_control"]
 
                 if isinstance(icon_ctrl, ft.Icon):
-                    icon_ctrl.color = get_color("primary") if is_active else get_color("subtext")
+                    icon_ctrl.color = (
+                        get_color("primary") if is_active else get_color("subtext")
+                    )
                 if isinstance(text_ctrl, ft.Text):
-                    text_ctrl.color = get_color("text") if is_active else get_color("subtext")
-                    text_ctrl.weight = ft.FontWeight.W_600 if is_active else ft.FontWeight.NORMAL
+                    text_ctrl.color = (
+                        get_color("text") if is_active else get_color("subtext")
+                    )
+                    text_ctrl.weight = (
+                        ft.FontWeight.W_600 if is_active else ft.FontWeight.NORMAL
+                    )
                 if btn.page:
                     btn.update()
 

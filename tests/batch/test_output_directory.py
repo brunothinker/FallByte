@@ -262,9 +262,7 @@ def test_directory_processor_does_not_create_session_folder_without_valid_files(
     monkeypatch.setattr(module, scanner_name, lambda _input_dir: [])
 
     def unexpected_processor(*_args, **_kwargs):
-        pytest.fail(
-            "The file processor must not run when there are no valid files"
-        )
+        pytest.fail("The file processor must not run when there are no valid files")
 
     monkeypatch.setattr(module, processor_name, unexpected_processor)
 

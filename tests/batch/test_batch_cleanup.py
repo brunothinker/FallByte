@@ -32,9 +32,7 @@ def test_image_batch_cancellation_removes_empty_session_folder(
     )
 
 
-def test_video_batch_conversion_cleans_up_when_cancelled(
-    tmp_workspace, monkeypatch
-):
+def test_video_batch_conversion_cleans_up_when_cancelled(tmp_workspace, monkeypatch):
     """Ensures an interruption inside the file processor triggers session cleanup."""
     in_dir, out_dir = tmp_workspace
     (in_dir / "a_clip.avi").write_bytes(b"first source")
@@ -49,9 +47,7 @@ def test_video_batch_conversion_cleans_up_when_cancelled(
         output_path.write_bytes(input_path.read_bytes())
         return True
 
-    monkeypatch.setattr(
-        video_conversion, "file_converter", fake_converter
-    )
+    monkeypatch.setattr(video_conversion, "file_converter", fake_converter)
 
     stats = video_conversion.directory_converter(
         in_dir, out_dir, target_format="mp4", cancel_event=threading.Event()
@@ -75,14 +71,10 @@ def test_video_batch_compression_removes_empty_session_folder_when_cancelled(
     in_dir, out_dir = tmp_workspace
     (in_dir / "clip.mp4").write_bytes(b"source")
 
-    def fake_compressor(
-        input_path, output_path, quality, cancel_event=None, **_kwargs
-    ):
+    def fake_compressor(input_path, output_path, quality, cancel_event=None, **_kwargs):
         raise InterruptedError("CANCELLED_BY_USER")
 
-    monkeypatch.setattr(
-        video_compression, "file_compressor", fake_compressor
-    )
+    monkeypatch.setattr(video_compression, "file_compressor", fake_compressor)
 
     stats = video_compression.directory_compressor(
         in_dir, out_dir, quality=80, cancel_event=threading.Event()
@@ -96,9 +88,7 @@ def test_video_batch_compression_removes_empty_session_folder_when_cancelled(
     )
 
 
-def test_audio_batch_conversion_cleans_up_when_cancelled(
-    tmp_workspace, monkeypatch
-):
+def test_audio_batch_conversion_cleans_up_when_cancelled(tmp_workspace, monkeypatch):
     """Ensures an interruption inside the audio file processor triggers session cleanup."""
     in_dir, out_dir = tmp_workspace
     (in_dir / "a_track.wav").write_bytes(b"first source")
@@ -113,9 +103,7 @@ def test_audio_batch_conversion_cleans_up_when_cancelled(
         output_path.write_bytes(input_path.read_bytes())
         return True
 
-    monkeypatch.setattr(
-        audio_conversion, "file_converter", fake_converter
-    )
+    monkeypatch.setattr(audio_conversion, "file_converter", fake_converter)
 
     stats = audio_conversion.directory_converter(
         in_dir, out_dir, target_format="mp3", cancel_event=threading.Event()
@@ -143,9 +131,7 @@ def test_safe_cleanup_preserves_user_files(tmp_workspace):
     session_file.parent.mkdir(parents=True, exist_ok=True)
     session_file.write_text("temporary image data")
 
-    cleaned_count = safe_cleanup_session_files(
-        [session_file], root_output_dir=out_dir
-    )
+    cleaned_count = safe_cleanup_session_files([session_file], root_output_dir=out_dir)
 
     assert cleaned_count == 1, (
         "[batch] safe_cleanup_session_files must report 1 removed session file."

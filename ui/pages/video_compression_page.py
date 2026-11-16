@@ -39,9 +39,7 @@ def create_video_compression_page(
     def on_slider_change(e: ft.ControlEvent) -> None:
         """Updates quality display label upon slider changes."""
         raw_val = e.control.value if e.control.value is not None else 80
-        lbl_quality_val.value = t(
-            "lbl_quality_percentage", value=int(raw_val)
-        )
+        lbl_quality_val.value = t("lbl_quality_percentage", value=int(raw_val))
         lbl_quality_val.update()
 
     slider_quality = ft.Slider(
@@ -76,19 +74,13 @@ def create_video_compression_page(
     allowed_exts = [f.lower() for f in video_input_formats()]
 
     picker_in_file = ft.FilePicker(
-        on_result=lambda e: controller.handle_input_result(
-            e, lbl_in_path, lbl_status
-        )
+        on_result=lambda e: controller.handle_input_result(e, lbl_in_path, lbl_status)
     )
     picker_in_dir = ft.FilePicker(
-        on_result=lambda e: controller.handle_input_result(
-            e, lbl_in_path, lbl_status
-        )
+        on_result=lambda e: controller.handle_input_result(e, lbl_in_path, lbl_status)
     )
     picker_out = ft.FilePicker(
-        on_result=lambda e: controller.handle_output_result(
-            e, lbl_out_path, lbl_status
-        )
+        on_result=lambda e: controller.handle_output_result(e, lbl_out_path, lbl_status)
     )
 
     for p in (picker_in_file, picker_in_dir, picker_out):

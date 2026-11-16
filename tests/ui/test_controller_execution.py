@@ -127,9 +127,7 @@ def test_batch_success_shows_summary_and_restores_ui(ctx):
     )
     assert ctx.lbl_status.value == t(
         "msg_success_summary", msg=t("msg_success"), successful=2, total=3
-    ), (
-        "[ui] Status label must display the formatted 'X of Y' batch completion summary."
-    )
+    ), "[ui] Status label must display the formatted 'X of Y' batch completion summary."
     assert "terminal_log" in ctx.summary_payload(), (
         "[ui] Batch summary payload must include captured terminal_log output."
     )

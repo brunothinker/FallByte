@@ -15,9 +15,7 @@ def test_video_conversion_all_formats(
     src_mp4 = create_sample_video(in_dir / "input.mp4", duration_sec=1)
 
     dst_file = out_dir / f"output.{target_format}"
-    success = video_converter(
-        src_mp4, dst_file, target_format=target_format
-    )
+    success = video_converter(src_mp4, dst_file, target_format=target_format)
 
     assert success is True, (
         f"[video] Video conversion from MP4 to '{target_format}' unexpectedly returned False."
@@ -70,21 +68,17 @@ def test_process_files_with_special_characters_and_spaces(
     special_folder = in_dir / "Vídeos & Imagens de Teste (2026) #1"
     special_folder.mkdir(parents=True, exist_ok=True)
 
-    special_video = special_folder / "vídeo de teste 100%_ok.mp4"
-    special_image = special_folder / "imagem com acentuação & espaço.png"
+    special_video = special_folder / "test video 100%_ok.mp4"
+    special_image = special_folder / "image with accents & spaces.png"
 
     create_sample_video(special_video, duration_sec=1)
     create_sample_image(special_image, mode="RGB", fmt="PNG")
 
-    out_video = out_dir / "vídeo_convertido_output.mkv"
-    out_image = out_dir / "imagem_convertida_output.jpg"
+    out_video = out_dir / "converted_video_output.mkv"
+    out_image = out_dir / "converted_image_output.jpg"
 
-    video_success = video_converter(
-        special_video, out_video, target_format="mkv"
-    )
-    image_success = file_converter(
-        special_image, out_image, target_format="JPEG"
-    )
+    video_success = video_converter(special_video, out_video, target_format="mkv")
+    image_success = file_converter(special_image, out_image, target_format="JPEG")
 
     assert video_success is True, (
         "[video] Video conversion failed on paths containing Unicode accents, spaces, and symbols."
@@ -105,9 +99,7 @@ def test_process_non_existent_file_handling(tmp_path):
     fake_input = tmp_path / "ghost_file.mp4"
     fake_output = tmp_path / "output.mp4"
 
-    video_success = video_converter(
-        fake_input, fake_output, target_format="mp4"
-    )
+    video_success = video_converter(fake_input, fake_output, target_format="mp4")
 
     assert video_success is False, (
         "[video] Converting a non-existent input file must return False without raising."
@@ -124,9 +116,7 @@ def test_process_corrupted_media_file_handling(tmp_path):
 
     output_file = tmp_path / "failed_output.mp4"
 
-    video_success = video_converter(
-        corrupted_file, output_file, target_format="mp4"
-    )
+    video_success = video_converter(corrupted_file, output_file, target_format="mp4")
 
     assert video_success is False, (
         "[video] Converting a corrupted media file must return False gracefully."
@@ -147,9 +137,7 @@ def test_video_conversion_atomic_write_on_failure(tmp_workspace):
 
     success = video_converter(corrupted_file, output_file, target_format="mp4")
 
-    assert success is False, (
-        "[video] Conversion of corrupted input must return False."
-    )
+    assert success is False, "[video] Conversion of corrupted input must return False."
     assert output_file.exists(), (
         "[video] Failed video conversion must not delete a pre-existing destination file."
     )

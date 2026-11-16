@@ -34,9 +34,7 @@ def shutdown_active_processes() -> None:
         try:
             termination_fn()
         except (OSError, subprocess.SubprocessError) as err:
-            logger.debug(
-                "Error while terminating active FFmpeg processes: %s", err
-            )
+            logger.debug("Error while terminating active FFmpeg processes: %s", err)
 
 
 def parse_cli_args() -> argparse.Namespace:
@@ -85,16 +83,11 @@ def setup_logging(debug: bool = False) -> Path:
     root = logging.getLogger()
     root.setLevel(logging.DEBUG if debug else logging.INFO)
 
-    if any(
-        (handler.name or "").startswith("fallbyte_")
-        for handler in root.handlers
-    ):
+    if any((handler.name or "").startswith("fallbyte_") for handler in root.handlers):
         return LOG_FILE
 
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    formatter = logging.Formatter(
-        "%(asctime)s %(levelname)s %(name)s: %(message)s"
-    )
+    formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
 
     file_handler = RotatingFileHandler(
         LOG_FILE, maxBytes=1_000_000, backupCount=3, encoding="utf-8"
@@ -133,9 +126,7 @@ def main(page: ft.Page) -> None:
 
     page.title = t("app_title")
     page.theme_mode = (
-        ft.ThemeMode.LIGHT
-        if saved_theme.endswith("_light")
-        else ft.ThemeMode.DARK
+        ft.ThemeMode.LIGHT if saved_theme.endswith("_light") else ft.ThemeMode.DARK
     )
 
     # Set native page background color to match active theme

@@ -23,7 +23,23 @@ def directory_compressor(
 
     Preserves relative subdirectory structure and original file formats,
     dispatches intra-file and batch progress updates, supports cancellation,
-    and cleans up session artifacts on abort.
+    and cleans up session artifacts on abort. A failure on one file never
+    aborts the batch.
+
+    Args:
+        input_dir (Path): Path to the source directory containing audio files.
+        output_dir (Path): Path to the destination directory where compressed
+            audio files will be saved.
+        quality (int, optional): Compression quality percentage (1-100).
+            Defaults to 80.
+        progress_callback (Callable[[ProgressInfo], None] | None, optional):
+            Callback function invoked during and after processing each file.
+            Defaults to None.
+        cancel_event (threading.Event | None, optional): Event triggering batch
+            cancellation. Defaults to None.
+
+    Returns:
+        dict[str, Any]: Summary dictionary containing compression statistics.
     """
     active_progress_info: ProgressInfo | None = None
 

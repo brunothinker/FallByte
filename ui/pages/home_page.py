@@ -29,12 +29,16 @@ def create_home_page(
             border_radius=12,
             ink=True,
             on_click=lambda _: on_navigate(route_key),
-            on_hover=lambda e: setattr(
-                e.control,
-                "bgcolor",
-                get_color("card_hover") if e.data == "true" else get_color("card_bg"),
-            )
-            or e.control.update(),
+            on_hover=lambda e: (
+                setattr(
+                    e.control,
+                    "bgcolor",
+                    get_color("card_hover")
+                    if e.data == "true"
+                    else get_color("card_bg"),
+                )
+                or e.control.update()
+            ),
             content=ft.Column(
                 [
                     ft.Icon(icon, size=36, color=get_color("primary")),

@@ -119,11 +119,7 @@ def create_sample_video():
             "lavfi",
             "-i",
             f"sine=frequency=1000:duration={duration_sec}",
-            *(
-                ["-vf", "noise=alls=25:allf=t+u,format=yuv420p"]
-                if noisy
-                else []
-            ),
+            *(["-vf", "noise=alls=25:allf=t+u,format=yuv420p"] if noisy else []),
             "-c:v",
             codec,
             *(["-crf", str(crf)] if crf is not None else []),

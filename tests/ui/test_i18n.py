@@ -129,7 +129,9 @@ def test_incomplete_secondary_locale_is_skipped_and_falls_back_to_en(
 ) -> None:
     """Tests that an incomplete secondary locale is ignored and set_language falls back to 'en'."""
     _write_yaml(tmp_path / "_template.yaml", "", "", {"greeting": "", "farewell": ""})
-    _write_yaml(tmp_path / "en.yaml", "en", "English", {"greeting": "Hello", "farewell": "Bye"})
+    _write_yaml(
+        tmp_path / "en.yaml", "en", "English", {"greeting": "Hello", "farewell": "Bye"}
+    )
     _write_yaml(tmp_path / "pt.yaml", "pt", "Português", {"greeting": "Olá"})
 
     monkeypatch.setattr(i18n, "_get_locales_dir", lambda: tmp_path)
@@ -223,7 +225,9 @@ def test_normalize_invalid_and_empty_locales() -> None:
         )
 
 
-def test_detect_system_language_environment_variables(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_detect_system_language_environment_variables(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Tests language detection precedence using mock environment variables."""
     monkeypatch.setattr(i18n, "TRANSLATIONS", {"en": {}, "pt": {}, "es": {}})
 

@@ -5,7 +5,6 @@ import threading
 from collections.abc import Callable
 from pathlib import Path
 
-from src.utils.binary_manager import get_ffmpeg_path
 from src.audio.utils.audio_ffmpeg_utils import (
     RESCUE_INPUT_ARGS,
     SAFE_AUDIO_MAP,
@@ -16,6 +15,7 @@ from src.audio.utils.audio_ffmpeg_utils import (
     run_audio_strategies,
 )
 from src.formats import UNCOMPRESSIBLE_AUDIO_FORMATS
+from src.utils.binary_manager import get_ffmpeg_path
 from src.utils.cleanup import copy_original_file_atomically
 
 logger = logging.getLogger(__name__)
@@ -34,9 +34,7 @@ def _build_strategies(
     primary_codec_args = get_audio_codec_args(
         target_ext, quality=quality, channels=channels
     )
-    stereo_codec_args = get_audio_codec_args(
-        target_ext, quality=quality, channels=2
-    )
+    stereo_codec_args = get_audio_codec_args(target_ext, quality=quality, channels=2)
 
     return [
         (
@@ -64,8 +62,7 @@ def file_compressor(
     cancel_event: threading.Event | None = None,
     file_progress_callback: Callable[[float, float, float, float], None] | None = None,
 ) -> bool:
-    """ 
-    Compresses a single audio file while preserving its original container/format.
+    """Compresses a single audio file while preserving its original container/format.
 
     Lossy formats (MP3, M4A, AAC, OGG, OPUS) are re-encoded using a bitrate mapped
     from `quality` (1-100). Non-compressible formats (FLAC, WAV, WMA, AIFF)
@@ -73,7 +70,6 @@ def file_compressor(
     compression behavior. If the compressed result is not smaller than the
     original, the original file is kept as the output.
     """
-
     tmp_path = None
     try:
         quality = max(1, min(100, int(quality)))
@@ -130,9 +126,7 @@ def file_compressor(
 
         def _inner_progress(out_time: float, fps: float, speed: float) -> None:
             if file_progress_callback:
-                file_progress_callback(
-                    info.duration_seconds, out_time, fps, speed
-                )
+                file_progress_callback(info.duration_seconds, out_time, fps, speed)
 
         used = run_audio_strategies(
             strategies,
@@ -169,9 +163,7 @@ def file_compressor(
         raise
 
     except Exception as e:
-        logger.error(
-            f"Failed to compress '{input_path.name}': {e}", exc_info=True
-        )
+        logger.error(f"Failed to compress '{input_path.name}': {e}", exc_info=True)
         if tmp_path and tmp_path.exists():
             tmp_path.unlink(missing_ok=True)
         return False

@@ -69,9 +69,9 @@ def test_directory_compressor_preserves_hierarchy_and_formats(
         quality=20,
     )
 
-    assert stats["total_files"] == 2 and stats["success"] == 2 and stats["failed"] == 0, (
-        f"[audio] Expected 2/2 successful batch compressions, got stats={stats}."
-    )
+    assert (
+        stats["total_files"] == 2 and stats["success"] == 2 and stats["failed"] == 0
+    ), f"[audio] Expected 2/2 successful batch compressions, got stats={stats}."
 
     session_dir = out_dir / "compressed"
     dst_mp3 = session_dir / "podcast.mp3"

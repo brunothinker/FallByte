@@ -165,9 +165,7 @@ def test_file_compressor_keeps_original_when_compressed_is_not_smaller(
         quality=100,
     )
 
-    assert ok is True, (
-        "[audio] Compression fallback to original file must return True."
-    )
+    assert ok is True, "[audio] Compression fallback to original file must return True."
     assert dst.read_bytes() == src.read_bytes(), (
         "[audio] When compressed output >= original size, destination must match original bytes exactly."
     )
@@ -180,9 +178,9 @@ def test_file_compressor_rejects_invalid_and_handles_cancellation(
     """`file_compressor` must validate paths/streams and clean up temp files on cancellation."""
     valid = sample_audio_factory("source.mp3", duration=1.0, bitrate="192k")
 
-    assert (
-        audio_file_compression.file_compressor(valid, valid, quality=50) is False
-    ), "[audio] Compressor must refuse overwriting source file when input_path == output_path."
+    assert audio_file_compression.file_compressor(valid, valid, quality=50) is False, (
+        "[audio] Compressor must refuse overwriting source file when input_path == output_path."
+    )
 
     assert (
         audio_file_compression.file_compressor(
@@ -214,13 +212,10 @@ def test_file_compressor_monotonic_size_across_quality_curve(
 ):
     """Higher quality values (20 < 60 < 95) must produce strictly larger files on lossy encoders."""
     skip_if_format_encoders_unavailable(ext)
-    src = sample_audio_factory(
-        f"master_{ext}.wav", duration=2.5, channels=2
-    )
+    src = sample_audio_factory(f"master_{ext}.wav", duration=2.5, channels=2)
     high_src = tmp_path / f"source_high.{ext}"
     assert (
-        audio_file_conversion.file_converter(src, high_src, target_format=ext)
-        is True
+        audio_file_conversion.file_converter(src, high_src, target_format=ext) is True
     ), f"[audio] Failed to prepare baseline '{ext}' file for quality curve test."
 
     sizes: dict[int, int] = {}
@@ -231,9 +226,7 @@ def test_file_compressor_monotonic_size_across_quality_curve(
             output_path=out,
             quality=q,
         )
-        assert ok is True, (
-            f"[audio] Compression failed for '{ext}' at quality={q}."
-        )
+        assert ok is True, f"[audio] Compression failed for '{ext}' at quality={q}."
         sizes[q] = out.stat().st_size
 
     assert sizes[20] < sizes[60] <= sizes[95], (

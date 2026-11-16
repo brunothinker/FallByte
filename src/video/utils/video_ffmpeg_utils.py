@@ -301,24 +301,47 @@ def get_codec_args(
         # x265 needs a CRF ~5 above x264 for comparable quality; same slope.
         crf = round(23 + (100 - quality) * 0.22)
         return [
-            "-c:v", "libx265", "-crf", str(crf), "-preset", "fast",
-            "-c:a", "aac", "-b:a", "128k",
+            "-c:v",
+            "libx265",
+            "-crf",
+            str(crf),
+            "-preset",
+            "fast",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "128k",
         ]
 
     if target_fmt == "webm":
         crf = 30 if quality is None else round(15 + (100 - quality) * 0.4)
         return [
-            "-c:v", "libvpx-vp9", "-crf", str(crf), "-b:v", "0",
-            "-row-mt", "1", "-cpu-used", "4",
-            "-c:a", "libopus",
+            "-c:v",
+            "libvpx-vp9",
+            "-crf",
+            str(crf),
+            "-b:v",
+            "0",
+            "-row-mt",
+            "1",
+            "-cpu-used",
+            "4",
+            "-c:a",
+            "libopus",
         ]
 
     if target_fmt == "wmv":
         qscale = 3 if quality is None else round(1 + (100 - quality) * 0.3)
         # WMA encoder only supports mono/stereo.
         return [
-            "-c:v", "wmv2", "-qscale:v", str(qscale),
-            "-c:a", "wmav2", "-ac", "2",
+            "-c:v",
+            "wmv2",
+            "-qscale:v",
+            str(qscale),
+            "-c:a",
+            "wmav2",
+            "-ac",
+            "2",
         ]
 
     # MP4, MKV, MOV, AVI (and any other container that takes H.264 + AAC)
@@ -326,8 +349,16 @@ def get_codec_args(
         return ["-c:v", "libx264", "-c:a", "aac"]
     crf = round(18 + (100 - quality) * 0.22)
     return [
-        "-c:v", "libx264", "-crf", str(crf), "-preset", "medium",
-        "-c:a", "aac", "-b:a", "128k",
+        "-c:v",
+        "libx264",
+        "-crf",
+        str(crf),
+        "-preset",
+        "medium",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "128k",
     ]
 
 
@@ -448,9 +479,7 @@ def run_strategies(
         def _read_stderr() -> None:
             if process.stderr:
                 for raw_err in iter(process.stderr.readline, b""):
-                    stderr_lines.append(
-                        raw_err.decode("utf-8", errors="ignore")
-                    )
+                    stderr_lines.append(raw_err.decode("utf-8", errors="ignore"))
 
         stderr_thread = threading.Thread(target=_read_stderr, daemon=True)
         stderr_thread.start()
@@ -503,12 +532,8 @@ def run_strategies(
             return label
 
         output_path.unlink(missing_ok=True)
-        stderr_tail = "\n".join(
-            "".join(stderr_lines).strip().splitlines()[-4:]
-        )
-        logger.warning(
-            f"Strategy '{label}' failed for '{display_name}': {stderr_tail}"
-        )
+        stderr_tail = "\n".join("".join(stderr_lines).strip().splitlines()[-4:])
+        logger.warning(f"Strategy '{label}' failed for '{display_name}': {stderr_tail}")
 
     logger.error(f"All strategies failed for '{display_name}'.")
     return None

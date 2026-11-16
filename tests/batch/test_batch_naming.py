@@ -14,19 +14,19 @@ def test_image_batch_conversion_avoids_output_name_collisions(
     (in_dir / "photo.jpg").write_bytes(b"jpg source")
 
     def fake_converter(
-        input_path, output_path, target_format, transparency_replacement_color, **_kwargs
+        input_path,
+        output_path,
+        target_format,
+        transparency_replacement_color,
+        **_kwargs,
     ):
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_bytes(input_path.read_bytes())
         return True
 
-    monkeypatch.setattr(
-        image_conversion, "file_converter", fake_converter
-    )
+    monkeypatch.setattr(image_conversion, "file_converter", fake_converter)
 
-    stats = image_conversion.directory_converter(
-        in_dir, out_dir, target_format="webp"
-    )
+    stats = image_conversion.directory_converter(in_dir, out_dir, target_format="webp")
 
     outputs = list((out_dir / "converted").glob("*.webp"))
 
@@ -45,12 +45,8 @@ def test_image_batch_conversion_avoids_output_name_collisions(
     assert {path.read_bytes() for path in outputs} == {
         b"png source",
         b"jpg source",
-    }, (
-        "[batch] Both source payloads must be preserved independently without data loss."
-    )
-    assert stats["compressed_bytes"] == sum(
-        path.stat().st_size for path in outputs
-    ), (
+    }, "[batch] Both source payloads must be preserved independently without data loss."
+    assert stats["compressed_bytes"] == sum(path.stat().st_size for path in outputs), (
         "[batch] compressed_bytes statistic must sum the sizes of all distinct output files."
     )
 
@@ -70,13 +66,9 @@ def test_video_batch_conversion_avoids_output_name_collisions(
         output_path.write_bytes(input_path.read_bytes())
         return True
 
-    monkeypatch.setattr(
-        video_conversion, "file_converter", fake_converter
-    )
+    monkeypatch.setattr(video_conversion, "file_converter", fake_converter)
 
-    stats = video_conversion.directory_converter(
-        in_dir, out_dir, target_format="mp4"
-    )
+    stats = video_conversion.directory_converter(in_dir, out_dir, target_format="mp4")
 
     outputs = list((out_dir / "converted").glob("*.mp4"))
 
@@ -98,9 +90,7 @@ def test_video_batch_conversion_avoids_output_name_collisions(
     }, (
         "[batch] Both video source payloads must be preserved independently without data loss."
     )
-    assert stats["compressed_bytes"] == sum(
-        path.stat().st_size for path in outputs
-    ), (
+    assert stats["compressed_bytes"] == sum(path.stat().st_size for path in outputs), (
         "[batch] compressed_bytes statistic must sum the sizes of all distinct video outputs."
     )
 
@@ -120,13 +110,9 @@ def test_audio_batch_conversion_avoids_output_name_collisions(
         output_path.write_bytes(input_path.read_bytes())
         return True
 
-    monkeypatch.setattr(
-        audio_conversion, "file_converter", fake_converter
-    )
+    monkeypatch.setattr(audio_conversion, "file_converter", fake_converter)
 
-    stats = audio_conversion.directory_converter(
-        in_dir, out_dir, target_format="mp3"
-    )
+    stats = audio_conversion.directory_converter(in_dir, out_dir, target_format="mp3")
 
     outputs = list((out_dir / "converted").glob("*.mp3"))
 
@@ -148,16 +134,12 @@ def test_audio_batch_conversion_avoids_output_name_collisions(
     }, (
         "[batch] Both audio source payloads must be preserved independently without data loss."
     )
-    assert stats["compressed_bytes"] == sum(
-        path.stat().st_size for path in outputs
-    ), (
+    assert stats["compressed_bytes"] == sum(path.stat().st_size for path in outputs), (
         "[batch] compressed_bytes statistic must sum the sizes of all distinct audio outputs."
     )
 
 
-def test_image_batch_conversion_preserves_existing_output(
-    tmp_workspace, monkeypatch
-):
+def test_image_batch_conversion_preserves_existing_output(tmp_workspace, monkeypatch):
     """Ensures image batch conversion does not overwrite an existing destination."""
     in_dir, out_dir = tmp_workspace
     (in_dir / "photo.png").write_bytes(b"png source")
@@ -169,19 +151,19 @@ def test_image_batch_conversion_preserves_existing_output(
     existing_output.write_bytes(b"existing user data")
 
     def fake_converter(
-        input_path, output_path, target_format, transparency_replacement_color, **_kwargs
+        input_path,
+        output_path,
+        target_format,
+        transparency_replacement_color,
+        **_kwargs,
     ):
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_bytes(input_path.read_bytes())
         return True
 
-    monkeypatch.setattr(
-        image_conversion, "file_converter", fake_converter
-    )
+    monkeypatch.setattr(image_conversion, "file_converter", fake_converter)
 
-    stats = image_conversion.directory_converter(
-        in_dir, out_dir, target_format="webp"
-    )
+    stats = image_conversion.directory_converter(in_dir, out_dir, target_format="webp")
 
     assert stats["success"] == 1, (
         "[batch] Batch conversion must succeed when an earlier session folder already exists."

@@ -148,6 +148,7 @@ class Ctx:
             raises (Exception | None, optional): Exception the fake raises
                 instead of returning. Defaults to None.
         """
+
         def fake(**kwargs):
             if raises:
                 raise raises
@@ -166,6 +167,7 @@ class Ctx:
             result (dict | None, optional): Statistics dictionary to return.
             raises (Exception | None, optional): Exception to raise instead.
         """
+
         def fake(**kwargs):
             if raises:
                 raise raises
@@ -195,6 +197,8 @@ def ctx(request, tmp_workspace, mock_page, monkeypatch) -> Ctx:
     )
     monkeypatch.setattr(module, "show_summary_dialog", c.summary_dialog)
     # Restore engine attributes after each test.
-    monkeypatch.setattr(module, spec["file_engine"], getattr(module, spec["file_engine"]))
+    monkeypatch.setattr(
+        module, spec["file_engine"], getattr(module, spec["file_engine"])
+    )
     monkeypatch.setattr(module, spec["dir_engine"], getattr(module, spec["dir_engine"]))
     return c

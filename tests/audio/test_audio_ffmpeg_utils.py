@@ -79,7 +79,9 @@ def test_parse_audio_stderr_accepts_streams_without_explicit_sample_rate():
 
 def test_parse_audio_stderr_returns_empty_info_when_no_audio_stream():
     """`parse_audio_stderr` must return empty `audio_codecs` for non-audio or invalid inputs."""
-    info = audio_ffmpeg_utils.parse_audio_stderr("Invalid data found when processing input")
+    info = audio_ffmpeg_utils.parse_audio_stderr(
+        "Invalid data found when processing input"
+    )
     assert info.audio_codecs == [] and info.primary_codec is None, (
         f"[audio] Expected empty AudioStreamInfo for invalid input, got {info}."
     )
@@ -165,9 +167,9 @@ def test_parse_progress_line_tracks_time_and_speed():
     """`_parse_progress_line` must accumulate `out_time` and `speed` and emit on `progress=`."""
     state = audio_ffmpeg_utils._ProgressState()
 
-    assert audio_ffmpeg_utils._parse_progress_line("out_time_us=1500000", state) is False, (
-        "[audio] Progress parser should not emit a tick before the 'progress=' boundary."
-    )
+    assert (
+        audio_ffmpeg_utils._parse_progress_line("out_time_us=1500000", state) is False
+    ), "[audio] Progress parser should not emit a tick before the 'progress=' boundary."
     assert state.out_time == pytest.approx(1.5), (
         f"[audio] Expected out_time=1.5s from out_time_us=1500000, got {state.out_time}."
     )
@@ -179,9 +181,9 @@ def test_parse_progress_line_tracks_time_and_speed():
         f"[audio] Expected speed=12.5 from '12.5x', got {state.speed}."
     )
 
-    assert audio_ffmpeg_utils._parse_progress_line("progress=continue", state) is True, (
-        "[audio] Progress parser must emit a tick when 'progress=continue' is reached."
-    )
+    assert (
+        audio_ffmpeg_utils._parse_progress_line("progress=continue", state) is True
+    ), "[audio] Progress parser must emit a tick when 'progress=continue' is reached."
 
 
 def test_run_audio_strategies_falls_back_and_cleans_partial_output(

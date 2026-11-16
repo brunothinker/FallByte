@@ -63,7 +63,7 @@ THEME_PRESETS: dict[str, dict[str, str]] = {
         "icon": ft.colors.BLUE_700,
         "background": "#EBF2FA",  # Crisp pastel ice-blue background
         "sidebar_bg": "#D0E1F9",  # Accentuated blue navigation sidebar
-        "card_bg": "#FFFFFF",     # Pure white elevated card background
+        "card_bg": "#FFFFFF",  # Pure white elevated card background
         "card_hover": "#C0D7F7",
         "text": "#0F172A",
         "subtext": "#334155",

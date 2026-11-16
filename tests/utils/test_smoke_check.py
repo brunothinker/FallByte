@@ -15,10 +15,13 @@ def test_run_smoke_check_success():
 
 def test_run_smoke_check_ffmpeg_missing(monkeypatch):
     """Ensures run_smoke_check returns False when FFmpeg binary lookup fails."""
+
     def fake_get_ffmpeg_path():
         raise FileNotFoundError("Simulated missing FFmpeg binary")
 
-    monkeypatch.setattr("src.utils.binary_manager.get_ffmpeg_path", fake_get_ffmpeg_path)
+    monkeypatch.setattr(
+        "src.utils.binary_manager.get_ffmpeg_path", fake_get_ffmpeg_path
+    )
 
     stderr_buffer = []
     with patch.object(sys.stderr, "write", side_effect=stderr_buffer.append):
@@ -34,6 +37,7 @@ def test_run_smoke_check_ffmpeg_missing(monkeypatch):
 
 def test_run_smoke_check_image_save_failure(monkeypatch):
     """Ensures run_smoke_check returns False when PIL image conversion raises an exception."""
+
     def fake_save(*args, **kwargs):
         raise OSError("Simulated encoding failure")
 
@@ -53,10 +57,13 @@ def test_run_smoke_check_image_save_failure(monkeypatch):
 
 def test_run_smoke_check_failure_when_stderr_is_none(monkeypatch, caplog):
     """Ensures run_smoke_check handles failure gracefully without AttributeError on windowed builds (sys.stderr=None)."""
+
     def fake_get_ffmpeg_path():
         raise FileNotFoundError("Simulated missing FFmpeg in windowed mode")
 
-    monkeypatch.setattr("src.utils.binary_manager.get_ffmpeg_path", fake_get_ffmpeg_path)
+    monkeypatch.setattr(
+        "src.utils.binary_manager.get_ffmpeg_path", fake_get_ffmpeg_path
+    )
     monkeypatch.setattr(sys, "stderr", None)
 
     with caplog.at_level("ERROR", logger="src.utils.smoke_check"):

@@ -39,17 +39,19 @@ def test_format_utils_lists_follow_scanners():
     assert {"JPG", "PNG", "WEBP"} <= set(image_compression_formats()), (
         "[ui] image_compression_formats() must include compressible formats (JPG, PNG, WEBP)."
     )
-    assert {"MP4", "MKV", "WEBM", "MOV", "AVI", "WMV", "FLV", "M4V"} <= set(video_input_formats()), (
+    assert {"MP4", "MKV", "WEBM", "MOV", "AVI", "WMV", "FLV", "M4V"} <= set(
+        video_input_formats()
+    ), (
         "[ui] video_input_formats() must expose all scanner-supported video container extensions."
     )
 
     # Audio input, target output, and lossy-only compression formats
     assert {"MP3", "M4A", "AAC", "OGG", "OPUS", "FLAC", "WAV", "WMA", "AIFF"} <= set(
         audio_input_formats()
+    ), "[ui] audio_input_formats() must expose all scanner-supported audio extensions."
+    assert {"MP3", "M4A", "OPUS", "OGG", "FLAC", "WAV"} == set(
+        audio_output_formats()
     ), (
-        "[ui] audio_input_formats() must expose all scanner-supported audio extensions."
-    )
-    assert {"MP3", "M4A", "OPUS", "OGG", "FLAC", "WAV"} == set(audio_output_formats()), (
         "[ui] audio_output_formats() must match the exact set of supported target conversion formats."
     )
     assert not {"FLAC", "WAV", "WMA", "AIFF"} & set(audio_compression_formats()), (
@@ -157,9 +159,7 @@ def test_module_registry_route_and_active_state_resolution():
     from ui.registry import get_all_routes, resolve_active_module_id
 
     routes = get_all_routes()
-    assert "home" in routes, (
-        "[ui] Module registry must register the 'home' route."
-    )
+    assert "home" in routes, "[ui] Module registry must register the 'home' route."
     assert "image_hub" in routes, (
         "[ui] Module registry must register the 'image_hub' route."
     )

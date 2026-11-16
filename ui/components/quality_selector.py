@@ -13,9 +13,7 @@ class QualitySelector(ft.Column):
     and focus-out fallback handling.
     """
 
-    def __init__(
-        self, initial_value: int = 80, label_text: str | None = None
-    ) -> None:
+    def __init__(self, initial_value: int = 80, label_text: str | None = None) -> None:
         """Initializes quality selector controls and binds bidirectional sync events.
 
         Args:
@@ -71,9 +69,7 @@ class QualitySelector(ft.Column):
             int: Validated quality percentage guaranteed to be within 1 and 100.
         """
         slider_val = (
-            self.slider_quality.value
-            if self.slider_quality.value is not None
-            else 80
+            self.slider_quality.value if self.slider_quality.value is not None else 80
         )
         return validate_quality_value(slider_val, default=80)
 
@@ -112,9 +108,7 @@ class QualitySelector(ft.Column):
             e (ft.ControlEvent): Flet event instance emitted when text field loses focus.
         """
         current_slider_val = int(self.slider_quality.value or 80)
-        q = validate_quality_value(
-            e.control.value, default=current_slider_val
-        )
+        q = validate_quality_value(e.control.value, default=current_slider_val)
         self.txt_quality.value = str(q)
         self.slider_quality.value = q
         self.txt_quality.update()

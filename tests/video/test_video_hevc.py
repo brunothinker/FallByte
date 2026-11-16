@@ -266,9 +266,7 @@ def test_hevc_mkv_strategies_all_use_x265_including_subtitles_one():
 def test_non_hevc_path_is_exactly_the_original(ext, codec, available):
     """No x265, no hvc1 tag and no extra fallback strategy outside the HEVC case."""
     strategies = _strategies(ext, codec=codec, hevc_available=available)
-    legacy = vc._build_strategies(
-        FFMPEG, Path("in.mp4"), Path("out.tmp"), ext, 80
-    )
+    legacy = vc._build_strategies(FFMPEG, Path("in.mp4"), Path("out.tmp"), ext, 80)
 
     assert strategies == legacy, (
         f"[video] Non-HEVC strategy list deviated from legacy baseline for ext='{ext}', codec='{codec}'."

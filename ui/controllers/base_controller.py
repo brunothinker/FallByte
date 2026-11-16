@@ -87,9 +87,7 @@ class BaseController:
             self.selected_input = Path(e.path)
 
         if self.selected_input:
-            lbl_path.value = (
-                self.selected_input.name or str(self.selected_input)
-            )
+            lbl_path.value = self.selected_input.name or str(self.selected_input)
             lbl_path.color = get_color("text")
             lbl_path.update()
 
@@ -107,8 +105,8 @@ class BaseController:
         self.picker_active = False
         if e.path:
             self.selected_output_dir = Path(e.path)
-            lbl_path.value = (
-                self.selected_output_dir.name or str(self.selected_output_dir)
+            lbl_path.value = self.selected_output_dir.name or str(
+                self.selected_output_dir
             )
             lbl_path.color = get_color("text")
             lbl_path.update()
@@ -167,7 +165,7 @@ class BaseController:
 
     def _on_cancel_confirmed(self) -> None:
         """Hook method invoked when process cancellation is confirmed by user.
-        
+
         Subclasses (e.g. video controllers) override this to signal thread/process events.
         """
 
@@ -179,6 +177,7 @@ class BaseController:
         btn_action: ft.ElevatedButton,
     ) -> None:
         """Displays modal dialog asking user confirmation to abort running operation."""
+
         def on_keep_running(_: ft.ControlEvent) -> None:
             self._close_cancel_dialog(page)
 

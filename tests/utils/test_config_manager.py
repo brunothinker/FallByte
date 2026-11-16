@@ -154,7 +154,9 @@ def test_migrates_legacy_config_once_on_both_platforms(
         encoding="utf-8",
     )
     second_load = config_manager.load_config()
-    assert second_load["theme"] == "emerald_light" and second_load["language"] == "pt", (
+    assert (
+        second_load["theme"] == "emerald_light" and second_load["language"] == "pt"
+    ), (
         "[config] Legacy config was re-read after the new config file already existed! "
         "Migration must run only once when `CONFIG_FILE` is absent."
     )

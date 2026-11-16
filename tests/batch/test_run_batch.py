@@ -60,9 +60,7 @@ def test_run_batch_reports_zero_total_files_when_nothing_to_process(tmp_path):
         build_destination=lambda src_file, session_dir: session_dir / src_file.name,
     )
 
-    assert stats["total_files"] == 0, (
-        "[batch] Empty scan must report total_files == 0."
-    )
+    assert stats["total_files"] == 0, "[batch] Empty scan must report total_files == 0."
     assert stats["no_files"] is True, (
         "[batch] Empty scan must set no_files=True so callers can surface an empty-folder notice."
     )

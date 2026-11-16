@@ -119,7 +119,7 @@ def test_summary_dialog_reduction_shows_single_sign_with_success_color(mock_page
     reduction_rows = [
         text
         for text in _collect_texts(mock_page.dialog)
-        if text.value and text.value.split(":")[0].strip() in ("Reduction", "Reducao", "Aumento")
+        if text.value and "%" in text.value
     ]
     assert len(reduction_rows) == 1, (
         "[ui] Summary dialog must render exactly one reduction percentage row."
@@ -152,25 +152,16 @@ def test_summary_dialog_size_growth_never_doubles_minus(mock_page):
             "files": [],
         },
     )
-    stat_texts = [
-        text.value
-        for text in _collect_texts(mock_page.dialog)
-        if text.value and ("%" in text.value)
-    ]
-    assert stat_texts, (
-        "[ui] Summary dialog must render a percentage stat row when output size grows."
-    )
-    for value in stat_texts:
-        assert "--" not in value, (
-            "[ui] Summary dialog percentage row must never contain a double minus '--' on size growth."
-        )
     grown_rows = [
         text
         for text in _collect_texts(mock_page.dialog)
-        if text.value and text.value.split(":")[0].strip() in ("Increase", "Aumento")
+        if text.value and "%" in text.value
     ]
     assert len(grown_rows) == 1, (
-        "[ui] Summary dialog must render a single Increase/Aumento row when output is larger than input."
+        "[ui] Summary dialog must render a single size-increase row when output is larger than input."
+    )
+    assert "--" not in grown_rows[0].value, (
+        "[ui] Summary dialog percentage row must never contain a double minus '--' on size growth."
     )
     assert grown_rows[0].color == get_color("warning"), (
         "[ui] Size increase row in summary dialog must use the warning theme color."

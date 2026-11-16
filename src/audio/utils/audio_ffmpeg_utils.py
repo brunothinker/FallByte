@@ -167,9 +167,7 @@ def probe_audio_streams(ffmpeg_bin: Path, input_path: Path) -> AudioStreamInfo:
     return parse_audio_stderr(stderr_text)
 
 
-def quality_to_bitrate_kbps(
-    target_fmt: str, quality: int, channels: int = 2
-) -> int:
+def quality_to_bitrate_kbps(target_fmt: str, quality: int, channels: int = 2) -> int:
     """Maps a 1-100 quality percentage linearly to a target bitrate in kbps.
 
     Caps Vorbis (`ogg`) at 256 kbps only when `channels == 1` (mono), keeping
@@ -349,9 +347,7 @@ def run_audio_strategies(
         def _read_stderr() -> None:
             if process.stderr:
                 for raw_err in iter(process.stderr.readline, b""):
-                    stderr_lines.append(
-                        raw_err.decode("utf-8", errors="ignore")
-                    )
+                    stderr_lines.append(raw_err.decode("utf-8", errors="ignore"))
 
         stderr_thread = threading.Thread(target=_read_stderr, daemon=True)
         stderr_thread.start()
@@ -404,9 +400,7 @@ def run_audio_strategies(
             return label
 
         output_path.unlink(missing_ok=True)
-        stderr_tail = "\n".join(
-            "".join(stderr_lines).strip().splitlines()[-4:]
-        )
+        stderr_tail = "\n".join("".join(stderr_lines).strip().splitlines()[-4:])
         logger.warning(
             f"Audio strategy '{label}' failed for '{display_name}': {stderr_tail}"
         )

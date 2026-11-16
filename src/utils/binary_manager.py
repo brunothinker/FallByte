@@ -37,9 +37,7 @@ def get_ffmpeg_path() -> Path:
 
     # Check if binary file actually exists in resources
     if not binary_path.exists():
-        logger.critical(
-            f"FFmpeg binary not found at expected path: '{binary_path}'"
-        )
+        logger.critical(f"FFmpeg binary not found at expected path: '{binary_path}'")
         raise FileNotFoundError(
             f"FFmpeg binary not found for {system} at: '{binary_path}'"
         )

@@ -24,6 +24,22 @@ def directory_converter(
 
     Preserves relative subdirectory structure, dispatches intra-file and batch
     progress updates, supports cancellation, and cleans up session artifacts on abort.
+    A failure on one file never aborts the batch.
+
+    Args:
+        input_dir (Path): Path to the source directory containing audio files.
+        output_dir (Path): Path to the destination directory where converted
+            audio files will be saved.
+        target_format (str): Desired output format (e.g., 'mp3', 'm4a', 'opus',
+            'ogg', 'flac', 'wav').
+        progress_callback (Callable[[ProgressInfo], None] | None, optional):
+            Callback function invoked during and after processing each file.
+            Defaults to None.
+        cancel_event (threading.Event | None, optional): Event triggering batch
+            cancellation. Defaults to None.
+
+    Returns:
+        dict[str, Any]: Summary dictionary containing conversion statistics.
     """
     target_fmt = target_format.lower().lstrip(".")
     reserved_paths: set[str] = set()

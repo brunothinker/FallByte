@@ -5,8 +5,8 @@ import threading
 from collections.abc import Callable
 from pathlib import Path
 
-from src.utils.cleanup import copy_original_file_atomically
 from src.utils.binary_manager import get_ffmpeg_path
+from src.utils.cleanup import copy_original_file_atomically
 from src.video.utils.video_ffmpeg_utils import (
     HEVC_COMPRESSION_CONTAINERS,
     RESCUE_INPUT_ARGS,
@@ -211,9 +211,7 @@ def file_converter(
 
         def _inner_progress(out_time: float, fps: float, speed: float) -> None:
             if file_progress_callback:
-                file_progress_callback(
-                    info.duration_seconds, out_time, fps, speed
-                )
+                file_progress_callback(info.duration_seconds, out_time, fps, speed)
 
         used = run_strategies(
             strategies,
@@ -229,9 +227,7 @@ def file_converter(
 
         os.replace(tmp_path, output_path)
 
-        logger.info(
-            f"Successfully converted '{input_path.name}' to '{target_fmt}'."
-        )
+        logger.info(f"Successfully converted '{input_path.name}' to '{target_fmt}'.")
         return True
 
     except InterruptedError:

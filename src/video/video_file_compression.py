@@ -5,8 +5,8 @@ import threading
 from collections.abc import Callable
 from pathlib import Path
 
-from src.utils.cleanup import copy_original_file_atomically
 from src.utils.binary_manager import get_ffmpeg_path
+from src.utils.cleanup import copy_original_file_atomically
 from src.video.utils.video_ffmpeg_utils import (
     HEVC_COMPRESSION_CONTAINERS,
     RESCUE_INPUT_ARGS,
@@ -50,12 +50,8 @@ def _build_strategies(
         and hevc_available
         and target_ext in HEVC_COMPRESSION_CONTAINERS
     )
-    codec_args = get_codec_args(
-        target_ext, quality, "hevc" if keep_hevc else None
-    )
-    hevc_tag = (
-        ["-tag:v", "hvc1"] if keep_hevc and target_ext in ("mp4", "mov") else []
-    )
+    codec_args = get_codec_args(target_ext, quality, "hevc" if keep_hevc else None)
+    hevc_tag = ["-tag:v", "hvc1"] if keep_hevc and target_ext in ("mp4", "mov") else []
     flags = container_flags(target_ext) + hevc_tag
     video_filter = get_video_filter(is_10bit=is_10bit, keep_hevc=keep_hevc)
 
@@ -67,7 +63,17 @@ def _build_strategies(
             (
                 "re-encode keeping subtitles",
                 base_command(ffmpeg_bin, input_path)
-                + ["-map", "0:V:0", "-map", "0:a?", "-map", "0:s?", "-c:s", "copy", "-dn"]
+                + [
+                    "-map",
+                    "0:V:0",
+                    "-map",
+                    "0:a?",
+                    "-map",
+                    "0:s?",
+                    "-c:s",
+                    "copy",
+                    "-dn",
+                ]
                 + video_filter
                 + codec_args
                 + out,
@@ -192,9 +198,7 @@ def file_compressor(
 
         def _inner_progress(out_time: float, fps: float, speed: float) -> None:
             if file_progress_callback:
-                file_progress_callback(
-                    info.duration_seconds, out_time, fps, speed
-                )
+                file_progress_callback(info.duration_seconds, out_time, fps, speed)
 
         used = run_strategies(
             strategies,
@@ -231,9 +235,7 @@ def file_compressor(
         raise
 
     except Exception as e:
-        logger.error(
-            f"Failed to compress '{input_path.name}': {e}", exc_info=True
-        )
+        logger.error(f"Failed to compress '{input_path.name}': {e}", exc_info=True)
         if tmp_path and tmp_path.exists():
             tmp_path.unlink(missing_ok=True)
         return False
