@@ -29,9 +29,12 @@ def test_audio_module_has_zero_cross_imports_from_video_or_image():
                 for alias in node.names:
                     if alias.name.startswith(forbidden_prefixes):
                         violations.append(f"{py_file.name}: import {alias.name}")
-            elif isinstance(node, ast.ImportFrom) and node.module:
-                if node.module.startswith(forbidden_prefixes):
-                    violations.append(f"{py_file.name}: from {node.module} import ...")
+            elif (
+                isinstance(node, ast.ImportFrom)
+                and node.module
+                and node.module.startswith(forbidden_prefixes)
+            ):
+                violations.append(f"{py_file.name}: from {node.module} import ...")
 
     assert not violations, (
         "[audio] Architectural isolation broken: `src/audio/` imported forbidden domain modules: "
@@ -52,7 +55,7 @@ def test_audio_format_constants_consistency():
         ".wma",
         ".aiff",
     }
-    assert SUPPORTED_AUDIO_EXTENSIONS == expected_exts, (
+    assert expected_exts == SUPPORTED_AUDIO_EXTENSIONS, (
         f"[audio] SUPPORTED_AUDIO_EXTENSIONS mismatch: got {SUPPORTED_AUDIO_EXTENSIONS}, "
         f"expected {expected_exts}."
     )

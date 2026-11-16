@@ -45,9 +45,6 @@ def scan_audio_files(directory_path: Path, recursive: bool = True) -> list[Path]
         )
         return discovered_files
 
-    except OSError as e:
-        logger.error(
-            f"Error occurred while scanning directory '{directory_path}': {e}",
-            exc_info=True,
-        )
+    except OSError:
+        logger.exception(f"Error occurred while scanning directory '{directory_path}'")
         return discovered_files

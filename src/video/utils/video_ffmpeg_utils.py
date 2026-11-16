@@ -188,6 +188,7 @@ def probe_streams(ffmpeg_bin: Path, input_path: Path) -> StreamInfo:
     try:
         result = subprocess.run(
             [str(ffmpeg_bin), "-hide_banner", "-i", str(input_path)],
+            check=False,
             timeout=60,
             **_subprocess_kwargs(),
         )
@@ -264,6 +265,7 @@ def has_encoder(ffmpeg_bin: Path, encoder: str) -> bool:
     try:
         result = subprocess.run(
             [str(ffmpeg_bin), "-hide_banner", "-encoders"],
+            check=False,
             timeout=30,
             **_subprocess_kwargs(),
         )
@@ -476,10 +478,10 @@ def run_strategies(
 
         stderr_lines: deque[str] = deque(maxlen=STDERR_TAIL_BUFFER_SIZE)
 
-        def _read_stderr() -> None:
-            if process.stderr:
-                for raw_err in iter(process.stderr.readline, b""):
-                    stderr_lines.append(raw_err.decode("utf-8", errors="ignore"))
+        def _read_stderr(proc=process, lines=stderr_lines) -> None:
+            if proc.stderr:
+                for raw_err in iter(proc.stderr.readline, b""):
+                    lines.append(raw_err.decode("utf-8", errors="ignore"))
 
         stderr_thread = threading.Thread(target=_read_stderr, daemon=True)
         stderr_thread.start()
@@ -495,13 +497,15 @@ def run_strategies(
                         raise InterruptedError("CANCELLED_BY_USER")
 
                     decoded_line = raw_line.decode("utf-8", errors="ignore")
-                    if _parse_progress_line(decoded_line, progress_state):
-                        if progress_callback:
-                            progress_callback(
-                                progress_state.out_time,
-                                progress_state.fps,
-                                progress_state.speed,
-                            )
+                    if (
+                        _parse_progress_line(decoded_line, progress_state)
+                        and progress_callback
+                    ):
+                        progress_callback(
+                            progress_state.out_time,
+                            progress_state.fps,
+                            progress_state.speed,
+                        )
 
             process.wait()
             stderr_thread.join(timeout=1.0)

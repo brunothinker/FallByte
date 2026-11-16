@@ -56,7 +56,7 @@ def _parse_yaml_dict(file_path: Path) -> dict[str, Any] | None:
         dict[str, Any] | None: Parsed dictionary if valid, otherwise None.
     """
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
             if isinstance(data, dict):
                 return data

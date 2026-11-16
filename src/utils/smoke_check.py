@@ -82,5 +82,5 @@ def run_smoke_check() -> bool:
 
     except Exception as e:
         _write_failure(f"Smoke check failed with exception: {e}")
-        logger.error(f"Smoke check execution failure: {e}", exc_info=True)
+        logger.exception("Smoke check execution failure")
         return False

@@ -314,7 +314,7 @@ class AudioConversionController(BaseController):
             print(f"[FAIL] {err}")
 
         except Exception as err:
-            logger.exception(f"Batch processing failed unexpectedly: {err}")
+            logger.exception("Batch processing failed unexpectedly")
             print(f"[ERROR] {err}")
             lbl_status.value = t("msg_error")
             lbl_status.color = get_color("error")

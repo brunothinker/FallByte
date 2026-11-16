@@ -1,0 +1,50 @@
+[project]
+name = "fallbyte"
+version = "0.1.0"
+description = "Cross-platform desktop media compression and conversion suite"
+readme = "README.md"
+requires-python = ">=3.11"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+exclude = [
+    ".git",
+    ".venv",
+    "FallByteVenv",
+    "__pycache__",
+    ".pytest_cache",
+    ".ruff_cache",
+    "build",
+    "dist",
+    "packaging",
+]
+
+[tool.ruff.lint]
+# Standard PEP 8, imports (isort), common bugs (bugbear), and simplifications
+select = ["E", "W", "F", "I", "B", "SIM", "UP", "G", "TRY", "PLW", "BLE"]
+ignore = [
+    "E501",    # Line length (handled by ruff format)
+    "G004",    # Allow f-strings in logger.* calls
+    "TRY003",  # Allow descriptive messages directly in raise statements
+    "TRY300",  # Allow return statements inside try blocks without requiring else
+    "TRY301",  # Allow raise statements directly inside try blocks
+    "TRY400",  # Allow logger.error() without full traceback when intentional
+    "SIM105",  # Allow explicit try/except/pass instead of contextlib.suppress
+    "SIM108",  # Allow explicit if/else blocks instead of ternary operators
+    "PLW0603", # Allow global state updates for language and theme (i18n/theme)
+    "PLW2901", # Allow reassigning loop variables (e.g., cmd = list(cmd))
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Controllers, log capture, and cleanup intentionally catch Exception to keep UI/batch runs resilient
+"ui/controllers/*.py" = ["BLE001"]
+"ui/utils/log_capture.py" = ["BLE001"]
+"src/utils/cleanup.py" = ["BLE001"]
+# Tests use assertions, local imports, and flexible fixtures
+"tests/**/*.py" = ["B011", "F401", "F811"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra -q"

@@ -155,10 +155,7 @@ def run_batch(
         stats["elapsed_seconds"] = round(time.perf_counter() - start_time, 2)
         return stats
 
-    except Exception as e:
-        logger.error(
-            f"Failed to process batch for directory '{input_path}': {e}",
-            exc_info=True,
-        )
+    except Exception:
+        logger.exception(f"Failed to process batch for directory '{input_path}'")
         stats["elapsed_seconds"] = round(time.perf_counter() - start_time, 2)
         return stats

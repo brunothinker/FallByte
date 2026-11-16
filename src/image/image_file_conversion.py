@@ -218,8 +218,8 @@ def file_converter(
         logger.info(f"Successfully converted '{input_path.name}' to '{fmt}'.")
         return True
 
-    except Exception as e:
-        logger.error(f"Failed to convert '{input_path.name}': {e}", exc_info=True)
+    except Exception:
+        logger.exception(f"Failed to convert '{input_path.name}'")
         if tmp_path and tmp_path.exists():
             tmp_path.unlink(missing_ok=True)
         return False

@@ -45,9 +45,6 @@ def scan_video_files(directory_path: Path, recursive: bool = True) -> list[Path]
         )
         return discovered_videos
 
-    except Exception as e:
-        logger.error(
-            f"Error occurred while scanning directory '{directory_path}': {e}",
-            exc_info=True,
-        )
+    except Exception:
+        logger.exception(f"Error occurred while scanning directory '{directory_path}'")
         return discovered_videos
