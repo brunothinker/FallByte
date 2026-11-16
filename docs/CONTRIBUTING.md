@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to **FallByte**! To keep the codebase clean, reliable, and easy to maintain, please follow the guidelines below before submitting a Pull Request.
 
-For an overview of the project structure, modules, and design boundaries, see [ARCHITECTURE.md](../ARCHITECTURE.md).
+For an overview of the project structure, modules, and design boundaries, read [ARCHITECTURE.md](ARCHITECTURE.md). By participating you agree to follow our [Code of Conduct](../CODE_OF_CONDUCT.md). To report a vulnerability, see [SECURITY.md](../SECURITY.md).
 
 ## Development Setup
 
@@ -21,11 +21,10 @@ For an overview of the project structure, modules, and design boundaries, see [A
    # .venv\Scripts\activate   # Windows
    ```
 
-3. **Install dependencies** (along with `pytest` for running tests):
+3. **Install dependencies** (the dev file already includes `pytest` and `pytest-cov`):
 
    ```bash
-   pip install -r requirements.txt
-   pip install pytest
+   pip install -r tests/requirements-dev.txt
    ```
 
 4. **Run the application** from source to verify everything works:
@@ -34,58 +33,74 @@ For an overview of the project structure, modules, and design boundaries, see [A
    python main.py
    ```
 
-   *(Note: FFmpeg static binaries are bundled with the repository, so no external media engine installation is required.)*
+   *(FFmpeg static binaries are bundled with the repository, so no external media engine installation is required.)*
+
+## Where things go
+
+| You are changing... | Code lives in | Tests live in |
+|---|---|---|
+| Image / video / audio processing | `src/image/`, `src/video/`, `src/audio/` | `tests/image/`, `tests/video/`, `tests/audio/` |
+| Batch runner, naming, cleanup, config | `src/utils/` | `tests/batch/`, `tests/utils/` |
+| Pages, controllers, components, i18n | `ui/` | `tests/ui/` |
+
+Keep all processing logic inside `src/` and **never import `ui` from `src/`**. The `src/audio/` package must not import `src.video` or `src.image` (enforced by a test). Expose engine features to the UI only through a controller in `ui/controllers/`.
 
 ## Pull Request Requirements
 
-Every Pull Request must meet the following criteria before it can be merged:
-
 ### 1. Tests & `pytest`
 
-* **New features & bug fixes require tests:** Any new functionality, bug fix, or behavioral change must include corresponding unit/integration tests under `tests/` (`tests/engine/` for core logic or `tests/ui/` for interface/controllers).
+* **New features & bug fixes require tests:** any new functionality, bug fix, or behavioral change must include unit/integration tests in the matching folder under `tests/` (see the table above).
 
-* **All tests must pass:** Run the full test suite locally before opening a PR:
+* **All tests must pass.** Run the full suite locally before opening a PR:
 
   ```bash
   pytest
   ```
 
+  You can also run only part of it, for example `pytest tests/ui` or `pytest tests/audio tests/batch tests/image tests/utils tests/video`.
+
+* Tests that need FFmpeg use the bundled binary and skip themselves when an encoder is missing.
+
 ### 2. Internationalization (i18n) Rules
 
 If your change adds, modifies, or removes any user-facing text in the UI:
 
-* **Mandatory:** You **must** update both `resources/locales/en.yaml` and `resources/locales/_template.yaml`.
+* **Mandatory:** update both `resources/locales/en.yaml` and `resources/locales/_template.yaml` with the same keys.
 
-* **Other locales (`pt.yaml`, `es.yaml`, etc.):** Updating all supported languages is ideal, but not mandatory. If you only update English and the template, **explicitly mention in your PR description which locale files still need translation**.
+* **Other locales (`pt.yaml`, `es.yaml`, ...):** translating everything is ideal but not mandatory. If you only update English and the template, **explicitly mention in your PR description which locale files still need translation**. A locale that is out of sync with the template is skipped at startup and the app falls back to English.
 
-* Ensure `pytest tests/ui/test_i18n.py` passes with your changes.
+* Placeholders such as `{count}` or `{formats}` must match `en.yaml` in every language.
 
-### 3. Code Style (PEP 8 / Ruff — Recommended)
+* Make sure `pytest tests/ui/test_i18n.py` passes.
 
-* Please try to follow **PEP 8** conventions and **Ruff** formatting/linting standards (via your IDE extension or CLI) for any new or modified code.
+### 3. Code Style (PEP 8 / Ruff)
 
-* Since legacy parts of the codebase are still undergoing cleanup, strict linter compliance is **not a hard requirement** to merge a PR—just do your best to keep new changes clean.
+* New and modified code should follow **PEP 8** and pass **Ruff**:
+
+  ```bash
+  ruff check .
+  ruff format --check .
+  ```
+
+* Some legacy parts of the codebase are still being cleaned up, so existing warnings in files you did not touch will not block a PR. Just do not add new ones.
 
 ### 4. Commits & Pull Request Descriptions
 
-* **Map your changes:** Keep PRs focused and well-scoped. Avoid bundling unrelated changes into a single PR.
+* **Keep PRs focused.** Avoid bundling unrelated changes.
 
-* **Detailed Commits:** Write clear, descriptive commit messages following Conventional Commits (e.g., `feat(video): ...`, `fix(ui): ...`, `refactor(i18n): ...`). Include a commit body explaining the *why* when the change is non-trivial.
+* **Detailed commits:** use [Conventional Commits](https://www.conventionalcommits.org/) (e.g., `feat(audio): ...`, `fix(ui): ...`, `refactor(i18n): ...`) and explain the *why* in the body when the change is non-trivial.
 
-* **Thorough PR Description:** Your PR description must clearly detail:
-
+* **Thorough PR description:** state clearly
   * **What** was changed and **why**.
-
   * **Which files/modules** were affected.
-
-  * **How** it was tested (confirming that `pytest` passed).
-
+  * **How** it was tested (confirm `pytest` passed).
   * Any pending translation keys if only `en.yaml` and `_template.yaml` were updated.
 
 ## Checklist Before Submitting
 
 * [ ] Unit/integration tests were added or updated for the changes
 * [ ] Full test suite passes (`pytest`)
-* [ ] `resources/locales/en.yaml` and `_template.yaml` are updated (and pending locales are noted in the PR description, if applicable)
-* [ ] New/modified code makes a best-effort attempt to follow PEP 8 / Ruff guidelines
-* [ ] Commit messages and PR description clearly map and explain all changes
+* [ ] Processing logic stays in `src/` and `src/` does not import `ui`
+* [ ] `resources/locales/en.yaml` and `_template.yaml` are updated (pending locales are noted in the PR description)
+* [ ] New/modified code follows PEP 8 and passes `ruff check .`
+* [ ] Commit messages and PR description clearly explain all changes
