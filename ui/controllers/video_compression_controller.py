@@ -344,6 +344,17 @@ class VideoCompressionController(BaseController):
             self._close_cancel_dialog(page)
 
             if not self.abort_requested:
+                if summary.get("error"):
+                    # Batch-level failure reported by the engine: show it as an
+                    # error, never as success. The finally block restores the UI.
+                    logger.error(
+                        f"Batch processing returned an error: {summary['error']}"
+                    )
+                    lbl_status.value = t("msg_error")
+                    lbl_status.color = get_color("error")
+                    lbl_status.update()
+                    return
+
                 if summary.get("no_files", False):
                     lbl_status.value = ""
                     lbl_status.update()
