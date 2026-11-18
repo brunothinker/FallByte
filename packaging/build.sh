@@ -24,7 +24,6 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 BUILD_DIR="$PROJECT_ROOT/build"
 PYINSTALLER_DIR="$BUILD_DIR/pyinstaller"
-SPEC_FILE="$PROJECT_ROOT/packaging/rpm/fallbyte.spec"
 MAIN_PY="$PROJECT_ROOT/main.py"
 
 show_help() {
@@ -74,16 +73,38 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       ;;
-    --*)
-      TARGET_VERSION="${1#--}"
-      shift
+    -*)
+      echo "ERROR: Unknown option '$1'."
+      echo ""
+      show_help
+      exit 1
       ;;
     *)
+      if [[ -n "$TARGET_VERSION" ]]; then
+        echo "ERROR: Unexpected extra argument '$1'."
+        exit 1
+      fi
       TARGET_VERSION="$1"
       shift
       ;;
   esac
 done
+
+if [ -z "$TARGET_VERSION" ]; then
+    echo -n "==> Enter target release version (e.g., 2.0.0): "
+    read -r TARGET_VERSION
+fi
+
+if [ -z "$TARGET_VERSION" ]; then
+    echo "ERROR: No release version was specified."
+    exit 1
+fi
+
+# Validate Semantic Versioning format (e.g., 2.0.0 or 2.0.0-rc1)
+if [[ ! "$TARGET_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+    echo "ERROR: Invalid version format '$TARGET_VERSION'. Expected SemVer (e.g., 2.0.0)."
+    exit 1
+fi
 
 # Ensure PyInstaller executable is present in PATH
 if ! command -v pyinstaller &> /dev/null; then
@@ -112,17 +133,6 @@ else
 fi
 
 export ICON_SRC="$ICON_PATH"
-
-if [ -z "$TARGET_VERSION" ]; then
-    echo -n "==> Enter target release version (e.g., 1.2.1): "
-    read -r TARGET_VERSION
-fi
-
-if [ -z "$TARGET_VERSION" ]; then
-    echo "ERROR: No release version was specified."
-    exit 1
-fi
-
 export APP_VERSION="$TARGET_VERSION"
 
 echo "=================================================="
@@ -132,22 +142,16 @@ echo " Docker Auto-Test: ${RUN_TESTS}"
 echo "=================================================="
 
 # 2. Clean build directory workspace
-echo "--> [1/5] Purging previous build workspace..."
+echo "--> [1/4] Purging previous build workspace..."
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 
 # 3. Inject target version into main entry point constant
-echo "--> [2/5] Injecting APP_VERSION into main.py..."
+echo "--> [2/4] Injecting APP_VERSION into main.py..."
 sed -i -E "s/^(APP_VERSION\s*=\s*\").*/\1${APP_VERSION}\"/" "$MAIN_PY"
 
-# 4. Synchronize version directive in RPM specfile
-if [ -f "$SPEC_FILE" ]; then
-    echo "--> [3/5] Synchronizing RPM spec metadata..."
-    sed -i -E "s/^(Version:\s+).*/\1${APP_VERSION}/" "$SPEC_FILE"
-fi
-
-# 5. Compile Python source into isolated directory bundle
-echo "--> [4/5] Compiling application binaries with PyInstaller..."
+# 4. Compile Python source into isolated directory bundle
+echo "--> [3/4] Compiling application binaries with PyInstaller..."
 
 pyinstaller \
     --noconfirm \
@@ -163,8 +167,14 @@ pyinstaller \
     --workpath "$PYINSTALLER_DIR/build" \
     "$MAIN_PY"
 
-# 6. Invoke Linux downstream packaging scripts
-echo "--> [5/5] Generating target Linux distribution packages..."
+# Strip non-Linux FFmpeg binaries (Windows/macOS) from Linux bundle
+rm -rf "$PYINSTALLER_DIR/dist/FallByte/_internal/resources/bin/win"* \
+       "$PYINSTALLER_DIR/dist/FallByte/_internal/resources/bin/darwin"* \
+       "$PYINSTALLER_DIR/dist/FallByte/_internal/resources/bin/mac"*
+find "$PYINSTALLER_DIR/dist/FallByte/_internal/resources" -type f \( -name "*.exe" -o -name "*.dll" \) -delete
+
+# 5. Invoke Linux downstream packaging scripts
+echo "--> [4/4] Generating target Linux distribution packages..."
 
 echo " -> Building AppImage..."
 "$SCRIPT_DIR/appimage/build_appimage.sh" "$APP_VERSION" "$ICON_SRC"
@@ -183,7 +193,7 @@ echo " SUCCESS: All Linux distribution packages generated for v${APP_VERSION}"
 echo " Artifacts location: $BUILD_DIR"
 echo "=================================================="
 
-# 7. Optionally trigger Docker integration test suite
+# 6. Optionally trigger Docker integration test suite
 if [ "$RUN_TESTS" = true ]; then
     echo ""
     echo "=================================================="

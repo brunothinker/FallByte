@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.brunothinker.fallbyte</id>
+  <name>FallByte</name>
+  <summary>Local-first media optimization and conversion suite</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+
+  <developer id="io.github.brunothinker">
+    <name>Bruno Henrique</name>
+  </developer>
+
+  <description>
+    <p>
+      FallByte is a fast, local-first desktop utility for compressing, optimizing,
+      and converting media files completely offline.
+    </p>
+    <p>
+      Designed with privacy, batch processing, and workflow efficiency in mind, it
+      helps reduce file sizes and standardize formats directly on your machine
+      without relying on cloud services.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">fallbyte.desktop</launchable>
+
+  <provides>
+    <binary>fallbyte</binary>
+  </provides>
+
+  <url type="homepage">https://github.com/brunothinker/FallByte</url>
+  <url type="bugtracker">https://github.com/brunothinker/FallByte/issues</url>
+  <url type="vcs-browser">https://github.com/brunothinker/FallByte</url>
+
+  <releases>
+    <release version="dev" date="1970-01-01" />
+  </releases>
+
+  <categories>
+    <category>AudioVideo</category>
+    <category>Graphics</category>
+  </categories>
+
+  <keywords>
+    <keyword>media</keyword>
+    <keyword>compress</keyword>
+    <keyword>convert</keyword>
+    <keyword>optimization</keyword>
+    <keyword>offline</keyword>
+  </keywords>
+
+  <content_rating type="oars-1.1" />
+</component>
