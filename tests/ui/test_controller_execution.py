@@ -1,6 +1,8 @@
 """Characterization tests for single-file and batch execution flows across all UI controllers."""
 
+import logging
 import sys
+from unittest.mock import MagicMock
 
 from tests.ui.helpers import assert_idle_ui
 from ui.i18n import t
@@ -159,6 +161,51 @@ def test_batch_engine_exception_restores_ui_without_summary(ctx):
         "[ui] Batch engine crash must display translated 'msg_error' status without opening summary dialog."
     )
     assert_idle_ui(ctx)
+
+
+def test_batch_returned_error_shows_error_without_success_dialog(
+    ctx, caplog, monkeypatch
+):
+    """A returned batch-level error is logged and shown as an error, never as a success summary."""
+    c = ctx
+    no_files_dialog = MagicMock()
+    monkeypatch.setattr(c.module, "show_no_supported_files_dialog", no_files_dialog)
+    c.fake_dir_engine(
+        {
+            "total_files": 3,
+            "success": 0,
+            "failed": 0,
+            "elapsed_seconds": 0.0,
+            "original_bytes": 0,
+            "compressed_bytes": 0,
+            "cancelled": False,
+            "cleaned_files_count": 0,
+            "error": "Cannot create output folder",
+        }
+    )
+    streams_before = (sys.stdout, sys.stderr)
+
+    with caplog.at_level(logging.ERROR):
+        c.run_batch()
+
+    assert "Cannot create output folder" in caplog.text, (
+        "[ui] The returned batch error message must be logged."
+    )
+    assert c.lbl_status.value == t("msg_error"), (
+        "[ui] A returned batch error must display the translated 'msg_error' status."
+    )
+    assert c.lbl_status.color == get_color("error"), (
+        "[ui] A returned batch error must use the error color for the status label."
+    )
+    c.summary_dialog.assert_not_called()
+    no_files_dialog.assert_not_called()
+    assert c.progress_bar.value != 1.0, (
+        "[ui] A batch error must not fill the progress bar as if the batch completed."
+    )
+    assert (sys.stdout, sys.stderr) == streams_before, (
+        "[ui] Log redirection must be stopped even when the batch returns an error."
+    )
+    assert_idle_ui(c)
 
 
 def test_batch_restores_standard_streams(ctx):
