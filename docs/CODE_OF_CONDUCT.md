@@ -1,47 +1,29 @@
-# Third-Party Notices and Licenses
+# Code of Conduct
 
-FallByte is licensed under the GNU General Public License v3.0 (GPLv3). This application bundles external third-party software components and standalone binaries, listed below.
+## Our Pledge
 
----
+We want FallByte to be a welcoming, harassment-free project for everyone, regardless of age, background, experience level, gender identity, nationality, or religion.
 
-## 1. FFmpeg (Bundled Binary)
+## Expected Behavior
 
-- **Name:** FFmpeg Static Build
-- **Version:** 7.0.2-static
-- **Build Origin:** John Van Sickle (https://johnvansickle.com/ffmpeg/)
-- **License:** GNU General Public License v3.0 (GPLv3)
-- **Source Code:** [FFmpeg Source Releases](https://ffmpeg.org/download.html) / [John Van Sickle Build Scripts](https://johnvansickle.com/ffmpeg/)
-- **Description:** Standalone FFmpeg static binary used for video and audio re-encoding, stream copying, and media compression.
-- **Build Configuration:**
+- Be respectful and constructive, including when you disagree
+- Give and accept feedback graciously
+- Focus on what is best for the project and the community
+- Help newcomers; every contributor was one once
 
-  ```text
-  --enable-gpl --enable-version3 --enable-static --disable-debug --disable-ffplay
-  --disable-indev=sndio --disable-outdev=sndio --cc=gcc --enable-fontconfig --enable-frei0r
-  --enable-gnutls --enable-gmp --enable-libgme --enable-gray --enable-libaom --enable-libfribidi
-  --enable-libass --enable-libvmaf --enable-libfreetype --enable-libmp3lame --enable-libopencore-amrnb
-  --enable-libopencore-amrwb --enable-libopenjpeg --enable-librubberband --enable-libsoxr
-  --enable-libspeex --enable-libsrt --enable-libvorbis --enable-libopus --enable-libtheora
-  --enable-libvidstab --enable-libvo-amrwbenc --enable-libvpx --enable-libwebp --enable-libx264
-  --enable-libx265 --enable-libxml2 --enable-libdav1d --enable-libxvid --enable-libzvbi --enable-libzimg
-  ```
+## Unacceptable Behavior
 
----
+- Harassment, insults, discrimination, or personal attacks
+- Trolling, spam, or deliberately disruptive behavior
+- Publishing others' private information without permission
+- Any conduct that would reasonably be considered inappropriate in a professional setting
 
-## 2. Python Dependencies
+## Enforcement
 
-### Flet
-- **License:** Apache License 2.0
-- **Source:** https://github.com/flet-dev/flet
+Maintainers may edit, hide, or remove comments, commits, issues, and pull requests that violate this code, and may temporarily or permanently ban contributors for inappropriate behavior.
 
-### Pillow (PIL)
-- **License:** HPND License (Historical Permission Notice and Disclaimer)
-- **Source:** https://github.com/python-pillow/Pillow
+To report a violation, contact the maintainer through the private channel on the repository's **Security** tab (**Report a vulnerability**) or via the contact details on the maintainer's GitHub profile. All reports are handled confidentially.
 
-### pillow-heif
-- **License:** BSD 3-Clause License
-- **Source:** https://github.com/bigcat88/pillow_heif
-- **Note:** Provides HEIC/HEIF reading support. Its binary wheels bundle `libheif` (LGPL-3.0) and related codec libraries.
+## Attribution
 
-### PyYAML
-- **License:** MIT License
-- **Source:** https://github.com/yaml/pyyaml
+This Code of Conduct is inspired by the [Contributor Covenant](https://www.contributor-covenant.org), version 2.1.
