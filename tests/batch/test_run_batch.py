@@ -1,5 +1,6 @@
 """Tests for the generic `run_batch` statistics contract and live progress reporting."""
 
+import logging
 from pathlib import Path
 
 from src.utils.batch_runner import run_batch
@@ -69,7 +70,7 @@ def test_run_batch_reports_zero_total_files_when_nothing_to_process(tmp_path):
     )
 
 
-def test_run_batch_handles_unexpected_exception(tmp_path):
+def test_run_batch_handles_unexpected_exception(tmp_path, caplog):
     """Ensures run_batch handles unexpected inner exceptions cleanly without session cleanup."""
     input_dir = tmp_path / "in"
     input_dir.mkdir()
@@ -82,17 +83,26 @@ def test_run_batch_handles_unexpected_exception(tmp_path):
             raise RuntimeError("Unexpected engine crash")
         return True
 
-    stats = run_batch(
-        input_dir=input_dir,
-        output_dir=tmp_path / "out",
-        session_name="compressed",
-        scanner=lambda path: sorted(path.glob("*.png")),
-        process_file=process_with_error,
-        build_destination=lambda src_file, session_dir: session_dir / src_file.name,
-    )
+    with caplog.at_level(logging.ERROR, logger="src.utils.batch_runner"):
+        stats = run_batch(
+            input_dir=input_dir,
+            output_dir=tmp_path / "out",
+            session_name="compressed",
+            scanner=lambda path: sorted(path.glob("*.png")),
+            process_file=process_with_error,
+            build_destination=lambda src_file, session_dir: session_dir / src_file.name,
+        )
 
     assert stats["cancelled"] is False, (
         "[batch] Unexpected engine exceptions must not be misclassified as user cancellation."
+    )
+    error_messages = [
+        record.getMessage()
+        for record in caplog.records
+        if record.levelno >= logging.ERROR
+    ]
+    assert any(str(input_dir / "b.png") in message for message in error_messages), (
+        "[batch] The error log must include the path of the second file whose processor crashed."
     )
     assert stats["total_files"] == 3, (
         "[batch] total_files must still reflect scanned inputs when an unexpected exception occurs."
