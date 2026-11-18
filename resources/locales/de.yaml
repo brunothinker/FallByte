@@ -1,0 +1,132 @@
+_meta:
+  code: "de"
+  name: "Deutsch"
+
+strings:
+  # Navigation & Sidebar
+  nav_home: "Startseite"
+  lbl_github_repo: "GitHub-Repository"
+  app_title: "FallByte - Media Suite"
+  header_back_tooltip: "Zurück"
+  route_not_found: "Route '{route_key}' wurde nicht gefunden."
+
+  # Home Dashboard
+  home_header_title: "FallByte - Hauptübersicht"
+  home_mod_image_title: "Bildmodul"
+  home_mod_image_desc: "Einzel- oder Stapelkonvertierung, Komprimierung und Optimierung von Bildern."
+  home_mod_video_title: "Videomodul"
+  home_mod_video_desc: "Videokonvertierung und -komprimierung bei hoher Qualität."
+
+  # Image Hub Navigation Modules
+  image_hub_heading: "Bildverarbeitung"
+  image_hub_subheading: "Wählen Sie das gewünschte Werkzeug aus"
+  image_hub_card_conversion_title: "Formatkonvertierung"
+  image_hub_card_conversion_desc: "Ändern Sie das Format Ihrer Bilder einzeln oder im Stapel."
+  image_hub_card_compression_title: "Bildkomprimierung"
+  image_hub_card_compression_desc: "Reduzieren Sie die Dateigröße durch Anpassung der visuellen Qualität."
+
+  # Selector Labels & Popup Items
+  lbl_source: "Quelle"
+  lbl_destination: "Ziel"
+  lbl_select_file: "Datei auswählen"
+  lbl_select_folder: "Ordner auswählen"
+  lbl_not_selected: "Keine Auswahl"
+  lbl_quality_title: "Komprimierungsqualität"
+  lbl_target_format: "Zielformat"
+  lbl_transparency_color: "Transparenz-Hintergrund"
+  lbl_no_extension: "Keine Erweiterung"
+  lbl_language: "Sprache"
+
+  # Themes i18n
+  lbl_theme: "App-Design"
+  lbl_select_theme: "Design auswählen"
+  theme_section_dark: "Dunkle Designs"
+  theme_section_light: "Helle Designs"
+  theme_blue_dark: "Blau"
+  theme_purple_dark: "Lila"
+  theme_emerald_dark: "Smaragd"
+  theme_red_dark: "Rot"
+  theme_amber_dark: "Bernstein"
+  theme_blue_light: "Blau"
+  theme_purple_light: "Lila"
+  theme_emerald_light: "Smaragd"
+  theme_red_light: "Rot"
+  theme_amber_light: "Bernstein"
+
+  # Color Options
+  color_white: "Weiß"
+  color_black: "Schwarz"
+  color_light_gray: "Hellgrau"
+  color_dark_gray: "Dunkelgrau"
+  color_red: "Rot"
+  color_green: "Grün"
+  color_blue: "Blau"
+  color_yellow: "Gelb"
+
+  # Action Buttons & Status Messages
+  btn_process: "Verarbeitung starten"
+  btn_stop_process: "VERARBEITUNG STOPPEN"
+  btn_ok: "OK"
+  btn_cancel: "Abbrechen"
+  btn_continue: "Trotzdem fortfahren"
+  btn_keep_running: "Nein, weiter ausführen"
+  btn_stop_and_delete: "Ja, stoppen und löschen"
+  btn_copy_log: "Protokoll kopieren"
+  msg_log_copied: "Protokoll in die Zwischenablage kopiert!"
+  msg_processing: "Verarbeitung läuft..."
+  msg_success: "Vorgang erfolgreich abgeschlossen!"
+  msg_error: "Beim Verarbeiten der Dateien ist ein Fehler aufgetreten."
+  msg_select_required: "Bitte wählen Sie Quell- und Zielspeicherort aus, um fortzufahren."
+  msg_same_folder_error: "Der Zielordner darf nicht mit dem Quellordner identisch sein."
+  msg_nested_folder_error: "Der Zielordner darf nicht innerhalb oder ein übergeordneter Ordner des Quellordners sein."
+  msg_cancelling: "Abbruch und Bereinigung erzeugter Dateien..."
+  msg_converting_progress: "Konvertierung: [{current}/{total}] - {filename}"
+  msg_compressing_progress: "Komprimierung: [{current}/{total}] - {filename}"
+  msg_process_cancelled: "Verarbeitung abgebrochen. {count} erzeugte Datei(en) wurden gelöscht."
+  msg_success_summary: "{msg} | Erfolgreich: {successful} / {total}"
+
+  # Dialog Messages
+  dialog_incompatible_title: "Nicht komprimierbare Formate"
+  dialog_incompatible_body: "Es wurden {unsupported_count} Datei(en) gefunden, die für die direkte Komprimierung nicht unterstützt werden ({sample_exts}).\n\nTipp: Sie können diese vorher über das Konvertierungsmodul umwandeln.\n\nMöchten Sie nur die {supported_count} kompatible(n) Datei(en) komprimieren?"
+  dialog_cancel_title: "Abbruch bestätigen"
+  dialog_cancel_body: "Möchten Sie die Verarbeitung wirklich stoppen?\nDateien, die während dieser Sitzung im Zielverzeichnis gespeichert wurden, werden gelöscht."
+
+  # Summary & Log Dialog
+  log_dialog_title: "Verarbeitungsergebnisse"
+  log_summary_success: "Erfolgreich"
+  log_summary_failed: "Fehlgeschlagen"
+  log_summary_total: "Dateien gesamt"
+  log_summary_time: "Verstrichene Zeit"
+  log_btn_view_logs: "Detailliertes Protokoll anzeigen"
+  log_btn_hide_logs: "Protokoll ausblenden"
+  log_detail_title: "Detaillierter Verlauf:"
+  log_no_errors: "Während der Verarbeitung wurden keine Fehler aufgezeichnet."
+  log_size_stat: "Größe: {orig} -> {comp}"
+  log_reduction_stat: "Reduzierung: -{pct:.1f}%"
+  log_increase_stat: "Zunahme: +{pct:.1f}%"
+
+  # Video Hub Navigation Modules
+  video_hub_heading: "Videoverarbeitung"
+  video_hub_subheading: "Wählen Sie das gewünschte Werkzeug aus"
+  video_hub_card_conversion_title: "Videokonvertierung"
+  video_hub_card_conversion_desc: "Ändern Sie Videoformate unter Beibehaltung der Kompatibilität."
+  video_hub_card_compression_title: "Videokomprimierung"
+  video_hub_card_compression_desc: "Reduzieren Sie Videodateigrößen bei gleichbleibender Qualität."
+  lbl_quality_percentage: "Qualität: {value}%"
+  msg_supported_formats_notice: "Unterstützte Formate für die Komprimierung: {formats}"
+  msg_supported_formats_notice_conversion: "Unterstützte Formate für die Konvertierung: {formats}"
+  dialog_no_files_title: "Keine unterstützten Dateien"
+  dialog_no_files_body: "Der ausgewählte Ordner enthält keine für diesen Vorgang kompatiblen Dateien."
+  dialog_no_files_formats: "Unterstützte Formate: {formats}"
+
+  # Home Dashboard
+  home_mod_audio_title: "Audiomodul"
+  home_mod_audio_desc: "Audiokonvertierung und -komprimierung über mehrere Formate hinweg."
+
+  # Audio Hub Navigation Modules
+  audio_hub_heading: "Audioverarbeitung"
+  audio_hub_subheading: "Wählen Sie das gewünschte Werkzeug aus"
+  audio_hub_card_conversion_title: "Audiokonvertierung"
+  audio_hub_card_conversion_desc: "Konvertieren Sie Audiospuren einzeln oder im Stapel zwischen Formaten."
+  audio_hub_card_compression_title: "Audiokomprimierung"
+  audio_hub_card_compression_desc: "Reduzieren Sie Audiodateigrößen bei klarer Klangqualität."

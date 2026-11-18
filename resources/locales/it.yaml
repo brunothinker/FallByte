@@ -1,0 +1,132 @@
+_meta:
+  code: "it"
+  name: "Italiano"
+
+strings:
+  # Navigation & Sidebar
+  nav_home: "Home"
+  lbl_github_repo: "Repository GitHub"
+  app_title: "FallByte - Suite Multimediale"
+  header_back_tooltip: "Indietro"
+  route_not_found: "Percorso '{route_key}' non trovato."
+
+  # Home Dashboard
+  home_header_title: "FallByte - Pannello Principale"
+  home_mod_image_title: "Modulo Immagini"
+  home_mod_image_desc: "Conversione, compressione e ottimizzazione di immagini singole o in batch."
+  home_mod_video_title: "Modulo Video"
+  home_mod_video_desc: "Conversione e compressione video mantenendo un'elevata qualità."
+
+  # Image Hub Navigation Modules
+  image_hub_heading: "Elaborazione Immagini"
+  image_hub_subheading: "Seleziona lo strumento che desideri utilizzare"
+  image_hub_card_conversion_title: "Conversione Formato"
+  image_hub_card_conversion_desc: "Cambia il formato delle tue immagini singolarmente o in batch."
+  image_hub_card_compression_title: "Compressione Immagini"
+  image_hub_card_compression_desc: "Riduci la dimensione dei file regolando la qualità visiva."
+
+  # Selector Labels & Popup Items
+  lbl_source: "Origine"
+  lbl_destination: "Destinazione"
+  lbl_select_file: "Seleziona file"
+  lbl_select_folder: "Seleziona cartella"
+  lbl_not_selected: "Nessuna selezione"
+  lbl_quality_title: "Qualità di compressione"
+  lbl_target_format: "Formato di destinazione"
+  lbl_transparency_color: "Sfondo trasparenza"
+  lbl_no_extension: "Nessuna estensione"
+  lbl_language: "Lingua"
+
+  # Themes i18n
+  lbl_theme: "Tema dell'app"
+  lbl_select_theme: "Seleziona tema"
+  theme_section_dark: "Temi scuri"
+  theme_section_light: "Temi chiari"
+  theme_blue_dark: "Blu"
+  theme_purple_dark: "Viola"
+  theme_emerald_dark: "Smeraldo"
+  theme_red_dark: "Rosso"
+  theme_amber_dark: "Ambra"
+  theme_blue_light: "Blu"
+  theme_purple_light: "Viola"
+  theme_emerald_light: "Smeraldo"
+  theme_red_light: "Rosso"
+  theme_amber_light: "Ambra"
+
+  # Color Options
+  color_white: "Bianco"
+  color_black: "Nero"
+  color_light_gray: "Grigio chiaro"
+  color_dark_gray: "Grigio scuro"
+  color_red: "Rosso"
+  color_green: "Verde"
+  color_blue: "Blu"
+  color_yellow: "Giallo"
+
+  # Action Buttons & Status Messages
+  btn_process: "Avvia elaborazione"
+  btn_stop_process: "INTERROMPI ELABORAZIONE"
+  btn_ok: "OK"
+  btn_cancel: "Annulla"
+  btn_continue: "Procedi comunque"
+  btn_keep_running: "No, continua"
+  btn_stop_and_delete: "Sì, interrompi ed elimina"
+  btn_copy_log: "Copia registro"
+  msg_log_copied: "Registro copiato negli appunti!"
+  msg_processing: "Elaborazione in corso..."
+  msg_success: "Operazione completata con successo!"
+  msg_error: "Si è verificato un errore durante l'elaborazione dei file."
+  msg_select_required: "Seleziona i percorsi di origine e destinazione per continuare."
+  msg_same_folder_error: "La cartella di destinazione non può coincidere con la cartella di origine."
+  msg_nested_folder_error: "La cartella di destinazione non può essere contenuta nella cartella di origine né esserne superiore."
+  msg_cancelling: "Annullamento e pulizia dei file generati..."
+  msg_converting_progress: "Conversione: [{current}/{total}] - {filename}"
+  msg_compressing_progress: "Compressione: [{current}/{total}] - {filename}"
+  msg_process_cancelled: "Elaborazione annullata. {count} file generati eliminati."
+  msg_success_summary: "{msg} | Riusciti: {successful} / {total}"
+
+  # Dialog Messages
+  dialog_incompatible_title: "Formati non comprimibili"
+  dialog_incompatible_body: "Trovati {unsupported_count} file non supportati per la compressione diretta ({sample_exts}).\n\nSuggerimento: puoi convertirli prima utilizzando il Modulo Conversione.\n\nVuoi procedere comprimendo solo i {supported_count} file compatibili?"
+  dialog_cancel_title: "Conferma annullamento"
+  dialog_cancel_body: "Vuoi davvero interrompere l'elaborazione?\nI file salvati nella directory di destinazione durante questa sessione verranno eliminati."
+
+  # Summary & Log Dialog
+  log_dialog_title: "Risultati elaborazione"
+  log_summary_success: "Riusciti"
+  log_summary_failed: "Non riusciti"
+  log_summary_total: "File totali"
+  log_summary_time: "Tempo trascorso"
+  log_btn_view_logs: "Visualizza registro dettagliato"
+  log_btn_hide_logs: "Nascondi registro"
+  log_detail_title: "Cronologia dettagliata:"
+  log_no_errors: "Nessun errore registrato durante l'elaborazione."
+  log_size_stat: "Dimensione: {orig} -> {comp}"
+  log_reduction_stat: "Riduzione: -{pct:.1f}%"
+  log_increase_stat: "Aumento: +{pct:.1f}%"
+
+  # Video Hub Navigation Modules
+  video_hub_heading: "Elaborazione Video"
+  video_hub_subheading: "Seleziona lo strumento che desideri utilizzare"
+  video_hub_card_conversion_title: "Conversione Video"
+  video_hub_card_conversion_desc: "Cambia i formati video mantenendo la compatibilità."
+  video_hub_card_compression_title: "Compressione Video"
+  video_hub_card_compression_desc: "Riduci le dimensioni dei file video preservando la qualità."
+  lbl_quality_percentage: "Qualità: {value}%"
+  msg_supported_formats_notice: "Formati supportati per la compressione: {formats}"
+  msg_supported_formats_notice_conversion: "Formati supportati per la conversione: {formats}"
+  dialog_no_files_title: "Nessun file supportato"
+  dialog_no_files_body: "La cartella selezionata non contiene file compatibili con questa operazione."
+  dialog_no_files_formats: "Formati supportati: {formats}"
+
+  # Home Dashboard
+  home_mod_audio_title: "Modulo Audio"
+  home_mod_audio_desc: "Conversione e compressione audio in diversi formati."
+
+  # Audio Hub Navigation Modules
+  audio_hub_heading: "Elaborazione Audio"
+  audio_hub_subheading: "Seleziona lo strumento che desideri utilizzare"
+  audio_hub_card_conversion_title: "Conversione Audio"
+  audio_hub_card_conversion_desc: "Converti tracce audio tra diversi formati singolarmente o in batch."
+  audio_hub_card_compression_title: "Compressione Audio"
+  audio_hub_card_compression_desc: "Riduci le dimensioni dei file audio mantenendo la nitidezza."

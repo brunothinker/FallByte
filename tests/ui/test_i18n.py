@@ -198,15 +198,41 @@ def test_missing_template_raises_runtime_error(
 
 def test_normalize_valid_locales(monkeypatch: pytest.MonkeyPatch) -> None:
     """Tests normalization of various standard locale string formats into supported codes."""
-    monkeypatch.setattr(i18n, "TRANSLATIONS", {"en": {}, "pt": {}, "es": {}})
+    monkeypatch.setattr(
+        i18n,
+        "TRANSLATIONS",
+        {
+            "en": {},
+            "pt": {},
+            "es": {},
+            "fr": {},
+            "de": {},
+            "it": {},
+            "ja": {},
+            "zh": {},
+            "ru": {},
+        },
+    )
 
     cases = [
         ("pt_BR", "pt"),
         ("pt-BR", "pt"),
         ("es_ES.UTF-8", "es"),
         ("en_US", "en"),
+        ("fr_FR", "fr"),
+        ("de-DE", "de"),
+        ("it_IT.UTF-8", "it"),
+        ("ja_JP", "ja"),
+        ("zh_CN", "zh"),
+        ("ru_RU", "ru"),
         ("Portuguese_Brazil", "pt"),
         ("Spanish_Spain", "es"),
+        ("French_France", "fr"),
+        ("German_Germany", "de"),
+        ("Italian_Italy", "it"),
+        ("Japanese_Japan", "ja"),
+        ("Chinese_China", "zh"),
+        ("Russian_Russia", "ru"),
     ]
     for raw_locale, expected in cases:
         actual = _normalize(raw_locale)
@@ -215,9 +241,11 @@ def test_normalize_valid_locales(monkeypatch: pytest.MonkeyPatch) -> None:
         )
 
 
-def test_normalize_invalid_and_empty_locales() -> None:
+def test_normalize_invalid_and_empty_locales(monkeypatch: pytest.MonkeyPatch) -> None:
     """Tests normalization behavior on unsupported, empty, or fallback locale strings."""
-    invalid_cases = ["", None, "C", "C.UTF-8", "fr_FR", "ja_JP"]
+    monkeypatch.setattr(i18n, "TRANSLATIONS", {"en": {}, "pt": {}, "es": {}})
+
+    invalid_cases = ["", None, "C", "C.UTF-8", "ko_KR", "ar_SA"]
     for raw_locale in invalid_cases:
         actual = _normalize(raw_locale)
         assert actual is None, (

@@ -1,22 +1,15 @@
-# app_layout.py
 import logging
-import threading
-import time
 import webbrowser
 from pathlib import Path
 
 import flet as ft
 
-from src.utils.config_manager import set_config_value
-from ui.i18n import AVAILABLE_LANGUAGES, TRANSLATIONS, set_language, t
+from ui.components.language_dialog import build_language_modal
+from ui.components.theme_dialog import build_theme_modal
+from ui.i18n import t
 from ui.registry import MODULE_REGISTRY, resolve_active_module_id
 from ui.router import build_page_view
-from ui.theme import (
-    THEME_PRESETS,
-    build_flet_theme,
-    get_color,
-    set_active_theme,
-)
+from ui.theme import get_color
 
 # Setup module logger
 logger = logging.getLogger(__name__)
@@ -36,12 +29,43 @@ def create_app_layout(
         bgcolor=get_color("background"),
     )
 
+    # Scoped overlay layer centered strictly over content_area (excluding sidebar)
+    modal_overlay = ft.Container(
+        expand=True,
+        visible=False,
+        bgcolor=ft.colors.with_opacity(0.55, ft.colors.BLACK),
+        alignment=ft.alignment.center,
+        padding=20,
+        on_click=lambda _: close_modal(),
+    )
+
+    def close_modal() -> None:
+        """Closes any active scoped modal inside content_area."""
+        if page.session.get("is_processing"):
+            return
+        modal_overlay.visible = False
+        modal_overlay.content = None
+        if modal_overlay.page:
+            modal_overlay.update()
+
+    def on_preferences_applied() -> None:
+        """Closes modal and refreshes sidebar and active view after theme/language change."""
+        modal_overlay.visible = False
+        modal_overlay.content = None
+        page.update()
+
+        update_sidebar_labels()
+        update_sidebar_active_states()
+        update_view()
+
     def cleanup_page_overlays() -> None:
         """Closes pending alert dialogs and clears registered FilePicker overlays."""
         if isinstance(page.dialog, ft.AlertDialog):
             page.dialog.open = False
         page.dialog = None
         page.overlay.clear()
+        modal_overlay.visible = False
+        modal_overlay.content = None
 
     def update_view() -> None:
         """Clears overlays and renders active route view with refreshed theme colors."""
@@ -57,7 +81,6 @@ def create_app_layout(
         if isinstance(view_control, ft.Control):
             view_control.expand = False
 
-        # Back button styled with the active theme colors
         btn_back = ft.ElevatedButton(
             text=t("header_back_tooltip"),
             icon=ft.icons.ARROW_BACK,
@@ -108,216 +131,27 @@ def create_app_layout(
             update_view()
 
     def open_theme_dialog() -> None:
-        """Opens a dialog with categorized Dark and Light presets, feedback progress, and persistence."""
+        """Opens the scoped 2-column theme selector modal."""
         if page.session.get("is_processing"):
             return
-
-        def select_theme(key: str) -> None:
-            """Handles theme selection and displays progress feedback in the dialog."""
-            txt_dialog_title.value = t("lbl_theme")
-            txt_processing.value = t("msg_processing")
-
-            theme_options_column.visible = False
-            progress_container.visible = True
-            theme_dialog.update()
-
-            def process_theme_change() -> None:
-                """Applies and persists the selected theme, then refreshes sidebar and view."""
-                time.sleep(0.4)
-
-                set_active_theme(key)
-                set_config_value("theme", key)
-
-                # Rebuild the Flet theme from the active preset
-                page.theme = build_flet_theme()
-                page.dark_theme = build_flet_theme()
-
-                page.theme_mode = (
-                    ft.ThemeMode.LIGHT if key.endswith("_light") else ft.ThemeMode.DARK
-                )
-
-                theme_dialog.open = False
-                page.update()
-
-                time.sleep(0.15)
-                page.dialog = None
-
-                update_sidebar_labels()
-                update_sidebar_active_states()
-                update_view()
-
-            threading.Thread(target=process_theme_change, daemon=True).start()
-
-        dark_keys = [k for k in THEME_PRESETS if k.endswith("_dark")]
-        light_keys = [k for k in THEME_PRESETS if k.endswith("_light")]
-
-        dark_buttons = [
-            ft.TextButton(
-                text=t(f"theme_{k}"),
-                style=ft.ButtonStyle(color=get_color("text")),
-                on_click=lambda _, key=k: select_theme(key),
-            )
-            for k in dark_keys
-        ]
-
-        light_buttons = [
-            ft.TextButton(
-                text=t(f"theme_{k}"),
-                style=ft.ButtonStyle(color=get_color("text")),
-                on_click=lambda _, key=k: select_theme(key),
-            )
-            for k in light_keys
-        ]
-
-        theme_options_column = ft.Column(
-            [
-                ft.Text(
-                    t("theme_section_dark"),
-                    size=12,
-                    weight=ft.FontWeight.BOLD,
-                    color=get_color("subtext"),
-                ),
-                *dark_buttons,
-                ft.Divider(height=10, color=ft.colors.OUTLINE_VARIANT),
-                ft.Text(
-                    t("theme_section_light"),
-                    size=12,
-                    weight=ft.FontWeight.BOLD,
-                    color=get_color("subtext"),
-                ),
-                *light_buttons,
-            ],
-            tight=True,
-            spacing=2,
+        modal_overlay.content = build_theme_modal(
+            page=page,
+            on_close=close_modal,
+            on_applied=on_preferences_applied,
         )
-
-        txt_dialog_title = ft.Text(
-            t("lbl_select_theme"),
-            size=16,
-            weight=ft.FontWeight.BOLD,
-            color=get_color("text"),
-        )
-        txt_processing = ft.Text(
-            t("msg_processing"), size=13, color=get_color("subtext")
-        )
-
-        progress_container = ft.Column(
-            [
-                txt_processing,
-                ft.ProgressBar(width=200, color=get_color("primary")),
-            ],
-            visible=False,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=10,
-            tight=True,
-        )
-
-        theme_dialog = ft.AlertDialog(
-            bgcolor=get_color("card_bg"),
-            title=txt_dialog_title,
-            content=ft.Container(
-                content=ft.Column(
-                    [
-                        theme_options_column,
-                        progress_container,
-                    ],
-                    tight=True,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                ),
-                padding=10,
-            ),
-        )
-        page.dialog = theme_dialog
-        theme_dialog.open = True
+        modal_overlay.visible = True
         page.update()
 
     def open_language_dialog() -> None:
-        """Opens a dialog listing the available languages with progress feedback and auto-close."""
+        """Opens the scoped 2-column language selector modal."""
         if page.session.get("is_processing"):
             return
-
-        def select_language(code: str) -> None:
-            """Handles language selection, displays progress bar, and closes dialog automatically."""
-            target_translations = TRANSLATIONS.get(code, {})
-            target_title = target_translations.get("lbl_language", t("lbl_language"))
-            target_msg = target_translations.get("msg_processing", t("msg_processing"))
-
-            txt_dialog_title.value = target_title
-            txt_processing.value = target_msg
-
-            lang_list_column.visible = False
-            progress_container.visible = True
-            language_dialog.update()
-
-            def process_change() -> None:
-                """Applies and persists the selected language, then refreshes sidebar and view."""
-                time.sleep(0.4)
-
-                set_language(code)
-                set_config_value("language", code)
-                page.title = t("app_title")
-
-                language_dialog.open = False
-                page.update()
-
-                time.sleep(0.15)
-                page.dialog = None
-
-                update_sidebar_labels()
-                update_view()
-
-            threading.Thread(target=process_change, daemon=True).start()
-
-        lang_list_column = ft.Column(
-            [
-                ft.TextButton(
-                    text=label,
-                    style=ft.ButtonStyle(color=get_color("text")),
-                    on_click=lambda _, code=code: select_language(code),
-                )
-                for code, label in AVAILABLE_LANGUAGES.items()
-            ],
-            tight=True,
+        modal_overlay.content = build_language_modal(
+            page=page,
+            on_close=close_modal,
+            on_applied=on_preferences_applied,
         )
-
-        txt_dialog_title = ft.Text(
-            t("lbl_language"),
-            size=16,
-            weight=ft.FontWeight.BOLD,
-            color=get_color("text"),
-        )
-        txt_processing = ft.Text(
-            t("msg_processing"), size=13, color=get_color("subtext")
-        )
-
-        progress_container = ft.Column(
-            [
-                txt_processing,
-                ft.ProgressBar(width=200, color=get_color("primary")),
-            ],
-            visible=False,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=10,
-            tight=True,
-        )
-
-        language_dialog = ft.AlertDialog(
-            bgcolor=get_color("card_bg"),
-            title=txt_dialog_title,
-            content=ft.Container(
-                content=ft.Column(
-                    [
-                        lang_list_column,
-                        progress_container,
-                    ],
-                    tight=True,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                ),
-                padding=10,
-            ),
-        )
-        page.dialog = language_dialog
-        language_dialog.open = True
+        modal_overlay.visible = True
         page.update()
 
     # Sidebar Header (Centered Brand Text)
@@ -569,6 +403,15 @@ def create_app_layout(
     # Initialize view
     update_view()
 
+    # Main content stack isolates scoped modals from the left sidebar
+    content_stack = ft.Stack(
+        [
+            content_area,
+            modal_overlay,
+        ],
+        expand=True,
+    )
+
     # Main root layout container
     return ft.Container(
         expand=True,
@@ -577,7 +420,7 @@ def create_app_layout(
                 ft.Row(
                     [
                         sidebar,
-                        content_area,
+                        content_stack,
                     ],
                     expand=True,
                     spacing=0,

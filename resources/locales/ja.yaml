@@ -1,0 +1,132 @@
+_meta:
+  code: "ja"
+  name: "日本語"
+
+strings:
+  # Navigation & Sidebar
+  nav_home: "ホーム"
+  lbl_github_repo: "GitHub リポジトリ"
+  app_title: "FallByte - メディアスイート"
+  header_back_tooltip: "戻る"
+  route_not_found: "ルート '{route_key}' が見つかりません。"
+
+  # Home Dashboard
+  home_header_title: "FallByte - メインダッシュボード"
+  home_mod_image_title: "画像モジュール"
+  home_mod_image_desc: "単一または一括での画像変換、圧縮、最適化。"
+  home_mod_video_title: "動画モジュール"
+  home_mod_video_desc: "高品質を維持したままの動画変換と圧縮。"
+
+  # Image Hub Navigation Modules
+  image_hub_heading: "画像処理"
+  image_hub_subheading: "使用するツールを選択してください"
+  image_hub_card_conversion_title: "フォーマット変換"
+  image_hub_card_conversion_desc: "画像のフォーマットを個別または一括で変更します。"
+  image_hub_card_compression_title: "画像圧縮"
+  image_hub_card_compression_desc: "画質を調整してファイルサイズを削減します。"
+
+  # Selector Labels & Popup Items
+  lbl_source: "入力元"
+  lbl_destination: "保存先"
+  lbl_select_file: "ファイルを選択"
+  lbl_select_folder: "フォルダを選択"
+  lbl_not_selected: "未選択"
+  lbl_quality_title: "圧縮品質"
+  lbl_target_format: "出力フォーマット"
+  lbl_transparency_color: "透過背景色"
+  lbl_no_extension: "拡張子なし"
+  lbl_language: "言語"
+
+  # Themes i18n
+  lbl_theme: "アプリテーマ"
+  lbl_select_theme: "テーマを選択"
+  theme_section_dark: "ダークテーマ"
+  theme_section_light: "ライトテーマ"
+  theme_blue_dark: "ブルー"
+  theme_purple_dark: "パープル"
+  theme_emerald_dark: "エメラルド"
+  theme_red_dark: "レッド"
+  theme_amber_dark: "アンバー"
+  theme_blue_light: "ブルー"
+  theme_purple_light: "パープル"
+  theme_emerald_light: "エメラルド"
+  theme_red_light: "レッド"
+  theme_amber_light: "アンバー"
+
+  # Color Options
+  color_white: "白"
+  color_black: "黒"
+  color_light_gray: "ライトグレー"
+  color_dark_gray: "ダークグレー"
+  color_red: "赤"
+  color_green: "緑"
+  color_blue: "青"
+  color_yellow: "黄"
+
+  # Action Buttons & Status Messages
+  btn_process: "処理を開始"
+  btn_stop_process: "処理を停止"
+  btn_ok: "OK"
+  btn_cancel: "キャンセル"
+  btn_continue: "このまま続行"
+  btn_keep_running: "いいえ、続行する"
+  btn_stop_and_delete: "はい、停止して削除"
+  btn_copy_log: "ログをコピー"
+  msg_log_copied: "ログをクリップボードにコピーしました！"
+  msg_processing: "処理中..."
+  msg_success: "処理が正常に完了しました！"
+  msg_error: "ファイルの処理中にエラーが発生しました。"
+  msg_select_required: "続行するには入力元と保存先を選択してください。"
+  msg_same_folder_error: "保存先フォルダを入力元フォルダと同じにすることはできません。"
+  msg_nested_folder_error: "保存先フォルダを入力元フォルダの内部または親フォルダに設定することはできません。"
+  msg_cancelling: "キャンセルして生成されたファイルを削除しています..."
+  msg_converting_progress: "変換中: [{current}/{total}] - {filename}"
+  msg_compressing_progress: "圧縮中: [{current}/{total}] - {filename}"
+  msg_process_cancelled: "処理がキャンセルされました。生成された {count} 件のファイルが削除されました。"
+  msg_success_summary: "{msg} | 成功: {successful} / {total}"
+
+  # Dialog Messages
+  dialog_incompatible_title: "圧縮非対応フォーマット"
+  dialog_incompatible_body: "直接圧縮に対応していないファイルが {unsupported_count} 件見つかりました ({sample_exts})。\n\nヒント: 事前に変換モジュールを使用してフォーマットを変換できます。\n\n対応している {supported_count} 件のファイルのみ圧縮を続行しますか？"
+  dialog_cancel_title: "キャンセルの確認"
+  dialog_cancel_body: "本当に処理を停止しますか？\nこのセッション中に保存先ディレクトリに保存されたファイルは削除されます。"
+
+  # Summary & Log Dialog
+  log_dialog_title: "処理結果"
+  log_summary_success: "成功"
+  log_summary_failed: "失敗"
+  log_summary_total: "合計ファイル数"
+  log_summary_time: "経過時間"
+  log_btn_view_logs: "詳細ログを表示"
+  log_btn_hide_logs: "ログを非表示"
+  log_detail_title: "詳細履歴:"
+  log_no_errors: "処理中にエラーは記録されませんでした。"
+  log_size_stat: "サイズ: {orig} -> {comp}"
+  log_reduction_stat: "削減率: -{pct:.1f}%"
+  log_increase_stat: "増加率: +{pct:.1f}%"
+
+  # Video Hub Navigation Modules
+  video_hub_heading: "動画処理"
+  video_hub_subheading: "使用するツールを選択してください"
+  video_hub_card_conversion_title: "動画変換"
+  video_hub_card_conversion_desc: "互換性を保ちながら動画フォーマットを変更します。"
+  video_hub_card_compression_title: "動画圧縮"
+  video_hub_card_compression_desc: "画質を保ちながら動画ファイルサイズを削減します。"
+  lbl_quality_percentage: "品質: {value}%"
+  msg_supported_formats_notice: "圧縮対応フォーマット: {formats}"
+  msg_supported_formats_notice_conversion: "変換対応フォーマット: {formats}"
+  dialog_no_files_title: "対応ファイルなし"
+  dialog_no_files_body: "選択されたフォルダにはこの操作に対応したファイルが含まれていません。"
+  dialog_no_files_formats: "対応フォーマット: {formats}"
+
+  # Home Dashboard
+  home_mod_audio_title: "音声モジュール"
+  home_mod_audio_desc: "多様なフォーマットに対応した音声変換と圧縮。"
+
+  # Audio Hub Navigation Modules
+  audio_hub_heading: "音声処理"
+  audio_hub_subheading: "使用するツールを選択してください"
+  audio_hub_card_conversion_title: "音声変換"
+  audio_hub_card_conversion_desc: "音声トラックを個別または一括で別フォーマットに変換します。"
+  audio_hub_card_compression_title: "音声圧縮"
+  audio_hub_card_compression_desc: "音質の明瞭さを保ちながら音声ファイルサイズを削減します。"

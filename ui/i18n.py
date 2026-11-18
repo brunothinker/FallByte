@@ -35,6 +35,13 @@ _WIN_NAMES: dict[str, str] = {
     "portuguese": "pt",
     "spanish": "es",
     "english": "en",
+    "french": "fr",
+    "german": "de",
+    "italian": "it",
+    "japanese": "ja",
+    "chinese": "zh",
+    "russian": "ru",
+    "korean": "ko",
 }
 
 # Win32 primary language identifiers (GetUserDefaultUILanguage & 0x3FF)
@@ -42,6 +49,13 @@ _WIN_LANGIDS: dict[int, str] = {
     0x16: "pt",
     0x0A: "es",
     0x09: "en",
+    0x0C: "fr",
+    0x07: "de",
+    0x10: "it",
+    0x11: "ja",
+    0x04: "zh",
+    0x19: "ru",
+    0x12: "ko",
 }
 
 
