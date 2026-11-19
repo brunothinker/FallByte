@@ -88,20 +88,20 @@ def create_app_layout(
             color=get_color("text"),
             icon_color=get_color("primary"),
             on_click=lambda _: go_back(),
-            visible=len(navigation_stack) > 1,
         )
+        can_go_back = len(navigation_stack) > 1
+        back_row = ft.Container(
+            content=btn_back,
+            padding=ft.padding.only(top=20),
+            alignment=ft.alignment.center,
+            visible=can_go_back and not page.session.get("is_processing"),
+        )
+        page.session.set("back_row", back_row if can_go_back else None)
 
         page.bgcolor = get_color("background")
         content_area.bgcolor = get_color("background")
         content_area.content = ft.Column(
-            controls=[
-                view_control,
-                ft.Container(
-                    content=btn_back,
-                    padding=ft.padding.only(top=20),
-                    alignment=ft.alignment.center,
-                ),
-            ],
+            controls=[view_control, back_row],
             expand=True,
             scroll=ft.ScrollMode.AUTO,
             alignment=ft.MainAxisAlignment.CENTER,
