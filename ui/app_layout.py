@@ -15,6 +15,18 @@ from ui.theme import get_color
 logger = logging.getLogger(__name__)
 
 
+def remove_stale_filepickers(page: ft.Page) -> None:
+    """Drops FilePicker controls left in the overlay by a previous view.
+
+    Media pages register fresh pickers on every build, so the overlay must be
+    cleared of the previous view's pickers before a new view is rendered.
+    Other overlay controls are left untouched.
+    """
+    page.overlay[:] = [
+        ctrl for ctrl in page.overlay if not isinstance(ctrl, ft.FilePicker)
+    ]
+
+
 def create_app_layout(
     page: ft.Page, selected_paths: dict[str, Path], app_version: str = "dev"
 ) -> ft.Container:
@@ -69,6 +81,7 @@ def create_app_layout(
 
     def update_view() -> None:
         """Clears overlays and renders active route view with refreshed theme colors."""
+        remove_stale_filepickers(page)
         current_route = navigation_stack[-1]
 
         view_control = build_page_view(
