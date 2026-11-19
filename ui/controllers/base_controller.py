@@ -115,6 +115,16 @@ class BaseController:
                 lbl_status.value = ""
                 lbl_status.update()
 
+    def _set_processing_state(self, page: ft.Page, processing: bool) -> None:
+        """Keep the navigation lock and the layout's Back row in sync."""
+        self.is_processing = processing
+        self.abort_requested = False
+        page.session.set("is_processing", processing)
+        back_row = page.session.get("back_row")
+        if back_row is not None:
+            back_row.visible = not processing
+            back_row.update()
+
     def _set_processing_ui(
         self,
         page: ft.Page,
@@ -122,9 +132,7 @@ class BaseController:
         btn_action: ft.ElevatedButton,
     ) -> None:
         """Transitions UI controls and session flags to active processing state."""
-        self.is_processing = True
-        self.abort_requested = False
-        page.session.set("is_processing", True)
+        self._set_processing_state(page, True)
 
         progress_bar.value = None
         progress_bar.visible = True
@@ -143,9 +151,7 @@ class BaseController:
         btn_action: ft.ElevatedButton,
     ) -> None:
         """Restores UI controls and session flags back to idle ready state."""
-        self.is_processing = False
-        self.abort_requested = False
-        page.session.set("is_processing", False)
+        self._set_processing_state(page, False)
 
         progress_bar.visible = False
         progress_bar.update()
