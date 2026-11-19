@@ -1,6 +1,7 @@
 """Exercise the Back row in the actual tool layout while a batch runs."""
 
 import threading
+from collections.abc import Iterator
 from unittest.mock import Mock
 
 import flet as ft
@@ -9,7 +10,7 @@ import pytest
 from ui import app_layout, theme
 
 
-def walk(control):
+def walk(control: ft.Control) -> Iterator[ft.Control]:
     yield control
     for child in control._get_children():
         yield from walk(child)
@@ -51,16 +52,21 @@ def test_back_row_follows_batch(ctx, monkeypatch, palette, outcome):
         for c in walk(layout)
         if isinstance(c, ft.ElevatedButton) and c.icon == ft.icons.PLAY_ARROW
     )
+    assert isinstance(back_row.content, ft.ElevatedButton)
     assert back_row.visible and back_row.content.visible
-    observations = []
+    assert action.on_click is not None
+    observations: list[tuple[bool | None, object]] = []
 
     def run_engine(**kwargs):
         observations.append((back_row.visible, action.icon))
         if outcome == "failure":
             raise OSError("test batch failed")
         if outcome == "cancel":
+            assert action.on_click is not None
             action.on_click(None)
-            page.dialog.actions[1].on_click(None)
+            confirm_btn = page.dialog.actions[1]
+            assert confirm_btn.on_click is not None
+            confirm_btn.on_click(None)
             observations.append((back_row.visible, kwargs["cancel_event"].is_set()))
             return {"cancelled": True}
         return {"success": 1, "total_files": 1}
@@ -68,9 +74,10 @@ def test_back_row_follows_batch(ctx, monkeypatch, palette, outcome):
     monkeypatch.setattr(ctx.module, ctx.spec["dir_engine"], run_engine)
     action.on_click(None)
 
-    expected = [(False, ft.icons.STOP)]
+    expected: list[tuple[bool | None, object]] = [(False, ft.icons.STOP)]
     if outcome == "cancel":
         expected.append((False, True))
     assert observations == expected
+    assert isinstance(back_row.content, ft.ElevatedButton)
     assert back_row.visible and back_row.content.visible
     assert action.icon == ft.icons.PLAY_ARROW

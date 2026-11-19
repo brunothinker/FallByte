@@ -6,15 +6,16 @@ repeated view rebuilds (navigation and theme/language changes) cannot leak
 orphaned pickers.
 """
 
+from collections.abc import Callable
 from unittest.mock import MagicMock
 
 import flet as ft
 
-import ui.app_layout as app_layout
+from ui import app_layout
 from ui.app_layout import remove_stale_filepickers
 
 
-def _pickers(overlay):
+def _pickers(overlay: list[ft.Control]) -> list[ft.FilePicker]:
     return [c for c in overlay if isinstance(c, ft.FilePicker)]
 
 
@@ -38,11 +39,11 @@ def test_update_view_clears_stale_pickers_before_rebuild(monkeypatch):
     changes that bypass cleanup_page_overlays. Calling the centralized helper
     at the top of update_view keeps the overlay bounded on every rebuild.
     """
-    captured = {"on_navigate": None}
+    captured: dict[str, Callable[[str], None] | None] = {"on_navigate": None}
     calls = {"cleanup": 0}
     real_helper = remove_stale_filepickers
 
-    def tracking_cleanup(page):
+    def tracking_cleanup(page: ft.Page) -> None:
         calls["cleanup"] += 1
         real_helper(page)
 
@@ -65,6 +66,7 @@ def test_update_view_clears_stale_pickers_before_rebuild(monkeypatch):
     assert layout is not None
     assert calls["cleanup"] == 1
     assert len(_pickers(page.overlay)) == 3
+    assert captured["on_navigate"] is not None
 
     # Drive repeated rebuilds through the real navigation callback. Without
     # the fix, each rebuild adds three more pickers and the overlay grows.
