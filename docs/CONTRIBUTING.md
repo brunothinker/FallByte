@@ -98,9 +98,10 @@ If your change adds, modifies, or removes any user-facing text in the UI:
 
 ## Checklist Before Submitting
 
-* [ ] Unit/integration tests were added or updated for the changes
-* [ ] Full test suite passes (`pytest`)
-* [ ] Processing logic stays in `src/` and `src/` does not import `ui`
-* [ ] `resources/locales/en.yaml` and `_template.yaml` are updated (pending locales are noted in the PR description)
-* [ ] New/modified code follows PEP 8 and passes `ruff check .`
-* [ ] Commit messages and PR description clearly explain all changes
+- [ ] Unit/integration tests were added or updated for the changes
+- [ ] Full test suite passes (`pytest`)
+- [ ] Processing logic stays in `src/` and `src/` does not import `ui`
+- [ ] `resources/locales/en.yaml` and `_template.yaml` are updated (pending locales are noted in the PR description)
+- [ ] New/modified code follows PEP 8 and passes `ruff check .`
+- [ ] No new type errors (Pyright / Pylance) were introduced in `src/` or `ui/` modules
+- [ ] Commit messages and PR description clearly explain all changes
