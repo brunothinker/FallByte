@@ -43,16 +43,19 @@ def _build_strategies(
     flags = container_flags(target_fmt)
 
     keep_hevc = (
-        video_codec == "hevc"
+        is_10bit
+        and video_codec == "hevc"
         and target_fmt in HEVC_COMPRESSION_CONTAINERS
         and has_encoder(ffmpeg_bin, "libx265")
     )
-    codec_args = get_codec_args(target_fmt)
+    default_codecs = get_codec_args(target_fmt)
+    codec_args = ["-c:v", "libx265", "-c:a", "aac"] if keep_hevc else default_codecs
     hevc_tag = (
         ["-tag:v", "hvc1"]
         if video_codec == "hevc" and target_fmt in ("mp4", "mov")
         else []
     )
+    encode_flags = (hevc_tag if keep_hevc else []) + flags
     video_filter = get_video_filter(is_10bit=is_10bit, keep_hevc=keep_hevc)
 
     strategies: list[tuple[str, list[str]]] = []
@@ -86,23 +89,30 @@ def _build_strategies(
     strategies.append(
         (
             "safe re-encode",
-            base + SAFE_STREAM_MAP + video_filter + codec_args + flags + out,
+            base + SAFE_STREAM_MAP + video_filter + codec_args + encode_flags + out,
         )
     )
 
     # 4. Rescue mode for damaged files / odd timestamps / exotic audio layouts.
+    rescue = base_command(ffmpeg_bin, input_path, RESCUE_INPUT_ARGS) + RESCUE_STREAM_MAP
     strategies.append(
         (
             "rescue re-encode",
-            base_command(ffmpeg_bin, input_path, RESCUE_INPUT_ARGS)
-            + RESCUE_STREAM_MAP
-            + video_filter
-            + ["-ac", "2"]
-            + codec_args
-            + flags
-            + out,
+            rescue + video_filter + ["-ac", "2"] + codec_args + encode_flags + out,
         )
     )
+    if keep_hevc:
+        strategies.append(
+            (
+                "h264 fallback",
+                rescue
+                + get_video_filter()
+                + ["-ac", "2"]
+                + default_codecs
+                + flags
+                + out,
+            )
+        )
     return strategies
 
 
