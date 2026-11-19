@@ -29,7 +29,7 @@ Most media optimization tools require uploading sensitive files to cloud servers
 
 * **Conversion:** From `MP4`, `MKV`, `WEBM`, `MOV`, `AVI`, `WMV`, `M4V`, `FLV`, `TS`, `3GP`, and `MPG` into `MP4`, `MKV`, `WEBM`, `MOV`, `AVI`, or `WMV`. FFmpeg strategies go from lossless remux, to partial re-encode, to full re-encode, to a "rescue" mode for damaged files.
 * **Compression:** Quality scale mapped to CRF/qscale, keeping the original container. HEVC sources stay HEVC.
-* **HEVC 10-bit / HDR:** 10-bit pixel formats (`yuv420p10le`) are preserved during HEVC (`libx265`) work.
+* **HEVC 10-bit / HDR:** When conversion to MP4, MOV or MKV requires re-encoding a 10-bit HEVC source, FallByte uses `libx265` to keep 10-bit video (`yuv420p10le`), with 8-bit H.264 as a fallback. MP4 and MOV use the `hvc1` tag for HEVC playback compatibility.
 
 ### Audio
 
