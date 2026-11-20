@@ -130,3 +130,5 @@ strings:
   audio_hub_card_conversion_desc: "单个或批量在不同格式之间转换音轨。"
   audio_hub_card_compression_title: "音频压缩"
   audio_hub_card_compression_desc: "在保持音质清晰度的同时减小音频文件体积。"
+  audio_hub_card_extraction_title: "音频提取"
+  audio_hub_card_extraction_desc: "从视频文件中提取主音轨为 MP3、M4A、FLAC、WAV、OGG 或 Opus 格式。"

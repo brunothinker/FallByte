@@ -130,3 +130,5 @@ strings:
   audio_hub_card_conversion_desc: ""
   audio_hub_card_compression_title: ""
   audio_hub_card_compression_desc: ""
+  audio_hub_card_extraction_title: ""
+  audio_hub_card_extraction_desc: ""

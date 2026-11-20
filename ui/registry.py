@@ -7,6 +7,7 @@ import flet as ft
 
 from ui.pages.audio_compression_page import create_audio_compression_page
 from ui.pages.audio_conversion_page import create_audio_conversion_page
+from ui.pages.audio_extraction_page import create_audio_extraction_page
 from ui.pages.home_page import create_home_page
 from ui.pages.image_compression_page import create_compression_page
 from ui.pages.image_conversion_page import create_conversion_page
@@ -169,6 +170,12 @@ MODULE_REGISTRY: list[ModuleDefinition] = [
                     "icon": ft.icons.COMPRESS,
                     "route_key": "audio_compression",
                 },
+                {
+                    "title_key": "audio_hub_card_extraction_title",
+                    "desc_key": "audio_hub_card_extraction_desc",
+                    "icon": ft.icons.MUSIC_NOTE,
+                    "route_key": "audio_extraction",
+                },
             ],
         ),
         options=[
@@ -187,6 +194,14 @@ MODULE_REGISTRY: list[ModuleDefinition] = [
                 icon=ft.icons.COMPRESS,
                 route_key="audio_compression",
                 builder=create_audio_compression_page,
+            ),
+            ModuleOption(
+                id="audio_extraction",
+                title_key="audio_hub_card_extraction_title",
+                desc_key="audio_hub_card_extraction_desc",
+                icon=ft.icons.MUSIC_NOTE,
+                route_key="audio_extraction",
+                builder=create_audio_extraction_page,
             ),
         ],
     ),

@@ -130,3 +130,5 @@ strings:
   audio_hub_card_conversion_desc: "Converta faixas de áudio entre formatos individualmente ou em lote."
   audio_hub_card_compression_title: "Compressão de Áudio"
   audio_hub_card_compression_desc: "Reduza o tamanho de arquivos de áudio preservando a clareza."
+  audio_hub_card_extraction_title: "Extração de Áudio"
+  audio_hub_card_extraction_desc: "Extraia a faixa de áudio principal de arquivos de vídeo para MP3, M4A, FLAC, WAV, OGG ou Opus."

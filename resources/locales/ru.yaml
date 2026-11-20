@@ -130,3 +130,5 @@ strings:
   audio_hub_card_conversion_desc: "Конвертация аудиодорожек между форматами по одной или пакетом."
   audio_hub_card_compression_title: "Сжатие аудио"
   audio_hub_card_compression_desc: "Уменьшение размера аудиофайлов с сохранением чистоты звука."
+  audio_hub_card_extraction_title: "Извлечение аудио"
+  audio_hub_card_extraction_desc: "Извлеките основную аудиодорожку из видеофайлов в формат MP3, M4A, FLAC, WAV, OGG или Opus."

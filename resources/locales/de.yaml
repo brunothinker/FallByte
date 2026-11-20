@@ -130,3 +130,5 @@ strings:
   audio_hub_card_conversion_desc: "Konvertieren Sie Audiospuren einzeln oder im Stapel zwischen Formaten."
   audio_hub_card_compression_title: "Audiokomprimierung"
   audio_hub_card_compression_desc: "Reduzieren Sie Audiodateigrößen bei klarer Klangqualität."
+  audio_hub_card_extraction_title: "Audio-Extraktion"
+  audio_hub_card_extraction_desc: "Extrahieren Sie die Haupt-Audiospur aus Videodateien in MP3, M4A, FLAC, WAV, OGG oder Opus."

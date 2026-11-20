@@ -130,3 +130,5 @@ strings:
   audio_hub_card_conversion_desc: "音声トラックを個別または一括で別フォーマットに変換します。"
   audio_hub_card_compression_title: "音声圧縮"
   audio_hub_card_compression_desc: "音質の明瞭さを保ちながら音声ファイルサイズを削減します。"
+  audio_hub_card_extraction_title: "音声抽出"
+  audio_hub_card_extraction_desc: "動画ファイルからメインの音声トラックをMP3、M4A、FLAC、WAV、OGG、またはOpus形式で抽出します。"

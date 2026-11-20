@@ -82,3 +82,61 @@ def sample_audio_factory(tmp_path: Path):
         return out_path
 
     return _create
+
+
+@pytest.fixture
+def sample_video_factory(tmp_path: Path):
+    """Generates real video files (with or without audio streams) via bundled FFmpeg."""
+    ffmpeg_bin = binary_manager.get_ffmpeg_path()
+
+    def _create(
+        filename: str = "sample.mp4",
+        duration: float = 1.0,
+        with_audio: bool = True,
+        channels: int = 2,
+    ) -> Path:
+        out_path = tmp_path / filename
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        ext = out_path.suffix.lower().lstrip(".")
+
+        cmd = [
+            str(ffmpeg_bin),
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            f"color=c=black:s=64x64:r=10:d={duration}",
+        ]
+
+        if with_audio:
+            cmd.extend(
+                [
+                    "-f",
+                    "lavfi",
+                    "-i",
+                    f"sine=frequency=440:sample_rate=44100:duration={duration}",
+                    "-ac",
+                    str(channels),
+                ]
+            )
+
+        if ext == "webm":
+            cmd.extend(["-c:v", "vp8"])
+            if with_audio:
+                cmd.extend(["-c:a", "libvorbis"])
+        else:
+            cmd.extend(["-c:v", "mpeg4", "-q:v", "10"])
+            if with_audio:
+                cmd.extend(["-c:a", "aac", "-b:a", "128k"])
+
+        cmd.append(str(out_path))
+        subprocess.run(cmd, check=True)
+        assert out_path.exists() and out_path.stat().st_size > 0, (
+            f"[audio] Fixture failed to generate sample video at '{out_path}'."
+        )
+        return out_path
+
+    return _create

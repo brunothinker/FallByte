@@ -130,3 +130,5 @@ strings:
   audio_hub_card_conversion_desc: "Convertissez vos pistes audio d'un format à un autre, à l'unité ou par lot."
   audio_hub_card_compression_title: "Compression Audio"
   audio_hub_card_compression_desc: "Réduisez la taille des fichiers audio tout en préservant leur clarté."
+  audio_hub_card_extraction_title: "Extraction Audio"
+  audio_hub_card_extraction_desc: "Extrayez la piste audio principale des fichiers vidéo vers MP3, M4A, FLAC, WAV, OGG ou Opus."
