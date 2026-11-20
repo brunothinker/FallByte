@@ -22,21 +22,23 @@ Most media optimization tools require uploading sensitive files to cloud servers
 
 ### Images
 
-- **Compression:** Quality control and PNG palette quantization while strictly keeping the original format *(JPEG, PNG, WEBP, TIFF)*. Formats that cannot be safely re-encoded (BMP, PPM, GIF, ICO, HEIC/HEIF) and animated PNGs are copied untouched. If the result is not smaller, the original is kept.
-- **Conversion:** Read `JPEG`, `PNG`, `WEBP`, `BMP`, `TIFF`, `GIF`, `PPM`, `ICO`, `HEIC`, and `HEIF`, and convert to `JPEG`, `PNG`, `WEBP`, `BMP`, `TIFF`, `GIF`, `ICO`, `PPM`, or `PDF`. Transparency is blended into a background color of your choice for formats without alpha. EXIF rotation, ICC profiles, animations, and multi-page TIFF are handled when the target allows it.
+- **Compression:** Quality control, PNG palette quantization, and optional metadata stripping *(EXIF, GPS, XMP, ICC)* while strictly keeping the original format *(JPEG, PNG, WEBP, TIFF)*[cite: 20]. Formats that cannot be safely re-encoded (BMP, PPM, GIF, ICO, HEIC/HEIF) and animated PNGs are copied untouched[cite: 20]. If the result is not smaller (and metadata stripping is not enabled), the original is kept[cite: 20].
+- **Conversion:** Read `JPEG`, `PNG`, `WEBP`, `BMP`, `TIFF`, `GIF`, `PPM`, `ICO`, `HEIC`, and `HEIF`, and convert to `JPEG`, `PNG`, `WEBP`, `BMP`, `TIFF`, `GIF`, `ICO`, `PPM`, or `PDF`[cite: 20]. Transparency is blended into a background color of your choice for formats without alpha[cite: 20]. EXIF rotation, ICC profiles, animations, and multi-page TIFF are handled when the target allows it[cite: 20].
+- **Resizing & Scaling:** Resize single images or entire folders (`JPEG`, `PNG`, `WEBP`, `BMP`, `TIFF`, `GIF`, `PPM`, `ICO`, `HEIC`, `HEIF`) using Lanczos resampling either by **maximum target dimensions** *(bounding box with aspect ratio preserved)* or by **percentage scale** (`1%–100%`), with an optional safeguard to prevent upscaling smaller images and automatic EXIF orientation handling.
+- **Metadata Removal:** Strip sensitive **EXIF, GPS coordinates, XMP, ICC profiles, PNG textual chunks (`tEXt`/`iTXt`), and GIF comments** across single files or batch directories while baking EXIF orientation into pixel data and preserving animation frames (`HEIC`/`HEIF` sources are exported as clean `PNG` files).
 
 ### Videos
 
-- **Conversion:** From `MP4`, `MKV`, `WEBM`, `MOV`, `AVI`, `WMV`, `M4V`, `FLV`, `TS`, `3GP`, and `MPG` into `MP4`, `MKV`, `WEBM`, `MOV`, `AVI`, or `WMV`. FFmpeg strategies go from lossless remux, to partial re-encode, to full re-encode, to a "rescue" mode for damaged files.
-- **Compression:** Quality scale mapped to CRF/qscale, keeping the original container. HEVC sources stay HEVC.
-- **HEVC 10-bit / HDR:** When conversion to MP4, MOV or MKV requires re-encoding a 10-bit HEVC source, FallByte uses `libx265` to keep 10-bit video (`yuv420p10le`), with 8-bit H.264 as a fallback. MP4 and MOV use the `hvc1` tag for HEVC playback compatibility.
+- **Conversion:** From `MP4`, `MKV`, `WEBM`, `MOV`, `AVI`, `WMV`, `M4V`, `FLV`, `TS`, `3GP`, and `MPG` into `MP4`, `MKV`, `WEBM`, `MOV`, `AVI`, or `WMV`[cite: 20]. FFmpeg strategies go from lossless remux, to partial re-encode, to full re-encode, to a "rescue" mode for damaged files[cite: 20].
+- **Compression:** Quality scale mapped to CRF/qscale, keeping the original container[cite: 20]. HEVC sources stay HEVC[cite: 20].
+- **HEVC 10-bit / HDR:** When conversion to MP4, MOV or MKV requires re-encoding a 10-bit HEVC source, FallByte uses `libx265` to keep 10-bit video (`yuv420p10le`), with 8-bit H.264 as a fallback[cite: 20]. MP4 and MOV use the `hvc1` tag for HEVC playback compatibility[cite: 20].
 
 ### Audio
 
-- **Conversion:** From `MP3`, `M4A`, `AAC`, `OGG`, `OPUS`, `FLAC`, `WAV`, `WMA`, and `AIFF` into `MP3`, `M4A`, `OPUS`, `OGG`, `FLAC`, or `WAV`. Embedded cover art is stripped and only the main audio track is converted.
-- **Compression:** Quality scale mapped to bitrate for lossy formats (`MP3`, `M4A`, `AAC`, `OGG`, `OPUS`). Lossless or legacy formats (`FLAC`, `WAV`, `WMA`, `AIFF`) are copied untouched, and the original is kept if re-encoding would not make the file smaller.
-- **Video-to-Audio Extraction:** Extract audio tracks from video files (`MP4`, `MKV`, `WEBM`, `MOV`, `AVI`, `WMV`, `M4V`, `FLV`, `TS`, `3GP`, `MPG`) directly into `MP3`, `M4A`, `OPUS`, `OGG`, `FLAC`, or `WAV` for a single video or an entire folder, safely skipping silent video files.
-- **Volume Normalization (EBU R128):** Batch-normalize perceived loudness across folders of audio files (`MP3`, `M4A`, `AAC`, `OGG`, `OPUS`, `FLAC`, `WAV`) using FFmpeg's `loudnorm` filter with target presets for **Music / Streaming (`-14 LUFS`)**, **Podcast / Voice (`-16 LUFS`)**, and **Broadcast / Standard (`-23 LUFS`)**, preserving original formats and sample rates.
+- **Conversion:** From `MP3`, `M4A`, `AAC`, `OGG`, `OPUS`, `FLAC`, `WAV`, `WMA`, and `AIFF` into `MP3`, `M4A`, `OPUS`, `OGG`, `FLAC`, or `WAV`[cite: 20]. Embedded cover art is stripped and only the main audio track is converted[cite: 20].
+- **Compression:** Quality scale mapped to bitrate for lossy formats (`MP3`, `M4A`, `AAC`, `OGG`, `OPUS`)[cite: 20]. Lossless or legacy formats (`FLAC`, `WAV`, `WMA`, `AIFF`) are copied untouched, and the original is kept if re-encoding would not make the file smaller[cite: 20].
+- **Video-to-Audio Extraction:** Extract audio tracks from video files (`MP4`, `MKV`, `WEBM`, `MOV`, `AVI`, `WMV`, `M4V`, `FLV`, `TS`, `3GP`, `MPG`) directly into `MP3`, `M4A`, `OPUS`, `OGG`, `FLAC`, or `WAV` for a single video or an entire folder, safely skipping silent video files[cite: 20].
+- **Volume Normalization (EBU R128):** Batch-normalize perceived loudness across folders of audio files (`MP3`, `M4A`, `AAC`, `OGG`, `OPUS`, `FLAC`, `WAV`) using FFmpeg's `loudnorm` filter with target presets for **Music / Streaming (`-14 LUFS`)**, **Podcast / Voice (`-16 LUFS`)**, and **Broadcast / Standard (`-23 LUFS`)**, preserving original formats and sample rates[cite: 20].
 
 ---
 
@@ -65,7 +67,7 @@ fallbyte --smoke-test   # checks dependencies, bundled FFmpeg and image encoders
 ## Development
 
 ```bash
-git clone [https://github.com/brunothinker/FallByte.git](https://github.com/brunothinker/FallByte.git)
+git clone https://github.com/brunothinker/FallByte.git
 cd FallByte
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
@@ -79,9 +81,9 @@ pip install -r tests/requirements-dev.txt
 pytest
 ```
 
-Logs are written to `~/.config/fallbyte/fallbyte.log` on Linux and `%APPDATA%\FallByte\fallbyte.log` on Windows (run with `--debug` for verbose output).
+Logs are written to `~/.config/fallbyte/fallbyte.log` on Linux and `%APPDATA%\FallByte\fallbyte.log` on Windows (run with `--debug` for verbose output)[cite: 20].
 
-Want to contribute? Read [CONTRIBUTING.md](docs/CONTRIBUTING.md) and [ARCHITECTURE.md](docs/ARCHITECTURE.md) first.
+Want to contribute? Read [CONTRIBUTING.md](docs/CONTRIBUTING.md) and [ARCHITECTURE.md](docs/ARCHITECTURE.md) first[cite: 20].
 
 ---
 
@@ -97,10 +99,10 @@ Want to contribute? Read [CONTRIBUTING.md](docs/CONTRIBUTING.md) and [ARCHITECTU
 
 ## Security
 
-Found a vulnerability? Please follow [SECURITY.md](SECURITY.md) instead of opening a public issue.
+Found a vulnerability? Please follow [SECURITY.md](SECURITY.md) instead of opening a public issue[cite: 20].
 
 ## License & Third-Party Notices
 
-FallByte is licensed under the **[GNU General Public License v3.0](https://github.com/brunothinker/FallByte/blob/main/LICENSE)** (GPLv3).
+FallByte is licensed under the **[GNU General Public License v3.0](https://github.com/brunothinker/FallByte/blob/main/LICENSE)** (GPLv3)[cite: 20].
 
-This project bundles third-party binaries (such as FFmpeg static builds) and depends on open-source libraries (Flet, Pillow, pillow-heif, PyYAML). For licensing terms, source locations, and binary build configurations, see [THIRD_PARTY_NOTICES.md](https://github.com/brunothinker/FallByte/blob/main/docs/THIRD_PARTY_NOTICES.md).
+This project bundles third-party binaries (such as FFmpeg static builds) and depends on open-source libraries (Flet, Pillow, pillow-heif, PyYAML)[cite: 20]. For licensing terms, source locations, and binary build configurations, see [THIRD_PARTY_NOTICES.md](https://github.com/brunothinker/FallByte/blob/main/docs/THIRD_PARTY_NOTICES.md)[cite: 20].
