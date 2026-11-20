@@ -172,6 +172,16 @@ strings:
   msg_single_video_required: "단일 비디오 파일을 선택해 주세요."
   msg_remuxing_progress: "트랙 리먹싱 중: {filename}"
   msg_supported_formats_notice_tracks: "지원되는 비디오 형식: {formats}"
+  # --- Video: Downscale ---
+  video_hub_card_downscale_title: "비디오 다운스케일"
+  video_hub_card_downscale_desc: "가로세로 비율을 유지하면서 고해상도 비디오를 표준 해상도로 축소합니다."
+  lbl_target_resolution: "목표 해상도"
+  preset_resolution_1080p: "1080p (Full HD)"
+  preset_resolution_720p: "720p (HD)"
+  preset_resolution_480p: "480p (SD)"
+  tooltip_skip_upscale: "이미 선택한 해상도 이하인 비디오는 확대하지 않고 그대로 복사됩니다."
+  msg_downscaling_progress: "다운스케일 중: [{current}/{total}] - {filename}"
+  msg_supported_formats_notice_downscale: "다운스케일 지원 형식: {formats}"
 
   # ============================================================================
   # Module: Audio

@@ -172,6 +172,16 @@ strings:
   msg_single_video_required: "Por favor, seleccione un único archivo de video."
   msg_remuxing_progress: "Remultiplexando pistas: {filename}"
   msg_supported_formats_notice_tracks: "Formatos de video compatibles: {formats}"
+  # --- Video: Downscale ---
+  video_hub_card_downscale_title: "Reducir Resolución de Video"
+  video_hub_card_downscale_desc: "Reduzca videos de alta resolución a resoluciones estándar conservando la relación de aspecto."
+  lbl_target_resolution: "Resolución de Destino"
+  preset_resolution_1080p: "1080p (Full HD)"
+  preset_resolution_720p: "720p (HD)"
+  preset_resolution_480p: "480p (SD)"
+  tooltip_skip_upscale: "Los videos que ya tengan una resolución igual o inferior a la seleccionada se copiarán sin ampliar."
+  msg_downscaling_progress: "Reduciendo resolución: [{current}/{total}] - {filename}"
+  msg_supported_formats_notice_downscale: "Formatos compatibles para reducir resolución: {formats}"
 
   # ============================================================================
   # Module: Audio

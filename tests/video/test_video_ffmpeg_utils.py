@@ -30,7 +30,7 @@ from src.video.utils.video_ffmpeg_utils import (
 
 
 def test_parse_ffmpeg_stderr_standard_8bit_video_and_audio():
-    """Extracts video codec, audio codecs, pixel format, and duration from standard stderr."""
+    """Extracts video codec, audio codecs, pixel format, dimensions, and duration from standard stderr."""
     stderr_fixture = """
 Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'sample.mp4':
   Metadata:
@@ -59,6 +59,33 @@ Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'sample.mp4':
     assert info.duration_seconds == 90.5, (
         f"[ffmpeg] Duration parsing regression: expected 90.5s, got {info.duration_seconds}s."
     )
+    assert info.width == 1920, (
+        f"[ffmpeg] Width parsing regression: expected 1920, got {info.width}."
+    )
+    assert info.height == 1080, (
+        f"[ffmpeg] Height parsing regression: expected 1080, got {info.height}."
+    )
+
+
+def test_parse_ffmpeg_stderr_extracts_portrait_and_4k_dimensions():
+    """Extracts width and height accurately for both portrait (vertical) and 4K video streams."""
+    portrait_stderr = """
+Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'reel.mp4':
+  Duration: 00:00:15.00, start: 0.000000, bitrate: 4500 kb/s
+  Stream #0:0[0x1](und): Video: h264 (High), yuv420p, 1080x1920 [SAR 1:1 DAR 9:16], 4300 kb/s, 60 fps
+"""
+    info_portrait = parse_ffmpeg_stderr(portrait_stderr)
+    assert info_portrait.width == 1080
+    assert info_portrait.height == 1920
+
+    uhd_stderr = """
+Input #0, matroska,webm, from '4k_clip.mkv':
+  Duration: 00:02:10.00, start: 0.000000, bitrate: 15000 kb/s
+  Stream #0:0: Video: hevc (Main), yuv420p, 3840x2160, 29.97 fps
+"""
+    info_uhd = parse_ffmpeg_stderr(uhd_stderr)
+    assert info_uhd.width == 3840
+    assert info_uhd.height == 2160
 
 
 @pytest.mark.parametrize(
@@ -146,6 +173,8 @@ Input #0, mpegts, from 'live_capture.ts':
     assert info.audio_codecs == ["ac3", "aac"], (
         f"[ffmpeg] Expected all audio streams ['ac3', 'aac'] to be collected, got {info.audio_codecs}."
     )
+    assert info.width == 1920
+    assert info.height == 1080
 
 
 def test_probe_streams_delegates_to_stderr_parser(monkeypatch):
@@ -175,6 +204,8 @@ def test_probe_streams_delegates_to_stderr_parser(monkeypatch):
     assert info.is_10bit is False, (
         "[ffmpeg] probe_streams falsely marked an 8-bit VP9 stream as 10-bit."
     )
+    assert info.width == 640
+    assert info.height == 360
 
 
 # --- Audio & subtitle track inspection ---

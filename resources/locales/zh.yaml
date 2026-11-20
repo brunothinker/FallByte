@@ -172,6 +172,16 @@ strings:
   msg_single_video_required: "请选择单个视频文件。"
   msg_remuxing_progress: "正在封装轨道: {filename}"
   msg_supported_formats_notice_tracks: "支持的视频格式: {formats}"
+  # --- Video: Downscale ---
+  video_hub_card_downscale_title: "视频降分辨率"
+  video_hub_card_downscale_desc: "在保持纵横比的同时将高分辨率视频缩小至标准分辨率。"
+  lbl_target_resolution: "目标分辨率"
+  preset_resolution_1080p: "1080p (全高清)"
+  preset_resolution_720p: "720p (高清)"
+  preset_resolution_480p: "480p (标清)"
+  tooltip_skip_upscale: "分辨率已低于或等于所选目标的视频将直接复制，不会进行放大处理。"
+  msg_downscaling_progress: "正在降低分辨率: [{current}/{total}] - {filename}"
+  msg_supported_formats_notice_downscale: "支持降分辨率的格式: {formats}"
 
   # ============================================================================
   # Module: Audio

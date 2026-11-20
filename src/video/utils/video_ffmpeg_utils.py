@@ -78,6 +78,7 @@ _HIGH_BIT_DEPTH_PIX_FMT_RE = re.compile(
     r"(?:p(?:10|12|14|16)|(?:10|12|14|16)(?:le|be)?$|(?:rgb|bgr|rgba|bgra|gray)(?:48|64|10|12|14|16))"
 )
 _DURATION_RE = re.compile(r"Duration:\s*(\d{2}):(\d{2}):(\d{2}\.\d+)")
+_RESOLUTION_RE = re.compile(r",\s*(\d{2,5})x(\d{2,5})(?:,|\s|\[)")
 
 
 @dataclass
@@ -90,6 +91,8 @@ class StreamInfo:
     standard_pix_fmt: bool = True
     is_10bit: bool = False
     duration_seconds: float = 0.0
+    width: int | None = None
+    height: int | None = None
 
 
 @dataclass(frozen=True)
@@ -214,6 +217,11 @@ def parse_ffmpeg_stderr(stderr_text: str) -> StreamInfo:
                 extracted_fmt = pix_match.group(1).split("(")[0].strip()
                 info.pix_fmt = extracted_fmt
                 info.is_10bit = _is_high_bit_depth_pix_fmt(extracted_fmt)
+
+            res_match = _RESOLUTION_RE.search(line)
+            if res_match:
+                info.width = int(res_match.group(1))
+                info.height = int(res_match.group(2))
 
         elif kind == "Audio":
             info.audio_codecs.append(codec)

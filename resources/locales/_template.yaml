@@ -161,6 +161,16 @@ strings:
   # --- Video: Compression ---
   video_hub_card_compression_title: ""
   video_hub_card_compression_desc: ""
+  # --- Video: Downscale ---
+  video_hub_card_downscale_title: ""
+  video_hub_card_downscale_desc: ""
+  lbl_target_resolution: ""
+  preset_resolution_1080p: ""
+  preset_resolution_720p: ""
+  preset_resolution_480p: ""
+  tooltip_skip_upscale: ""
+  msg_downscaling_progress: ""
+  msg_supported_formats_notice_downscale: ""
   # --- Video: Track Selection ---
   video_hub_card_tracks_title: ""
   video_hub_card_tracks_desc: ""

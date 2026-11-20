@@ -172,6 +172,16 @@ strings:
   msg_single_video_required: "単一の動画ファイルを選択してください。"
   msg_remuxing_progress: "トラックを再多重化中: {filename}"
   msg_supported_formats_notice_tracks: "対応動画フォーマット: {formats}"
+  # --- Video: Downscale ---
+  video_hub_card_downscale_title: "動画のダウンスケール"
+  video_hub_card_downscale_desc: "アスペクト比を維持したまま、高解像度動画を標準解像度に縮小します。"
+  lbl_target_resolution: "目標解像度"
+  preset_resolution_1080p: "1080p (フルHD)"
+  preset_resolution_720p: "720p (HD)"
+  preset_resolution_480p: "480p (SD)"
+  tooltip_skip_upscale: "選択した解像度以下の動画は、拡大処理を行わずにそのままコピーされます。"
+  msg_downscaling_progress: "ダウンスケール中: [{current}/{total}] - {filename}"
+  msg_supported_formats_notice_downscale: "ダウンスケール対応フォーマット: {formats}"
 
   # ============================================================================
   # Module: Audio

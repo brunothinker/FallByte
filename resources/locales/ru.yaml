@@ -172,6 +172,16 @@ strings:
   msg_single_video_required: "Пожалуйста, выберите один видеофайл."
   msg_remuxing_progress: "Ремуксинг дорожек: {filename}"
   msg_supported_formats_notice_tracks: "Поддерживаемые видеоформаты: {formats}"
+  # --- Video: Downscale ---
+  video_hub_card_downscale_title: "Понижение разрешения видео"
+  video_hub_card_downscale_desc: "Уменьшение разрешения видео высокого качества до стандартных значений с сохранением пропорций."
+  lbl_target_resolution: "Целевое разрешение"
+  preset_resolution_1080p: "1080p (Full HD)"
+  preset_resolution_720p: "720p (HD)"
+  preset_resolution_480p: "480p (SD)"
+  tooltip_skip_upscale: "Видео с разрешением ниже или равным выбранному будут скопированы без масштабирования."
+  msg_downscaling_progress: "Понижение разрешения: [{current}/{total}] - {filename}"
+  msg_supported_formats_notice_downscale: "Поддерживаемые форматы для понижения разрешения: {formats}"
 
   # ============================================================================
   # Module: Audio

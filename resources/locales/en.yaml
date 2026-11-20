@@ -161,6 +161,16 @@ strings:
   # --- Video: Compression ---
   video_hub_card_compression_title: "Video Compression"
   video_hub_card_compression_desc: "Reduce video file sizes while preserving quality."
+  # --- Video: Downscale ---
+  video_hub_card_downscale_title: "Downscale Video"
+  video_hub_card_downscale_desc: "Scale high-resolution videos down to standard resolutions while preserving aspect ratio."
+  lbl_target_resolution: "Target Resolution"
+  preset_resolution_1080p: "1080p (Full HD)"
+  preset_resolution_720p: "720p (HD)"
+  preset_resolution_480p: "480p (SD)"
+  tooltip_skip_upscale: "Videos already at or below the selected resolution will be copied without upscaling."
+  msg_downscaling_progress: "Downscaling: [{current}/{total}] - {filename}"
+  msg_supported_formats_notice_downscale: "Supported formats for downscaling: {formats}"
   # --- Video: Track Selection ---
   video_hub_card_tracks_title: "Select Audio & Subtitles"
   video_hub_card_tracks_desc: "Keep only desired audio and subtitle tracks in a lossless copy without re-encoding."

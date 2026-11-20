@@ -17,6 +17,7 @@ from ui.pages.image_resize_page import create_image_resize_page
 from ui.pages.media_hub_page import create_media_hub_page
 from ui.pages.video_compression_page import create_video_compression_page
 from ui.pages.video_conversion_page import create_video_conversion_page
+from ui.pages.video_downscale_page import create_video_downscale_page
 from ui.pages.video_tracks_page import create_video_tracks_page
 
 # Setup module logger
@@ -155,6 +156,12 @@ MODULE_REGISTRY: list[ModuleDefinition] = [
                     "route_key": "video_compression",
                 },
                 {
+                    "title_key": "video_hub_card_downscale_title",
+                    "desc_key": "video_hub_card_downscale_desc",
+                    "icon": ft.icons.ASPECT_RATIO,
+                    "route_key": "video_downscale",
+                },
+                {
                     "title_key": "video_hub_card_tracks_title",
                     "desc_key": "video_hub_card_tracks_desc",
                     "icon": ft.icons.SUBTITLES,
@@ -178,6 +185,14 @@ MODULE_REGISTRY: list[ModuleDefinition] = [
                 icon=ft.icons.COMPRESS,
                 route_key="video_compression",
                 builder=create_video_compression_page,
+            ),
+            ModuleOption(
+                id="video_downscale",
+                title_key="video_hub_card_downscale_title",
+                desc_key="video_hub_card_downscale_desc",
+                icon=ft.icons.ASPECT_RATIO,
+                route_key="video_downscale",
+                builder=create_video_downscale_page,
             ),
             ModuleOption(
                 id="video_tracks",
