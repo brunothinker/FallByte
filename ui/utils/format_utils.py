@@ -5,6 +5,9 @@ extensions are actually picked up from a folder), so the UI never drifts out
 of sync with the processing code.
 """
 
+from collections.abc import Collection
+
+from src.audio.audio_file_normalization import NORMALIZABLE_AUDIO_FORMATS
 from src.formats import (
     AUDIO_TARGET_FORMATS,
     SUPPORTED_AUDIO_EXTENSIONS,
@@ -15,7 +18,7 @@ from src.formats import (
 )
 
 
-def _to_names(extensions: set[str]) -> list[str]:
+def _to_names(extensions: Collection[str]) -> list[str]:
     """Converts extensions like '.jpg' into sorted, upper-case names like 'JPG'."""
     return sorted({ext.lstrip(".").upper() for ext in extensions})
 
@@ -54,6 +57,11 @@ def audio_compression_formats() -> list[str]:
         for name in audio_input_formats()
         if name not in UNCOMPRESSIBLE_AUDIO_FORMATS
     ]
+
+
+def audio_normalization_formats() -> list[str]:
+    """Audio formats accepted as input by the EBU R128 volume normalization module."""
+    return _to_names(NORMALIZABLE_AUDIO_FORMATS)
 
 
 def format_list(formats: list[str]) -> str:

@@ -3,41 +3,44 @@ _meta:
   name: "日本語"
 
 strings:
-  # Navigation & Sidebar
+  # ============================================================================
+  # Global: Navigation & Sidebar
+  # ============================================================================
   nav_home: "ホーム"
   lbl_github_repo: "GitHub リポジトリ"
   app_title: "FallByte - メディアスイート"
   header_back_tooltip: "戻る"
   route_not_found: "ルート '{route_key}' が見つかりません。"
 
-  # Home Dashboard
+  # ============================================================================
+  # Global: Home Dashboard
+  # ============================================================================
   home_header_title: "FallByte - メインダッシュボード"
   home_mod_image_title: "画像モジュール"
   home_mod_image_desc: "単一または一括での画像変換、圧縮、最適化。"
   home_mod_video_title: "動画モジュール"
   home_mod_video_desc: "高品質を維持したままの動画変換と圧縮。"
+  home_mod_audio_title: "音声モジュール"
+  home_mod_audio_desc: "多様なフォーマットに対応した音声変換と圧縮。"
 
-  # Image Hub Navigation Modules
-  image_hub_heading: "画像処理"
-  image_hub_subheading: "使用するツールを選択してください"
-  image_hub_card_conversion_title: "フォーマット変換"
-  image_hub_card_conversion_desc: "画像のフォーマットを個別または一括で変更します。"
-  image_hub_card_compression_title: "画像圧縮"
-  image_hub_card_compression_desc: "画質を調整してファイルサイズを削減します。"
-
-  # Selector Labels & Popup Items
+  # ============================================================================
+  # Global: Selector Labels & Controls
+  # ============================================================================
   lbl_source: "入力元"
   lbl_destination: "保存先"
   lbl_select_file: "ファイルを選択"
   lbl_select_folder: "フォルダを選択"
   lbl_not_selected: "未選択"
   lbl_quality_title: "圧縮品質"
+  lbl_quality_percentage: "品質: {value}%"
   lbl_target_format: "出力フォーマット"
   lbl_transparency_color: "透過背景色"
   lbl_no_extension: "拡張子なし"
   lbl_language: "言語"
 
-  # Themes i18n
+  # ============================================================================
+  # Global: Themes
+  # ============================================================================
   lbl_theme: "アプリテーマ"
   lbl_select_theme: "テーマを選択"
   theme_section_dark: "ダークテーマ"
@@ -53,7 +56,9 @@ strings:
   theme_red_light: "レッド"
   theme_amber_light: "アンバー"
 
-  # Color Options
+  # ============================================================================
+  # Global: Color Options
+  # ============================================================================
   color_white: "白"
   color_black: "黒"
   color_light_gray: "ライトグレー"
@@ -63,7 +68,9 @@ strings:
   color_blue: "青"
   color_yellow: "黄"
 
-  # Action Buttons & Status Messages
+  # ============================================================================
+  # Global: Action Buttons & Status Messages
+  # ============================================================================
   btn_process: "処理を開始"
   btn_stop_process: "処理を停止"
   btn_ok: "OK"
@@ -84,14 +91,19 @@ strings:
   msg_compressing_progress: "圧縮中: [{current}/{total}] - {filename}"
   msg_process_cancelled: "処理がキャンセルされました。生成された {count} 件のファイルが削除されました。"
   msg_success_summary: "{msg} | 成功: {successful} / {total}"
+  msg_supported_formats_notice: "圧縮対応フォーマット: {formats}"
+  msg_supported_formats_notice_conversion: "変換対応フォーマット: {formats}"
 
-  # Dialog Messages
+  # ============================================================================
+  # Global: Dialogs & Summary Log
+  # ============================================================================
   dialog_incompatible_title: "圧縮非対応フォーマット"
   dialog_incompatible_body: "直接圧縮に対応していないファイルが {unsupported_count} 件見つかりました ({sample_exts})。\n\nヒント: 事前に変換モジュールを使用してフォーマットを変換できます。\n\n対応している {supported_count} 件のファイルのみ圧縮を続行しますか？"
   dialog_cancel_title: "キャンセルの確認"
   dialog_cancel_body: "本当に処理を停止しますか？\nこのセッション中に保存先ディレクトリに保存されたファイルは削除されます。"
-
-  # Summary & Log Dialog
+  dialog_no_files_title: "対応ファイルなし"
+  dialog_no_files_body: "選択されたフォルダにはこの操作に対応したファイルが含まれていません。"
+  dialog_no_files_formats: "対応フォーマット: {formats}"
   log_dialog_title: "処理結果"
   log_summary_success: "成功"
   log_summary_failed: "失敗"
@@ -105,30 +117,50 @@ strings:
   log_reduction_stat: "削減率: -{pct:.1f}%"
   log_increase_stat: "増加率: +{pct:.1f}%"
 
-  # Video Hub Navigation Modules
+  # ============================================================================
+  # Module: Image
+  # ============================================================================
+  image_hub_heading: "画像処理"
+  image_hub_subheading: "使用するツールを選択してください"
+  # --- Image: Format Conversion ---
+  image_hub_card_conversion_title: "フォーマット変換"
+  image_hub_card_conversion_desc: "画像のフォーマットを個別または一括で変更します。"
+  # --- Image: Compression ---
+  image_hub_card_compression_title: "画像圧縮"
+  image_hub_card_compression_desc: "画質を調整してファイルサイズを削減します。"
+
+  # ============================================================================
+  # Module: Video
+  # ============================================================================
   video_hub_heading: "動画処理"
   video_hub_subheading: "使用するツールを選択してください"
+  # --- Video: Format Conversion ---
   video_hub_card_conversion_title: "動画変換"
   video_hub_card_conversion_desc: "互換性を保ちながら動画フォーマットを変更します。"
+  # --- Video: Compression ---
   video_hub_card_compression_title: "動画圧縮"
   video_hub_card_compression_desc: "画質を保ちながら動画ファイルサイズを削減します。"
-  lbl_quality_percentage: "品質: {value}%"
-  msg_supported_formats_notice: "圧縮対応フォーマット: {formats}"
-  msg_supported_formats_notice_conversion: "変換対応フォーマット: {formats}"
-  dialog_no_files_title: "対応ファイルなし"
-  dialog_no_files_body: "選択されたフォルダにはこの操作に対応したファイルが含まれていません。"
-  dialog_no_files_formats: "対応フォーマット: {formats}"
 
-  # Home Dashboard
-  home_mod_audio_title: "音声モジュール"
-  home_mod_audio_desc: "多様なフォーマットに対応した音声変換と圧縮。"
-
-  # Audio Hub Navigation Modules
+  # ============================================================================
+  # Module: Audio
+  # ============================================================================
   audio_hub_heading: "音声処理"
   audio_hub_subheading: "使用するツールを選択してください"
+  # --- Audio: Format Conversion ---
   audio_hub_card_conversion_title: "音声変換"
   audio_hub_card_conversion_desc: "音声トラックを個別または一括で別フォーマットに変換します。"
+  # --- Audio: Compression ---
   audio_hub_card_compression_title: "音声圧縮"
   audio_hub_card_compression_desc: "音質の明瞭さを保ちながら音声ファイルサイズを削減します。"
+  # --- Audio: Video-to-Audio Extraction ---
   audio_hub_card_extraction_title: "音声抽出"
   audio_hub_card_extraction_desc: "動画ファイルからメインの音声トラックをMP3、M4A、FLAC、WAV、OGG、またはOpus形式で抽出します。"
+  # --- Audio: Volume Normalization ---
+  audio_hub_card_normalization_title: "音量のノーマライズ"
+  audio_hub_card_normalization_desc: "EBU R128規格を使用して、フォルダ内の音声ファイルの体感音量を均一化します。"
+  lbl_loudness_preset: "ラウドネス目標"
+  preset_loudness_music: "音楽 / ストリーミング (-14 LUFS)"
+  preset_loudness_podcast: "ポッドキャスト / 音声 (-16 LUFS)"
+  preset_loudness_broadcast: "放送 / 標準 (-23 LUFS)"
+  msg_normalizing_progress: "ノーマライズ中: [{current}/{total}] - {filename}"
+  msg_supported_formats_notice_normalization: "ノーマライズ対応フォーマット: {formats}"

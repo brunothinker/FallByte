@@ -3,41 +3,44 @@ _meta:
   name: "Русский"
 
 strings:
-  # Navigation & Sidebar
+  # ============================================================================
+  # Global: Navigation & Sidebar
+  # ============================================================================
   nav_home: "Главная"
   lbl_github_repo: "Репозиторий GitHub"
   app_title: "FallByte - Медиа-пакет"
   header_back_tooltip: "Назад"
   route_not_found: "Маршрут '{route_key}' не найден."
 
-  # Home Dashboard
+  # ============================================================================
+  # Global: Home Dashboard
+  # ============================================================================
   home_header_title: "FallByte - Главная панель"
   home_mod_image_title: "Модуль изображений"
   home_mod_image_desc: "Одиночная или пакетная конвертация, сжатие и оптимизация изображений."
   home_mod_video_title: "Видеомодуль"
   home_mod_video_desc: "Конвертация и сжатие видео с сохранением высокого качества."
+  home_mod_audio_title: "Аудиомодуль"
+  home_mod_audio_desc: "Конвертация и сжатие аудио в различных форматах."
 
-  # Image Hub Navigation Modules
-  image_hub_heading: "Обработка изображений"
-  image_hub_subheading: "Выберите нужный инструмент"
-  image_hub_card_conversion_title: "Конвертация форматов"
-  image_hub_card_conversion_desc: "Изменение формата изображений по одному или пакетом."
-  image_hub_card_compression_title: "Сжатие изображений"
-  image_hub_card_compression_desc: "Уменьшение размера файлов за счёт настройки визуального качества."
-
-  # Selector Labels & Popup Items
+  # ============================================================================
+  # Global: Selector Labels & Controls
+  # ============================================================================
   lbl_source: "Источник"
   lbl_destination: "Назначение"
   lbl_select_file: "Выбрать файл"
   lbl_select_folder: "Выбрать папку"
   lbl_not_selected: "Не выбрано"
   lbl_quality_title: "Качество сжатия"
+  lbl_quality_percentage: "Качество: {value}%"
   lbl_target_format: "Целевой формат"
   lbl_transparency_color: "Фон прозрачности"
   lbl_no_extension: "Без расширения"
   lbl_language: "Язык"
 
-  # Themes i18n
+  # ============================================================================
+  # Global: Themes
+  # ============================================================================
   lbl_theme: "Тема приложения"
   lbl_select_theme: "Выбрать тему"
   theme_section_dark: "Тёмные темы"
@@ -53,7 +56,9 @@ strings:
   theme_red_light: "Красная"
   theme_amber_light: "Янтарная"
 
-  # Color Options
+  # ============================================================================
+  # Global: Color Options
+  # ============================================================================
   color_white: "Белый"
   color_black: "Чёрный"
   color_light_gray: "Светло-серый"
@@ -63,7 +68,9 @@ strings:
   color_blue: "Синий"
   color_yellow: "Жёлтый"
 
-  # Action Buttons & Status Messages
+  # ============================================================================
+  # Global: Action Buttons & Status Messages
+  # ============================================================================
   btn_process: "Начать обработку"
   btn_stop_process: "ОСТАНОВИТЬ ОБРАБОТКУ"
   btn_ok: "ОК"
@@ -84,14 +91,19 @@ strings:
   msg_compressing_progress: "Сжатие: [{current}/{total}] - {filename}"
   msg_process_cancelled: "Обработка отменена. Удалено созданных файлов: {count}."
   msg_success_summary: "{msg} | Успешно: {successful} / {total}"
+  msg_supported_formats_notice: "Поддерживаемые форматы для сжатия: {formats}"
+  msg_supported_formats_notice_conversion: "Поддерживаемые форматы для конвертации: {formats}"
 
-  # Dialog Messages
+  # ============================================================================
+  # Global: Dialogs & Summary Log
+  # ============================================================================
   dialog_incompatible_title: "Несжимаемые форматы"
   dialog_incompatible_body: "Найдено файлов, не поддерживающих прямое сжатие: {unsupported_count} ({sample_exts}).\n\nСовет: вы можете предварительно преобразовать их в модуле конвертации.\n\nПродолжить сжатие только для совместимых файлов ({supported_count})?"
   dialog_cancel_title: "Подтверждение отмены"
   dialog_cancel_body: "Вы действительно хотите остановить обработку?\nФайлы, сохранённые в целевой директории за этот сеанс, будут удалены."
-
-  # Summary & Log Dialog
+  dialog_no_files_title: "Нет поддерживаемых файлов"
+  dialog_no_files_body: "В выбранной папке нет файлов, совместимых с этой операцией."
+  dialog_no_files_formats: "Поддерживаемые форматы: {formats}"
   log_dialog_title: "Результаты обработки"
   log_summary_success: "Успешно"
   log_summary_failed: "С ошибками"
@@ -105,30 +117,50 @@ strings:
   log_reduction_stat: "Сжатие: -{pct:.1f}%"
   log_increase_stat: "Увеличение: +{pct:.1f}%"
 
-  # Video Hub Navigation Modules
+  # ============================================================================
+  # Module: Image
+  # ============================================================================
+  image_hub_heading: "Обработка изображений"
+  image_hub_subheading: "Выберите нужный инструмент"
+  # --- Image: Format Conversion ---
+  image_hub_card_conversion_title: "Конвертация форматов"
+  image_hub_card_conversion_desc: "Изменение формата изображений по одному или пакетом."
+  # --- Image: Compression ---
+  image_hub_card_compression_title: "Сжатие изображений"
+  image_hub_card_compression_desc: "Уменьшение размера файлов за счёт настройки визуального качества."
+
+  # ============================================================================
+  # Module: Video
+  # ============================================================================
   video_hub_heading: "Обработка видео"
   video_hub_subheading: "Выберите нужный инструмент"
+  # --- Video: Format Conversion ---
   video_hub_card_conversion_title: "Конвертация видео"
   video_hub_card_conversion_desc: "Изменение видеоформатов с сохранением совместимости."
+  # --- Video: Compression ---
   video_hub_card_compression_title: "Сжатие видео"
   video_hub_card_compression_desc: "Уменьшение размера видеофайлов с сохранением качества."
-  lbl_quality_percentage: "Качество: {value}%"
-  msg_supported_formats_notice: "Поддерживаемые форматы для сжатия: {formats}"
-  msg_supported_formats_notice_conversion: "Поддерживаемые форматы для конвертации: {formats}"
-  dialog_no_files_title: "Нет поддерживаемых файлов"
-  dialog_no_files_body: "В выбранной папке нет файлов, совместимых с этой операцией."
-  dialog_no_files_formats: "Поддерживаемые форматы: {formats}"
 
-  # Home Dashboard
-  home_mod_audio_title: "Аудиомодуль"
-  home_mod_audio_desc: "Конвертация и сжатие аудио в различных форматах."
-
-  # Audio Hub Navigation Modules
+  # ============================================================================
+  # Module: Audio
+  # ============================================================================
   audio_hub_heading: "Обработка аудио"
   audio_hub_subheading: "Выберите нужный инструмент"
+  # --- Audio: Format Conversion ---
   audio_hub_card_conversion_title: "Конвертация аудио"
   audio_hub_card_conversion_desc: "Конвертация аудиодорожек между форматами по одной или пакетом."
+  # --- Audio: Compression ---
   audio_hub_card_compression_title: "Сжатие аудио"
   audio_hub_card_compression_desc: "Уменьшение размера аудиофайлов с сохранением чистоты звука."
+  # --- Audio: Video-to-Audio Extraction ---
   audio_hub_card_extraction_title: "Извлечение аудио"
   audio_hub_card_extraction_desc: "Извлеките основную аудиодорожку из видеофайлов в формат MP3, M4A, FLAC, WAV, OGG или Opus."
+  # --- Audio: Volume Normalization ---
+  audio_hub_card_normalization_title: "Нормализация громкости"
+  audio_hub_card_normalization_desc: "Выравнивание воспринимаемой громкости аудиофайлов в папках по стандарту EBU R128."
+  lbl_loudness_preset: "Целевая громкость"
+  preset_loudness_music: "Музыка / Стриминг (-14 LUFS)"
+  preset_loudness_podcast: "Подкаст / Голос (-16 LUFS)"
+  preset_loudness_broadcast: "Вещание / Стандарт (-23 LUFS)"
+  msg_normalizing_progress: "Нормализация: [{current}/{total}] - {filename}"
+  msg_supported_formats_notice_normalization: "Поддерживаемые форматы для нормализации: {formats}"

@@ -3,41 +3,44 @@ _meta:
   name: "简体中文"
 
 strings:
-  # Navigation & Sidebar
-  nav_home: "主页"
+  # ============================================================================
+  # Global: Navigation & Sidebar
+  # ============================================================================
+  nav_home: "首页"
   lbl_github_repo: "GitHub 仓库"
-  app_title: "FallByte - 媒体处理套件"
+  app_title: "FallByte - 媒体套件"
   header_back_tooltip: "返回"
   route_not_found: "未找到路由 '{route_key}'。"
 
-  # Home Dashboard
-  home_header_title: "FallByte - 主控制台"
+  # ============================================================================
+  # Global: Home Dashboard
+  # ============================================================================
+  home_header_title: "FallByte - 主控制面板"
   home_mod_image_title: "图像模块"
-  home_mod_image_desc: "单个或批量图像格式转换、压缩与优化。"
+  home_mod_image_desc: "单张或批量图像格式转换、压缩与优化。"
   home_mod_video_title: "视频模块"
   home_mod_video_desc: "在保持高画质的同时进行视频转换与压缩。"
+  home_mod_audio_title: "音频模块"
+  home_mod_audio_desc: "支持多种格式的音频转换与压缩。"
 
-  # Image Hub Navigation Modules
-  image_hub_heading: "图像处理"
-  image_hub_subheading: "请选择要使用的工具"
-  image_hub_card_conversion_title: "格式转换"
-  image_hub_card_conversion_desc: "单个或批量更改图像的存储格式。"
-  image_hub_card_compression_title: "图像压缩"
-  image_hub_card_compression_desc: "通过调整视觉质量来减小文件体积。"
-
-  # Selector Labels & Popup Items
+  # ============================================================================
+  # Global: Selector Labels & Controls
+  # ============================================================================
   lbl_source: "源路径"
   lbl_destination: "目标路径"
   lbl_select_file: "选择文件"
   lbl_select_folder: "选择文件夹"
   lbl_not_selected: "未选择"
   lbl_quality_title: "压缩质量"
+  lbl_quality_percentage: "质量: {value}%"
   lbl_target_format: "目标格式"
   lbl_transparency_color: "透明背景色"
   lbl_no_extension: "无扩展名"
   lbl_language: "语言"
 
-  # Themes i18n
+  # ============================================================================
+  # Global: Themes
+  # ============================================================================
   lbl_theme: "应用主题"
   lbl_select_theme: "选择主题"
   theme_section_dark: "深色主题"
@@ -53,7 +56,9 @@ strings:
   theme_red_light: "红色"
   theme_amber_light: "琥珀色"
 
-  # Color Options
+  # ============================================================================
+  # Global: Color Options
+  # ============================================================================
   color_white: "白色"
   color_black: "黑色"
   color_light_gray: "浅灰色"
@@ -63,7 +68,9 @@ strings:
   color_blue: "蓝色"
   color_yellow: "黄色"
 
-  # Action Buttons & Status Messages
+  # ============================================================================
+  # Global: Action Buttons & Status Messages
+  # ============================================================================
   btn_process: "开始处理"
   btn_stop_process: "停止处理"
   btn_ok: "确定"
@@ -73,25 +80,30 @@ strings:
   btn_stop_and_delete: "是，停止并删除"
   btn_copy_log: "复制日志"
   msg_log_copied: "日志已复制到剪贴板！"
-  msg_processing: "正在处理..."
-  msg_success: "操作已成功完成！"
+  msg_processing: "处理中..."
+  msg_success: "操作成功完成！"
   msg_error: "处理文件时发生错误。"
-  msg_select_required: "请先选择源位置和目标位置以继续。"
+  msg_select_required: "请选择源路径和目标路径以继续。"
   msg_same_folder_error: "目标文件夹不能与源文件夹相同。"
-  msg_nested_folder_error: "目标文件夹不能位于源文件夹内部，也不能是源文件夹的上级目录。"
+  msg_nested_folder_error: "目标文件夹不能位于源文件夹内部或作为其父文件夹。"
   msg_cancelling: "正在取消并清理已生成的文件..."
   msg_converting_progress: "正在转换: [{current}/{total}] - {filename}"
   msg_compressing_progress: "正在压缩: [{current}/{total}] - {filename}"
   msg_process_cancelled: "处理已取消。已删除 {count} 个生成的文件。"
   msg_success_summary: "{msg} | 成功: {successful} / {total}"
+  msg_supported_formats_notice: "支持压缩的格式: {formats}"
+  msg_supported_formats_notice_conversion: "支持转换的格式: {formats}"
 
-  # Dialog Messages
+  # ============================================================================
+  # Global: Dialogs & Summary Log
+  # ============================================================================
   dialog_incompatible_title: "不支持直接压缩的格式"
-  dialog_incompatible_body: "发现 {unsupported_count} 个不支持直接压缩的文件 ({sample_exts})。\n\n提示：您可以先使用格式转换模块进行转换。\n\n是否仅继续压缩其余 {supported_count} 个兼容文件？"
+  dialog_incompatible_body: "发现 {unsupported_count} 个不支持直接压缩的文件 ({sample_exts})。\n\n提示：您可以先使用格式转换模块进行转换。\n\n是否仅继续压缩 {supported_count} 个兼容文件？"
   dialog_cancel_title: "确认取消"
-  dialog_cancel_body: "确定要停止当前处理吗？\n本次会话中已保存到目标目录的文件将被删除。"
-
-  # Summary & Log Dialog
+  dialog_cancel_body: "确定要停止处理吗？\n本次会话中保存在目标目录的文件将被删除。"
+  dialog_no_files_title: "无支持的文件"
+  dialog_no_files_body: "所选文件夹中没有与此操作兼容的文件。"
+  dialog_no_files_formats: "支持的格式: {formats}"
   log_dialog_title: "处理结果"
   log_summary_success: "成功"
   log_summary_failed: "失败"
@@ -102,33 +114,53 @@ strings:
   log_detail_title: "详细历史记录:"
   log_no_errors: "处理过程中未记录任何错误。"
   log_size_stat: "大小: {orig} -> {comp}"
-  log_reduction_stat: "减小: -{pct:.1f}%"
+  log_reduction_stat: "减少: -{pct:.1f}%"
   log_increase_stat: "增加: +{pct:.1f}%"
 
-  # Video Hub Navigation Modules
+  # ============================================================================
+  # Module: Image
+  # ============================================================================
+  image_hub_heading: "图像处理"
+  image_hub_subheading: "请选择要使用的工具"
+  # --- Image: Format Conversion ---
+  image_hub_card_conversion_title: "格式转换"
+  image_hub_card_conversion_desc: "单独或批量更改图像格式。"
+  # --- Image: Compression ---
+  image_hub_card_compression_title: "图像压缩"
+  image_hub_card_compression_desc: "通过调整视觉质量减小文件大小。"
+
+  # ============================================================================
+  # Module: Video
+  # ============================================================================
   video_hub_heading: "视频处理"
   video_hub_subheading: "请选择要使用的工具"
+  # --- Video: Format Conversion ---
   video_hub_card_conversion_title: "视频转换"
   video_hub_card_conversion_desc: "在保持兼容性的同时更改视频格式。"
+  # --- Video: Compression ---
   video_hub_card_compression_title: "视频压缩"
-  video_hub_card_compression_desc: "在保持画质的同时减小视频文件体积。"
-  lbl_quality_percentage: "质量: {value}%"
-  msg_supported_formats_notice: "支持压缩的格式: {formats}"
-  msg_supported_formats_notice_conversion: "支持转换的格式: {formats}"
-  dialog_no_files_title: "无支持的文件"
-  dialog_no_files_body: "所选文件夹中没有与此操作兼容的文件。"
-  dialog_no_files_formats: "支持的格式: {formats}"
+  video_hub_card_compression_desc: "在保持画质的同时减小视频文件大小。"
 
-  # Home Dashboard
-  home_mod_audio_title: "音频模块"
-  home_mod_audio_desc: "支持多种格式的音频转换与压缩。"
-
-  # Audio Hub Navigation Modules
+  # ============================================================================
+  # Module: Audio
+  # ============================================================================
   audio_hub_heading: "音频处理"
   audio_hub_subheading: "请选择要使用的工具"
+  # --- Audio: Format Conversion ---
   audio_hub_card_conversion_title: "音频转换"
-  audio_hub_card_conversion_desc: "单个或批量在不同格式之间转换音轨。"
+  audio_hub_card_conversion_desc: "单独或批量在不同格式之间转换音轨。"
+  # --- Audio: Compression ---
   audio_hub_card_compression_title: "音频压缩"
-  audio_hub_card_compression_desc: "在保持音质清晰度的同时减小音频文件体积。"
+  audio_hub_card_compression_desc: "在保持音质清晰的同时减小音频文件大小。"
+  # --- Audio: Video-to-Audio Extraction ---
   audio_hub_card_extraction_title: "音频提取"
   audio_hub_card_extraction_desc: "从视频文件中提取主音轨为 MP3、M4A、FLAC、WAV、OGG 或 Opus 格式。"
+  # --- Audio: Volume Normalization ---
+  audio_hub_card_normalization_title: "音量标准化"
+  audio_hub_card_normalization_desc: "使用 EBU R128 标准统一音频文件夹中的感知响度。"
+  lbl_loudness_preset: "响度目标"
+  preset_loudness_music: "音乐 / 流媒体 (-14 LUFS)"
+  preset_loudness_podcast: "播客 / 人声 (-16 LUFS)"
+  preset_loudness_broadcast: "广播 / 标准 (-23 LUFS)"
+  msg_normalizing_progress: "正在标准化: [{current}/{total}] - {filename}"
+  msg_supported_formats_notice_normalization: "支持标准化的格式: {formats}"

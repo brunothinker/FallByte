@@ -4,6 +4,8 @@ import logging
 import sys
 from unittest.mock import MagicMock
 
+import pytest
+
 from tests.ui.helpers import assert_idle_ui
 from ui.i18n import t
 from ui.theme import get_color
@@ -86,6 +88,9 @@ def test_single_file_engine_exception_is_reported_as_failure(ctx):
 
 def test_single_file_sets_stop_button_while_running(ctx):
     """While the engine runs, the button is in STOP state and the session is flagged as processing."""
+    if not ctx.spec.get("supports_single", True):
+        pytest.skip(f"{ctx.spec['id']} is directory-only.")
+
     seen = {}
 
     def fake(**kwargs):

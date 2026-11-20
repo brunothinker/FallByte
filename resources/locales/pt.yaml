@@ -3,41 +3,44 @@ _meta:
   name: "Português"
 
 strings:
-  # Navigation & Sidebar
+  # ============================================================================
+  # Global: Navigation & Sidebar
+  # ============================================================================
   nav_home: "Inicial"
   lbl_github_repo: "Repositório GitHub"
   app_title: "FallByte - Media Suite"
   header_back_tooltip: "Voltar"
   route_not_found: "Rota '{route_key}' não encontrada."
 
-  # Home Dashboard
+  # ============================================================================
+  # Global: Home Dashboard
+  # ============================================================================
   home_header_title: "FallByte - Painel Principal"
   home_mod_image_title: "Módulo de Imagens"
   home_mod_image_desc: "Conversão, compressão e otimização individual ou em lote."
   home_mod_video_title: "Módulo de Vídeos"
   home_mod_video_desc: "Conversão e compressão de vídeos mantendo alta qualidade."
+  home_mod_audio_title: "Módulo de Áudio"
+  home_mod_audio_desc: "Conversão e compressão de áudio em múltiplos formatos."
 
-  # Image Hub Navigation Modules
-  image_hub_heading: "Processamento de Imagens"
-  image_hub_subheading: "Selecione a ferramenta que deseja utilizar"
-  image_hub_card_conversion_title: "Conversão de Formato"
-  image_hub_card_conversion_desc: "Altere o formato das suas imagens individualmente ou em lote."
-  image_hub_card_compression_title: "Compressão de Imagem"
-  image_hub_card_compression_desc: "Reduza o tamanho dos arquivos ajustando a qualidade visual."
-
-  # Selector Labels & Popup Items
+  # ============================================================================
+  # Global: Selector Labels & Controls
+  # ============================================================================
   lbl_source: "Origem"
   lbl_destination: "Destino"
   lbl_select_file: "Selecionar Arquivo"
   lbl_select_folder: "Selecionar Pasta"
   lbl_not_selected: "Nenhum selecionado"
   lbl_quality_title: "Qualidade da Compressão"
+  lbl_quality_percentage: "Qualidade: {value}%"
   lbl_target_format: "Formato de Destino"
   lbl_transparency_color: "Fundo para Transparência"
   lbl_no_extension: "Sem extensão"
   lbl_language: "Idioma"
 
-  # Themes i18n
+  # ============================================================================
+  # Global: Themes
+  # ============================================================================
   lbl_theme: "Tema do App"
   lbl_select_theme: "Selecionar Tema"
   theme_section_dark: "Temas Escuros (Dark)"
@@ -53,7 +56,9 @@ strings:
   theme_red_light: "Vermelho"
   theme_amber_light: "Âmbar"
 
-  # Color Options
+  # ============================================================================
+  # Global: Color Options
+  # ============================================================================
   color_white: "Branco"
   color_black: "Preto"
   color_light_gray: "Cinza Claro"
@@ -63,7 +68,9 @@ strings:
   color_blue: "Azul"
   color_yellow: "Amarelo"
 
-  # Action Buttons & Status Messages
+  # ============================================================================
+  # Global: Action Buttons & Status Messages
+  # ============================================================================
   btn_process: "Iniciar Processamento"
   btn_stop_process: "PARAR PROCESSAMENTO"
   btn_ok: "OK"
@@ -84,14 +91,19 @@ strings:
   msg_compressing_progress: "Comprimindo: [{current}/{total}] - {filename}"
   msg_process_cancelled: "Processamento cancelado. {count} arquivo(s) gerado(s) foram apagados."
   msg_success_summary: "{msg} | Sucesso: {successful} / {total}"
+  msg_supported_formats_notice: "Formatos suportados para compressão: {formats}"
+  msg_supported_formats_notice_conversion: "Formatos suportados para conversão: {formats}"
 
-  # Dialog Messages
+  # ============================================================================
+  # Global: Dialogs & Summary Log
+  # ============================================================================
   dialog_incompatible_title: "Formatos Não Comprimíveis"
   dialog_incompatible_body: "Identificamos {unsupported_count} arquivo(s) não suportados para compressão direta ({sample_exts}).\n\nDica: você pode convertê-los previamente no Módulo de Conversão.\n\nDeseja prosseguir comprimindo apenas os {supported_count} arquivo(s) compatíveis?"
   dialog_cancel_title: "Confirmar Cancelamento"
   dialog_cancel_body: "Deseja realmente interromper o processamento?\nOs arquivos salvos nesta sessão no destino serão apagados."
-
-  # Summary & Log Dialog
+  dialog_no_files_title: "Nenhum Arquivo Suportado"
+  dialog_no_files_body: "A pasta selecionada não contém arquivos compatíveis com esta operação."
+  dialog_no_files_formats: "Formatos suportados: {formats}"
   log_dialog_title: "Resultado do Processamento"
   log_summary_success: "Sucesso"
   log_summary_failed: "Falhas"
@@ -105,30 +117,50 @@ strings:
   log_reduction_stat: "Redução: -{pct:.1f}%"
   log_increase_stat: "Aumento: +{pct:.1f}%"
 
-  # Video Hub Navigation Modules
+  # ============================================================================
+  # Module: Image
+  # ============================================================================
+  image_hub_heading: "Processamento de Imagens"
+  image_hub_subheading: "Selecione a ferramenta que deseja utilizar"
+  # --- Image: Format Conversion ---
+  image_hub_card_conversion_title: "Conversão de Formato"
+  image_hub_card_conversion_desc: "Altere o formato das suas imagens individualmente ou em lote."
+  # --- Image: Compression ---
+  image_hub_card_compression_title: "Compressão de Imagem"
+  image_hub_card_compression_desc: "Reduza o tamanho dos arquivos ajustando a qualidade visual."
+
+  # ============================================================================
+  # Module: Video
+  # ============================================================================
   video_hub_heading: "Processamento de Vídeos"
   video_hub_subheading: "Selecione a ferramenta que deseja utilizar"
+  # --- Video: Format Conversion ---
   video_hub_card_conversion_title: "Conversão de Vídeo"
   video_hub_card_conversion_desc: "Altere o formato dos seus vídeos mantendo a compatibilidade."
+  # --- Video: Compression ---
   video_hub_card_compression_title: "Compressão de Vídeo"
   video_hub_card_compression_desc: "Reduza o peso dos arquivos de vídeo preservando a qualidade."
-  lbl_quality_percentage: "Qualidade: {value}%"
-  msg_supported_formats_notice: "Formatos suportados para compressão: {formats}"
-  msg_supported_formats_notice_conversion: "Formatos suportados para conversão: {formats}"
-  dialog_no_files_title: "Nenhum Arquivo Suportado"
-  dialog_no_files_body: "A pasta selecionada não contém arquivos compatíveis com esta operação."
-  dialog_no_files_formats: "Formatos suportados: {formats}"
 
-  # Home Dashboard
-  home_mod_audio_title: "Módulo de Áudio"
-  home_mod_audio_desc: "Conversão e compressão de áudio em múltiplos formatos."
-
-  # Audio Hub Navigation Modules
+  # ============================================================================
+  # Module: Audio
+  # ============================================================================
   audio_hub_heading: "Processamento de Áudio"
   audio_hub_subheading: "Selecione a ferramenta que deseja utilizar"
+  # --- Audio: Format Conversion ---
   audio_hub_card_conversion_title: "Conversão de Áudio"
   audio_hub_card_conversion_desc: "Converta faixas de áudio entre formatos individualmente ou em lote."
+  # --- Audio: Compression ---
   audio_hub_card_compression_title: "Compressão de Áudio"
   audio_hub_card_compression_desc: "Reduza o tamanho de arquivos de áudio preservando a clareza."
+  # --- Audio: Video-to-Audio Extraction ---
   audio_hub_card_extraction_title: "Extração de Áudio"
   audio_hub_card_extraction_desc: "Extraia a faixa de áudio principal de arquivos de vídeo para MP3, M4A, FLAC, WAV, OGG ou Opus."
+  # --- Audio: Volume Normalization ---
+  audio_hub_card_normalization_title: "Normalizar Volume"
+  audio_hub_card_normalization_desc: "Normalize o volume percebido em pastas de áudio usando o padrão EBU R128."
+  lbl_loudness_preset: "Alvo de Loudness"
+  preset_loudness_music: "Música / Streaming (-14 LUFS)"
+  preset_loudness_podcast: "Podcast / Voz (-16 LUFS)"
+  preset_loudness_broadcast: "Transmissão / Padrão (-23 LUFS)"
+  msg_normalizing_progress: "Normalizando: [{current}/{total}] - {filename}"
+  msg_supported_formats_notice_normalization: "Formatos suportados para normalização: {formats}"

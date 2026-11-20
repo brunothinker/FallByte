@@ -3,41 +3,44 @@ _meta:
   name: ""
 
 strings:
-  # Navigation & Sidebar
+  # ============================================================================
+  # Global: Navigation & Sidebar
+  # ============================================================================
   nav_home: ""
   lbl_github_repo: ""
   app_title: ""
   header_back_tooltip: ""
   route_not_found: ""
 
-  # Home Dashboard
+  # ============================================================================
+  # Global: Home Dashboard
+  # ============================================================================
   home_header_title: ""
   home_mod_image_title: ""
   home_mod_image_desc: ""
   home_mod_video_title: ""
   home_mod_video_desc: ""
+  home_mod_audio_title: ""
+  home_mod_audio_desc: ""
 
-  # Image Hub Navigation Modules
-  image_hub_heading: ""
-  image_hub_subheading: ""
-  image_hub_card_conversion_title: ""
-  image_hub_card_conversion_desc: ""
-  image_hub_card_compression_title: ""
-  image_hub_card_compression_desc: ""
-
-  # Selector Labels & Popup Items
+  # ============================================================================
+  # Global: Selector Labels & Controls
+  # ============================================================================
   lbl_source: ""
   lbl_destination: ""
   lbl_select_file: ""
   lbl_select_folder: ""
   lbl_not_selected: ""
   lbl_quality_title: ""
+  lbl_quality_percentage: ""
   lbl_target_format: ""
   lbl_transparency_color: ""
   lbl_no_extension: ""
   lbl_language: ""
 
-  # Themes i18n
+  # ============================================================================
+  # Global: Themes
+  # ============================================================================
   lbl_theme: ""
   lbl_select_theme: ""
   theme_section_dark: ""
@@ -53,7 +56,9 @@ strings:
   theme_red_light: ""
   theme_amber_light: ""
 
-  # Color Options
+  # ============================================================================
+  # Global: Color Options
+  # ============================================================================
   color_white: ""
   color_black: ""
   color_light_gray: ""
@@ -63,7 +68,9 @@ strings:
   color_blue: ""
   color_yellow: ""
 
-  # Action Buttons & Status Messages
+  # ============================================================================
+  # Global: Action Buttons & Status Messages
+  # ============================================================================
   btn_process: ""
   btn_stop_process: ""
   btn_ok: ""
@@ -84,14 +91,19 @@ strings:
   msg_compressing_progress: ""
   msg_process_cancelled: ""
   msg_success_summary: ""
+  msg_supported_formats_notice: ""
+  msg_supported_formats_notice_conversion: ""
 
-  # Dialog Messages
+  # ============================================================================
+  # Global: Dialogs & Summary Log
+  # ============================================================================
   dialog_incompatible_title: ""
   dialog_incompatible_body: ""
   dialog_cancel_title: ""
   dialog_cancel_body: ""
-
-  # Summary & Log Dialog
+  dialog_no_files_title: ""
+  dialog_no_files_body: ""
+  dialog_no_files_formats: ""
   log_dialog_title: ""
   log_summary_success: ""
   log_summary_failed: ""
@@ -105,30 +117,50 @@ strings:
   log_reduction_stat: ""
   log_increase_stat: ""
 
-  # Video Hub Navigation Modules
+  # ============================================================================
+  # Module: Image
+  # ============================================================================
+  image_hub_heading: ""
+  image_hub_subheading: ""
+  # --- Image: Format Conversion ---
+  image_hub_card_conversion_title: ""
+  image_hub_card_conversion_desc: ""
+  # --- Image: Compression ---
+  image_hub_card_compression_title: ""
+  image_hub_card_compression_desc: ""
+
+  # ============================================================================
+  # Module: Video
+  # ============================================================================
   video_hub_heading: ""
   video_hub_subheading: ""
+  # --- Video: Format Conversion ---
   video_hub_card_conversion_title: ""
   video_hub_card_conversion_desc: ""
+  # --- Video: Compression ---
   video_hub_card_compression_title: ""
   video_hub_card_compression_desc: ""
-  lbl_quality_percentage: ""
-  msg_supported_formats_notice: ""
-  msg_supported_formats_notice_conversion: ""
-  dialog_no_files_title: ""
-  dialog_no_files_body: ""
-  dialog_no_files_formats: ""
 
-  # Home Dashboard
-  home_mod_audio_title: ""
-  home_mod_audio_desc: ""
-
-  # Audio Hub Navigation Modules
+  # ============================================================================
+  # Module: Audio
+  # ============================================================================
   audio_hub_heading: ""
   audio_hub_subheading: ""
+  # --- Audio: Format Conversion ---
   audio_hub_card_conversion_title: ""
   audio_hub_card_conversion_desc: ""
+  # --- Audio: Compression ---
   audio_hub_card_compression_title: ""
   audio_hub_card_compression_desc: ""
+  # --- Audio: Video-to-Audio Extraction ---
   audio_hub_card_extraction_title: ""
   audio_hub_card_extraction_desc: ""
+  # --- Audio: Volume Normalization ---
+  audio_hub_card_normalization_title: ""
+  audio_hub_card_normalization_desc: ""
+  lbl_loudness_preset: ""
+  preset_loudness_music: ""
+  preset_loudness_podcast: ""
+  preset_loudness_broadcast: ""
+  msg_normalizing_progress: ""
+  msg_supported_formats_notice_normalization: ""

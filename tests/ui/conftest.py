@@ -82,6 +82,31 @@ SPECS = [
         "has_cancel_event": True,
         "in_name": "track.wav",
     },
+    {
+        "id": "audio-extraction",
+        "module": "ui.controllers.audio_extraction_controller",
+        "cls": "AudioExtractionController",
+        "file_engine": "file_extractor",
+        "dir_engine": "directory_extractor",
+        "entry": "execute_extraction",
+        "batch": "_execute_batch_directory",
+        "kwargs": {"target_format": "mp3"},
+        "has_cancel_event": True,
+        "in_name": "clip.mp4",
+    },
+    {
+        "id": "audio-normalization",
+        "module": "ui.controllers.audio_normalization_controller",
+        "cls": "AudioNormalizationController",
+        "file_engine": None,
+        "dir_engine": "directory_normalizer",
+        "entry": "execute_normalization",
+        "batch": "_execute_batch_directory",
+        "kwargs": {"preset_key": "music"},
+        "has_cancel_event": True,
+        "supports_single": False,
+        "in_name": "track.mp3",
+    },
 ]
 
 
@@ -123,6 +148,8 @@ class Ctx:
 
     def run_single(self) -> None:
         """Runs the single-file flow synchronously on a freshly created input file."""
+        if not self.spec.get("supports_single", True):
+            pytest.skip(f"{self.spec['id']} is directory-only.")
         src = self.in_dir / self.spec["in_name"]
         src.write_bytes(b"source data")
         self.controller.selected_input = src
@@ -148,6 +175,8 @@ class Ctx:
             raises (Exception | None, optional): Exception the fake raises
                 instead of returning. Defaults to None.
         """
+        if not self.spec.get("file_engine"):
+            return
 
         def fake(**kwargs):
             if raises:
@@ -197,8 +226,9 @@ def ctx(request, tmp_workspace, mock_page, monkeypatch) -> Ctx:
     )
     monkeypatch.setattr(module, "show_summary_dialog", c.summary_dialog)
     # Restore engine attributes after each test.
-    monkeypatch.setattr(
-        module, spec["file_engine"], getattr(module, spec["file_engine"])
-    )
+    if spec.get("file_engine"):
+        monkeypatch.setattr(
+            module, spec["file_engine"], getattr(module, spec["file_engine"])
+        )
     monkeypatch.setattr(module, spec["dir_engine"], getattr(module, spec["dir_engine"]))
     return c
