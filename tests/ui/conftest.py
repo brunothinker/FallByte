@@ -8,6 +8,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from ui.controllers.image_resize_controller import ResizeOptions
+
 # Per-controller wiring used to parametrize the characterization tests.
 SPECS = [
     {
@@ -31,6 +33,25 @@ SPECS = [
         "entry": "execute_conversion",
         "batch": "_execute_batch_directory",
         "kwargs": {"target_format": "webp", "selected_color_key": "color_white"},
+        "has_cancel_event": True,
+        "in_name": "photo.png",
+    },
+    {
+        "id": "image-resize",
+        "module": "ui.controllers.image_resize_controller",
+        "cls": "ImageResizeController",
+        "file_engine": "file_resizer",
+        "dir_engine": "directory_resizer",
+        "entry": "execute_resize",
+        "batch": "_execute_batch_directory",
+        "kwargs": {
+            "options": ResizeOptions(
+                mode="dimension",
+                max_width=1280,
+                max_height=720,
+                percentage=None,
+            )
+        },
         "has_cancel_event": True,
         "in_name": "photo.png",
     },

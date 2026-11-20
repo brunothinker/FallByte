@@ -128,6 +128,19 @@ strings:
   # --- Image: Compression ---
   image_hub_card_compression_title: "画像圧縮"
   image_hub_card_compression_desc: "画質を調整してファイルサイズを削減します。"
+  # --- Image: Resize ---
+  image_hub_card_resize_title: "画像リサイズ"
+  image_hub_card_resize_desc: "アスペクト比を維持したまま、指定サイズまたはパーセントで画像を縮小します。"
+  lbl_resize_mode: "リサイズモード"
+  resize_mode_dimension: "サイズ指定"
+  resize_mode_percentage: "パーセント指定"
+  lbl_max_width: "最大幅"
+  lbl_max_height: "最大高さ"
+  lbl_scale_percentage: "縮小率"
+  msg_resizing_progress: "リサイズ中: [{current}/{total}] - {filename}"
+  msg_supported_formats_notice_resize: "リサイズ対応フォーマット: {formats}"
+  msg_invalid_resize_dimensions: "有効な正の幅または高さを入力してください。"
+  msg_invalid_resize_percentage: "1から100までの有効なパーセントを入力してください。"
 
   # ============================================================================
   # Module: Video

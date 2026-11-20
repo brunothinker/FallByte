@@ -178,6 +178,9 @@ def test_module_registry_route_and_active_state_resolution():
     assert "image_conversion" in routes, (
         "[ui] Module registry must register the 'image_conversion' route."
     )
+    assert "image_resize" in routes, (
+        "[ui] Module registry must register the 'image_resize' route."
+    )
     assert "video_compression" in routes, (
         "[ui] Module registry must register the 'video_compression' route."
     )
@@ -203,6 +206,9 @@ def test_module_registry_route_and_active_state_resolution():
     )
     assert resolve_active_module_id("image_conversion") == "image", (
         "[ui] resolve_active_module_id('image_conversion') must map to 'image'."
+    )
+    assert resolve_active_module_id("image_resize") == "image", (
+        "[ui] resolve_active_module_id('image_resize') must map to 'image'."
     )
     assert resolve_active_module_id("video_compression") == "video", (
         "[ui] resolve_active_module_id('video_compression') must map to 'video'."
@@ -285,4 +291,29 @@ def test_audio_pages_render_and_register_pickers(mock_page):
     )
     assert norm_dropdown.value == "music", (
         "[ui] Audio normalization page dropdown must default to 'music' preset."
+    )
+
+
+def test_image_resize_page_renders_and_registers_pickers(mock_page):
+    """Verifies that image resize page builds without error, registers FilePickers, and exposes expected modes."""
+    from ui.pages.image_resize_page import create_image_resize_page
+
+    resize_view = create_image_resize_page(mock_page, {}, lambda _: None)
+    assert isinstance(resize_view, ft.Container), (
+        "[ui] create_image_resize_page() must return an ft.Container root view."
+    )
+    assert len(mock_page.overlay) == 3, (
+        "[ui] Image resize page must register 3 FilePicker controls (file, folder, output) in page.overlay."
+    )
+
+    resize_controls = resize_view.content.content.controls  # type: ignore[union-attr]
+    mode_dropdown = next(c for c in resize_controls if isinstance(c, ft.Dropdown))
+    assert [o.key for o in (mode_dropdown.options or [])] == [
+        "dimension",
+        "percentage",
+    ], (
+        "[ui] Image resize page dropdown must expose ['dimension', 'percentage'] modes."
+    )
+    assert mode_dropdown.value == "dimension", (
+        "[ui] Image resize page dropdown must default to 'dimension' mode."
     )

@@ -128,6 +128,19 @@ strings:
   # --- Image: Compression ---
   image_hub_card_compression_title: "Compresión de Imagen"
   image_hub_card_compression_desc: "Reduzca el tamaño de los archivos ajustando la calidad visual."
+  # --- Image: Resize ---
+  image_hub_card_resize_title: "Redimensionar Imagen"
+  image_hub_card_resize_desc: "Escale imágenes por dimensiones objetivo o porcentaje conservando la relación de aspecto."
+  lbl_resize_mode: "Modo de Redimensionado"
+  resize_mode_dimension: "Por Dimensiones"
+  resize_mode_percentage: "Por Porcentaje"
+  lbl_max_width: "Ancho Máx."
+  lbl_max_height: "Alto Máx."
+  lbl_scale_percentage: "Porcentaje de Escala"
+  msg_resizing_progress: "Redimensionando: [{current}/{total}] - {filename}"
+  msg_supported_formats_notice_resize: "Formatos compatibles para redimensionar: {formats}"
+  msg_invalid_resize_dimensions: "Ingrese un ancho o alto positivo válido."
+  msg_invalid_resize_percentage: "Ingrese un porcentaje válido entre 1 y 100."
 
   # ============================================================================
   # Module: Video

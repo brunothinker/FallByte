@@ -128,6 +128,19 @@ strings:
   # --- Image: Compression ---
   image_hub_card_compression_title: "图像压缩"
   image_hub_card_compression_desc: "通过调整视觉质量减小文件大小。"
+  # --- Image: Resize ---
+  image_hub_card_resize_title: "调整图像尺寸"
+  image_hub_card_resize_desc: "在保持纵横比的同时按目标尺寸或百分比缩放图像。"
+  lbl_resize_mode: "调整模式"
+  resize_mode_dimension: "按尺寸"
+  resize_mode_percentage: "按百分比"
+  lbl_max_width: "最大宽度"
+  lbl_max_height: "最大高度"
+  lbl_scale_percentage: "缩放百分比"
+  msg_resizing_progress: "正在调整尺寸: [{current}/{total}] - {filename}"
+  msg_supported_formats_notice_resize: "支持调整尺寸的格式: {formats}"
+  msg_invalid_resize_dimensions: "请输入有效的正数宽度或高度。"
+  msg_invalid_resize_percentage: "请输入 1 到 100 之间的有效百分比。"
 
   # ============================================================================
   # Module: Video

@@ -128,6 +128,19 @@ strings:
   # --- Image: Compression ---
   image_hub_card_compression_title: "Сжатие изображений"
   image_hub_card_compression_desc: "Уменьшение размера файлов за счёт настройки визуального качества."
+  # --- Image: Resize ---
+  image_hub_card_resize_title: "Изменение размера изображений"
+  image_hub_card_resize_desc: "Масштабирование изображений по заданным размерам или процентам с сохранением пропорций."
+  lbl_resize_mode: "Режим изменения размера"
+  resize_mode_dimension: "По размерам"
+  resize_mode_percentage: "По процентам"
+  lbl_max_width: "Макс. ширина"
+  lbl_max_height: "Макс. высота"
+  lbl_scale_percentage: "Процент масштабирования"
+  msg_resizing_progress: "Изменение размера: [{current}/{total}] - {filename}"
+  msg_supported_formats_notice_resize: "Поддерживаемые форматы для изменения размера: {formats}"
+  msg_invalid_resize_dimensions: "Введите корректную положительную ширину или высоту."
+  msg_invalid_resize_percentage: "Введите корректный процент от 1 до 100."
 
   # ============================================================================
   # Module: Video
