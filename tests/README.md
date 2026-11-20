@@ -18,7 +18,10 @@
     │   └── test_run_batch.py                         generic batch runner orchestration, progress & errors
     ├── image/                                        src/image/ (no UI)
     │   ├── test_image_compression.py                 lossy/lossless optimization, fallback behavior
-    │   └── test_image_conversion.py                  format matrix, transparency flattening, ICO clamp
+    │   ├── test_image_conversion.py                  format matrix, transparency flattening, ICO clamp
+    │   ├── test_image_metadata.py                    EXIF/metadata stripping and preservation
+    │   ├── test_image_resize.py                      single-file resize: dimensions, percentage, EXIF, GIF, HEIC
+    │   └── test_image_resize_directory.py            directory resize: hierarchy, HEIC remap, cancellation
     ├── ui/                                           ui/
     │   ├── conftest.py                               parametrized controller context & engine fakes
     │   ├── helpers.py                                shared UI state assertion helpers
