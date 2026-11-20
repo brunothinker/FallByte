@@ -161,6 +161,17 @@ strings:
   # --- Video: Compression ---
   video_hub_card_compression_title: "Compresión de Video"
   video_hub_card_compression_desc: "Reduzca el tamaño de los archivos de video preservando la calidad."
+  # --- Video: Track Selection ---
+  video_hub_card_tracks_title: "Seleccionar Audio y Subtítulos"
+  video_hub_card_tracks_desc: "Conserve solo las pistas de audio y subtítulos deseadas en una copia sin pérdida y sin recodificar."
+  lbl_audio_tracks: "Pistas de Audio"
+  lbl_subtitle_tracks: "Pistas de Subtítulos"
+  msg_inspecting_tracks: "Inspeccionando pistas incrustadas..."
+  msg_no_audio_tracks: "No se encontraron pistas de audio incrustadas."
+  msg_no_subtitle_tracks: "No se encontraron pistas de subtítulos incrustadas."
+  msg_single_video_required: "Por favor, seleccione un único archivo de video."
+  msg_remuxing_progress: "Remultiplexando pistas: {filename}"
+  msg_supported_formats_notice_tracks: "Formatos de video compatibles: {formats}"
 
   # ============================================================================
   # Module: Audio

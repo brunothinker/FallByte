@@ -161,6 +161,17 @@ strings:
   # --- Video: Compression ---
   video_hub_card_compression_title: "Сжатие видео"
   video_hub_card_compression_desc: "Уменьшение размера видеофайлов с сохранением качества."
+  # --- Video: Track Selection ---
+  video_hub_card_tracks_title: "Выбор аудио и субтитров"
+  video_hub_card_tracks_desc: "Сохраняйте только нужные аудиодорожки и субтитры без потерь и перекодирования."
+  lbl_audio_tracks: "Аудиодорожки"
+  lbl_subtitle_tracks: "Дорожки субтитров"
+  msg_inspecting_tracks: "Проверка встроенных дорожек..."
+  msg_no_audio_tracks: "Встроенные аудиодорожки не найдены."
+  msg_no_subtitle_tracks: "Встроенные дорожки субтитров не найдены."
+  msg_single_video_required: "Пожалуйста, выберите один видеофайл."
+  msg_remuxing_progress: "Ремуксинг дорожек: {filename}"
+  msg_supported_formats_notice_tracks: "Поддерживаемые видеоформаты: {formats}"
 
   # ============================================================================
   # Module: Audio

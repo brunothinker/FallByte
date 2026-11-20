@@ -161,6 +161,17 @@ strings:
   # --- Video: Compression ---
   video_hub_card_compression_title: "動画圧縮"
   video_hub_card_compression_desc: "画質を保ちながら動画ファイルサイズを削減します。"
+  # --- Video: Track Selection ---
+  video_hub_card_tracks_title: "音声と字幕の選択"
+  video_hub_card_tracks_desc: "再エンコードなしの無劣化コピーで、必要な音声トラックと字幕トラックのみを保持します。"
+  lbl_audio_tracks: "音声トラック"
+  lbl_subtitle_tracks: "字幕トラック"
+  msg_inspecting_tracks: "埋め込みトラックを検査中..."
+  msg_no_audio_tracks: "埋め込まれた音声トラックが見つかりません。"
+  msg_no_subtitle_tracks: "埋め込まれた字幕トラックが見つかりません。"
+  msg_single_video_required: "単一の動画ファイルを選択してください。"
+  msg_remuxing_progress: "トラックを再多重化中: {filename}"
+  msg_supported_formats_notice_tracks: "対応動画フォーマット: {formats}"
 
   # ============================================================================
   # Module: Audio

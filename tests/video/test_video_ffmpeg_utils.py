@@ -2,8 +2,9 @@
 
 Covers `parse_ffmpeg_stderr` / `probe_streams` against fixture strings (8-bit,
 10-bit, 12-bit pixel formats, misleading stream metadata titles, `Duration: N/A`,
-and attached cover art), `_parse_progress_line` for `-progress pipe:1`, and
-bounded stderr memory buffering during `run_strategies`.
+and attached cover art), `parse_media_tracks_stderr` / `probe_media_tracks`
+for embedded audio & subtitle tracks across containers, `_parse_progress_line`
+for `-progress pipe:1`, and bounded stderr memory buffering during `run_strategies`.
 """
 
 import io
@@ -15,9 +16,12 @@ import pytest
 from src.video.utils import video_ffmpeg_utils
 from src.video.utils.video_ffmpeg_utils import (
     STDERR_TAIL_BUFFER_SIZE,
+    MediaTrack,
     _parse_progress_line,
     _ProgressState,
     parse_ffmpeg_stderr,
+    parse_media_tracks_stderr,
+    probe_media_tracks,
     probe_streams,
     run_strategies,
 )
@@ -171,6 +175,169 @@ def test_probe_streams_delegates_to_stderr_parser(monkeypatch):
     assert info.is_10bit is False, (
         "[ffmpeg] probe_streams falsely marked an 8-bit VP9 stream as 10-bit."
     )
+
+
+# --- Audio & subtitle track inspection ---
+
+
+def test_parse_media_tracks_stderr_mkv_multiple_audio_and_subtitles():
+    """Extracts audio and subtitle tracks with languages, metadata titles, default, and forced flags."""
+    stderr_fixture = """
+Input #0, matroska,webm, from 'sample_multi.mkv':
+  Duration: 00:24:00.00, start: 0.000000, bitrate: 3500 kb/s
+  Stream #0:0: Video: hevc (Main 10), yuv420p10le(tv), 1920x1080, 23.98 fps, 23.98 tbr, 1k tbn (default)
+  Stream #0:1(jpn): Audio: opus, 48000 Hz, stereo, fltp (default)
+    Metadata:
+      title           : Original Japanese
+  Stream #0:2(por): Audio: aac (LC), 48000 Hz, stereo, fltp
+    Metadata:
+      title           : Dubbed Track
+  Stream #0:3(por): Subtitle: ass (default)
+    Metadata:
+      title           : Full Subtitles
+  Stream #0:4(eng): Subtitle: subrip (forced)
+    Metadata:
+      title           : Signs & Songs
+"""
+    audio_tracks, subtitle_tracks = parse_media_tracks_stderr(stderr_fixture)
+
+    assert len(audio_tracks) == 2, (
+        f"[ffmpeg] Expected 2 audio tracks from MKV fixture, got {len(audio_tracks)}."
+    )
+    assert audio_tracks[0] == MediaTrack(
+        stream_index=1,
+        track_type="audio",
+        codec="opus",
+        language="jpn",
+        title="Original Japanese",
+        details="stereo",
+        is_default=True,
+        is_forced=False,
+    )
+    assert audio_tracks[1].stream_index == 2
+    assert audio_tracks[1].language == "por"
+    assert audio_tracks[1].title == "Dubbed Track"
+    assert audio_tracks[1].is_default is False
+
+    assert len(subtitle_tracks) == 2, (
+        f"[ffmpeg] Expected 2 subtitle tracks from MKV fixture, got {len(subtitle_tracks)}."
+    )
+    assert subtitle_tracks[0] == MediaTrack(
+        stream_index=3,
+        track_type="subtitle",
+        codec="ass",
+        language="por",
+        title="Full Subtitles",
+        details=None,
+        is_default=True,
+        is_forced=False,
+    )
+    assert subtitle_tracks[1].stream_index == 4
+    assert subtitle_tracks[1].codec == "subrip"
+    assert subtitle_tracks[1].is_forced is True
+
+
+def test_parse_media_tracks_stderr_mp4_hex_ids_and_data_subtitles():
+    """Handles MP4 hex stream IDs (`[0x2]`) and `Data: bin_data (text / ...)` subtitle tracks while skipping timecodes."""
+    stderr_fixture = """
+Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'sample_muxed.mp4':
+  Duration: 00:24:10.00, start: 0.000000, bitrate: 2400 kb/s
+  Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p, 1920x1080, 2200 kb/s, 23.98 fps (default)
+  Stream #0:1[0x2](por): Audio: aac (LC) (mp4a / 0x6134706D), 48000 Hz, stereo, fltp, 128 kb/s (default)
+    Metadata:
+      handler_name    : SoundHandler
+  Stream #0:2[0x3](jpn): Audio: opus (Opus / 0x7375704F), 48000 Hz, stereo, fltp, 128 kb/s
+    Metadata:
+      handler_name    : SoundHandler
+  Stream #0:3[0x4](eng): Data: bin_data (text / 0x74786574)
+    Metadata:
+      handler_name    : SubtitleHandler
+  Stream #0:4[0x5](und): Data: bin_data (tmcd / 0x64636D74)
+    Metadata:
+      handler_name    : TimeCodeHandler
+"""
+    audio_tracks, subtitle_tracks = parse_media_tracks_stderr(stderr_fixture)
+
+    assert [t.stream_index for t in audio_tracks] == [1, 2], (
+        f"[ffmpeg] Expected MP4 audio stream indices [1, 2], got {[t.stream_index for t in audio_tracks]}."
+    )
+    assert [t.language for t in audio_tracks] == ["por", "jpn"]
+
+    assert len(subtitle_tracks) == 1, (
+        f"[ffmpeg] Expected 1 text subtitle track (and 0 timecode tracks), got {len(subtitle_tracks)}."
+    )
+    assert subtitle_tracks[0].stream_index == 3
+    assert subtitle_tracks[0].language == "eng"
+    assert subtitle_tracks[0].codec == "text"
+
+
+def test_parse_media_tracks_stderr_ts_composite_language_tags():
+    """Extracts primary language code from composite MPEG-TS parentheses like `(por, hearing impaired)`."""
+    stderr_fixture = """
+Input #0, mpegts, from 'broadcast.ts':
+  Duration: 00:05:00.00, start: 0.000000, bitrate: 4000 kb/s
+  Stream #0:0[0x100]: Video: h264, yuv420p, 1920x1080, 29.97 fps
+  Stream #0:1[0x101](por, clean effects): Audio: ac3, 48000 Hz, 5.1(side), fltp, 384 kb/s
+  Stream #0:2[0x102](por, hearing impaired): Subtitle: dvb_subtitle
+"""
+    audio_tracks, subtitle_tracks = parse_media_tracks_stderr(stderr_fixture)
+
+    assert len(audio_tracks) == 1
+    assert audio_tracks[0].language == "por"
+    assert audio_tracks[0].details == "5.1"
+
+    assert len(subtitle_tracks) == 1
+    assert subtitle_tracks[0].language == "por"
+    assert subtitle_tracks[0].codec == "dvb_subtitle"
+
+
+def test_media_track_display_label_formats_badges_cleanly():
+    """Formats language, title, codec, channel layout, default, and forced badges into human-readable labels."""
+    rich_track = MediaTrack(
+        stream_index=1,
+        track_type="audio",
+        codec="opus",
+        language="jpn",
+        title="Japanese 2.0",
+        details="stereo",
+        is_default=True,
+        is_forced=False,
+    )
+    assert (
+        rich_track.display_label() == 'JPN — "Japanese 2.0" — [OPUS, stereo, Default]'
+    )
+
+    unknown_sub = MediaTrack(
+        stream_index=3,
+        track_type="subtitle",
+        codec="ass",
+        language="und",
+        title=None,
+        details=None,
+        is_default=False,
+        is_forced=True,
+    )
+    assert unknown_sub.display_label() == "Unknown Language — [ASS, Forced]"
+
+
+def test_probe_media_tracks_delegates_to_stderr_parser(monkeypatch):
+    """Verifies `probe_media_tracks` parses mocked subprocess stderr without invoking real FFmpeg."""
+    sample_stderr = (
+        b"  Stream #0:0: Video: h264, yuv420p, 1280x720, 30 fps\n"
+        b"  Stream #0:1(eng): Audio: aac, 48000 Hz, stereo, fltp\n"
+        b"  Stream #0:2(spa): Subtitle: webvtt\n"
+    )
+
+    def fake_run(*args, **kwargs):
+        return subprocess.CompletedProcess(
+            args=args[0], returncode=1, stdout=b"", stderr=sample_stderr
+        )
+
+    monkeypatch.setattr(video_ffmpeg_utils.subprocess, "run", fake_run)
+
+    audio_tracks, subtitle_tracks = probe_media_tracks(Path("ffmpeg"), Path("clip.webm"))
+    assert len(audio_tracks) == 1 and audio_tracks[0].language == "eng"
+    assert len(subtitle_tracks) == 1 and subtitle_tracks[0].language == "spa"
 
 
 # --- Progress parser ---

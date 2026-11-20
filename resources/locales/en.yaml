@@ -161,6 +161,17 @@ strings:
   # --- Video: Compression ---
   video_hub_card_compression_title: "Video Compression"
   video_hub_card_compression_desc: "Reduce video file sizes while preserving quality."
+  # --- Video: Track Selection ---
+  video_hub_card_tracks_title: "Select Audio & Subtitles"
+  video_hub_card_tracks_desc: "Keep only desired audio and subtitle tracks in a lossless copy without re-encoding."
+  lbl_audio_tracks: "Audio Tracks"
+  lbl_subtitle_tracks: "Subtitle Tracks"
+  msg_inspecting_tracks: "Inspecting embedded tracks..."
+  msg_no_audio_tracks: "No embedded audio tracks found."
+  msg_no_subtitle_tracks: "No embedded subtitle tracks found."
+  msg_single_video_required: "Please select a single video file."
+  msg_remuxing_progress: "Remuxing tracks: {filename}"
+  msg_supported_formats_notice_tracks: "Supported video formats: {formats}"
 
   # ============================================================================
   # Module: Audio

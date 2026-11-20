@@ -17,6 +17,7 @@ from ui.pages.image_resize_page import create_image_resize_page
 from ui.pages.media_hub_page import create_media_hub_page
 from ui.pages.video_compression_page import create_video_compression_page
 from ui.pages.video_conversion_page import create_video_conversion_page
+from ui.pages.video_tracks_page import create_video_tracks_page
 
 # Setup module logger
 logger = logging.getLogger(__name__)
@@ -153,6 +154,12 @@ MODULE_REGISTRY: list[ModuleDefinition] = [
                     "icon": ft.icons.COMPRESS,
                     "route_key": "video_compression",
                 },
+                {
+                    "title_key": "video_hub_card_tracks_title",
+                    "desc_key": "video_hub_card_tracks_desc",
+                    "icon": ft.icons.SUBTITLES,
+                    "route_key": "video_tracks",
+                },
             ],
         ),
         options=[
@@ -171,6 +178,14 @@ MODULE_REGISTRY: list[ModuleDefinition] = [
                 icon=ft.icons.COMPRESS,
                 route_key="video_compression",
                 builder=create_video_compression_page,
+            ),
+            ModuleOption(
+                id="video_tracks",
+                title_key="video_hub_card_tracks_title",
+                desc_key="video_hub_card_tracks_desc",
+                icon=ft.icons.SUBTITLES,
+                route_key="video_tracks",
+                builder=create_video_tracks_page,
             ),
         ],
     ),

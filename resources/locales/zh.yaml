@@ -161,6 +161,17 @@ strings:
   # --- Video: Compression ---
   video_hub_card_compression_title: "视频压缩"
   video_hub_card_compression_desc: "在保持画质的同时减小视频文件大小。"
+  # --- Video: Track Selection ---
+  video_hub_card_tracks_title: "选择音频与字幕"
+  video_hub_card_tracks_desc: "通过无损封装复制仅保留所需的音轨和字幕轨道，无需重新编码。"
+  lbl_audio_tracks: "音频轨道"
+  lbl_subtitle_tracks: "字幕轨道"
+  msg_inspecting_tracks: "正在检测内嵌轨道..."
+  msg_no_audio_tracks: "未找到内嵌音频轨道。"
+  msg_no_subtitle_tracks: "未找到内嵌字幕轨道。"
+  msg_single_video_required: "请选择单个视频文件。"
+  msg_remuxing_progress: "正在封装轨道: {filename}"
+  msg_supported_formats_notice_tracks: "支持的视频格式: {formats}"
 
   # ============================================================================
   # Module: Audio

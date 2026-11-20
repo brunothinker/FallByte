@@ -161,6 +161,17 @@ strings:
   # --- Video: Compression ---
   video_hub_card_compression_title: "비디오 압축"
   video_hub_card_compression_desc: "화질을 유지하면서 비디오 파일 크기를 줄입니다."
+  # --- Video: Track Selection ---
+  video_hub_card_tracks_title: "오디오 및 자막 선택"
+  video_hub_card_tracks_desc: "재인코딩 없는 무손실 복사로 원하는 오디오 및 자막 트랙만 유지합니다."
+  lbl_audio_tracks: "오디오 트랙"
+  lbl_subtitle_tracks: "자막 트랙"
+  msg_inspecting_tracks: "내장된 트랙 검사 중..."
+  msg_no_audio_tracks: "내장된 오디오 트랙을 찾을 수 없습니다."
+  msg_no_subtitle_tracks: "내장된 자막 트랙을 찾을 수 없습니다."
+  msg_single_video_required: "단일 비디오 파일을 선택해 주세요."
+  msg_remuxing_progress: "트랙 리먹싱 중: {filename}"
+  msg_supported_formats_notice_tracks: "지원되는 비디오 형식: {formats}"
 
   # ============================================================================
   # Module: Audio
