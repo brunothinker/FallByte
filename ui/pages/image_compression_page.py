@@ -34,6 +34,12 @@ def create_compression_page(
         initial_value=80, label_text=t("lbl_quality_title")
     )
 
+    chk_strip_metadata = ft.Checkbox(
+        label=t("lbl_strip_metadata"),
+        value=False,
+        tooltip=t("tooltip_strip_metadata"),
+    )
+
     allowed_exts = [f.lower() for f in image_compression_formats()]
 
     picker_in_file = ft.FilePicker(
@@ -97,6 +103,7 @@ def create_compression_page(
             lbl_status=lbl_status,
             progress_bar=progress_bar,
             btn_action=btn_action,
+            strip_metadata=bool(chk_strip_metadata.value),
         )
 
     btn_action.on_click = on_action_click
@@ -127,6 +134,7 @@ def create_compression_page(
                         wrap=True,
                     ),
                     quality_selector,
+                    chk_strip_metadata,
                     ft.Container(height=5),
                     progress_bar,
                     btn_action,

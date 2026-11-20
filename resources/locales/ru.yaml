@@ -128,6 +128,8 @@ strings:
   # --- Image: Compression ---
   image_hub_card_compression_title: "Сжатие изображений"
   image_hub_card_compression_desc: "Уменьшение размера файлов за счёт настройки визуального качества."
+  lbl_strip_metadata: "Удалить метаданные (EXIF/GPS)"
+  tooltip_strip_metadata: "Удаляет EXIF, GPS-координаты и цветовые профили при сжатии для защиты конфиденциальности и дополнительной экономии места."
   # --- Image: Resize ---
   image_hub_card_resize_title: "Изменение размера изображений"
   image_hub_card_resize_desc: "Масштабирование изображений по заданным размерам или процентам с сохранением пропорций."
@@ -141,6 +143,12 @@ strings:
   msg_supported_formats_notice_resize: "Поддерживаемые форматы для изменения размера: {formats}"
   msg_invalid_resize_dimensions: "Введите корректную положительную ширину или высоту."
   msg_invalid_resize_percentage: "Введите корректный процент от 1 до 100."
+  # --- Image: Metadata Removal ---
+  image_hub_card_metadata_title: "Удалить метаданные"
+  image_hub_card_metadata_desc: "Удалите EXIF, GPS-координаты, данные камеры и встроенные метаданные для защиты конфиденциальности."
+  msg_metadata_privacy_hint: "Удаляет EXIF, GPS-координаты, XMP и цветовые профили, сохраняя визуальную ориентацию."
+  msg_removing_metadata_progress: "Удаление метаданных: [{current}/{total}] - {filename}"
+  msg_supported_formats_notice_metadata: "Поддерживаемые форматы для удаления метаданных: {formats}"
 
   # ============================================================================
   # Module: Video

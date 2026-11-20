@@ -35,13 +35,19 @@ class CompressionController(BaseController):
         lbl_status: ft.Text,
         progress_bar: ft.ProgressBar,
         btn_action: ft.ElevatedButton,
+        strip_metadata: bool = False,
     ) -> None:
         """Routes trigger button click to execute process or request cancellation."""
         if self.is_processing:
             self._confirm_cancel_process(page, lbl_status, progress_bar, btn_action)
         else:
             self.prepare_and_execute(
-                page, quality, lbl_status, progress_bar, btn_action
+                page,
+                quality,
+                lbl_status,
+                progress_bar,
+                btn_action,
+                strip_metadata=strip_metadata,
             )
 
     def prepare_and_execute(
@@ -51,6 +57,7 @@ class CompressionController(BaseController):
         lbl_status: ft.Text,
         progress_bar: ft.ProgressBar,
         btn_action: ft.ElevatedButton,
+        strip_metadata: bool = False,
     ) -> None:
         """Executes single-file or batch directory image compression."""
         validation_error = self.validate_paths()
@@ -65,13 +72,27 @@ class CompressionController(BaseController):
         if self.selected_input.is_file():
             threading.Thread(
                 target=self._execute_single_file,
-                args=(page, quality, lbl_status, progress_bar, btn_action),
+                args=(
+                    page,
+                    quality,
+                    lbl_status,
+                    progress_bar,
+                    btn_action,
+                    strip_metadata,
+                ),
                 daemon=True,
             ).start()
         else:
             threading.Thread(
                 target=self._run_batch_compression,
-                args=(page, quality, lbl_status, progress_bar, btn_action),
+                args=(
+                    page,
+                    quality,
+                    lbl_status,
+                    progress_bar,
+                    btn_action,
+                    strip_metadata,
+                ),
                 daemon=True,
             ).start()
 
@@ -82,6 +103,7 @@ class CompressionController(BaseController):
         lbl_status: ft.Text,
         progress_bar: ft.ProgressBar,
         btn_action: ft.ElevatedButton,
+        strip_metadata: bool = False,
     ) -> None:
         """Executes single-file image compression flow and presents summary dialog."""
         if not self.selected_input or not self.selected_output_dir:
@@ -116,6 +138,7 @@ class CompressionController(BaseController):
                 input_path=self.selected_input,
                 output_path=out_file,
                 quality=quality,
+                strip_metadata=strip_metadata,
             )
             if success:
                 print(f"[OK] {self.selected_input.name}")
@@ -173,6 +196,7 @@ class CompressionController(BaseController):
         lbl_status: ft.Text,
         progress_bar: ft.ProgressBar,
         btn_action: ft.ElevatedButton,
+        strip_metadata: bool = False,
     ) -> None:
         """Executes batch directory image compression and updates progress indicators."""
         if not self.selected_input or not self.selected_output_dir:
@@ -214,6 +238,7 @@ class CompressionController(BaseController):
                 input_dir=self.selected_input,
                 output_dir=self.selected_output_dir,
                 quality=quality,
+                strip_metadata=strip_metadata,
                 progress_callback=update_progress,
                 cancel_event=self.cancel_event,
             )

@@ -10,6 +10,7 @@ from ui.controllers.audio_extraction_controller import AudioExtractionController
 from ui.controllers.audio_normalization_controller import AudioNormalizationController
 from ui.controllers.image_compression_controller import CompressionController
 from ui.controllers.image_conversion_controller import ConversionController
+from ui.controllers.image_metadata_controller import ImageMetadataController
 from ui.controllers.image_resize_controller import (
     ImageResizeController,
     ResizeOptions,
@@ -23,11 +24,9 @@ def test_ui_log_reflects_failed_compression(tmp_workspace, mock_page):
     """Tests controller and UI integration ensuring batch processing failures write '[FAIL]' logs instead of false positives."""
     in_dir, out_dir = tmp_workspace
 
-    # Create a corrupted image file to force engine-level failure
     corrupted_file = in_dir / "bad_image.png"
     corrupted_file.write_bytes(b"NOT_A_VALID_IMAGE_HEADER")
 
-    # Configure controller and mock UI components
     controller = CompressionController()
     controller.selected_input = in_dir
     controller.selected_output_dir = out_dir
@@ -36,11 +35,9 @@ def test_ui_log_reflects_failed_compression(tmp_workspace, mock_page):
     progress_bar = MagicMock(spec=ft.ProgressBar)
     btn_action = MagicMock(spec=ft.ElevatedButton)
 
-    # Intercept summary dialog invocation to inspect injected summary payload
     with patch(
         "ui.controllers.image_compression_controller.show_summary_dialog"
     ) as mock_show_dialog:
-        # Execute batch processing synchronously in test environment
         controller._run_batch_compression(
             page=mock_page,
             quality=80,
@@ -51,14 +48,12 @@ def test_ui_log_reflects_failed_compression(tmp_workspace, mock_page):
 
         mock_show_dialog.assert_called_once()
 
-        # Extract summary payload dictionary passed to summary dialog
         summary_payload = (
             mock_show_dialog.call_args[0][1]
             if len(mock_show_dialog.call_args[0]) > 1
             else mock_show_dialog.call_args[1].get("summary")
         )
 
-        # Validate accurate error and success statistics
         assert summary_payload.get("failed", 0) == 1, (
             "[ui] Corrupted image batch run must report failed == 1 in summary payload."
         )
@@ -66,7 +61,6 @@ def test_ui_log_reflects_failed_compression(tmp_workspace, mock_page):
             "[ui] Corrupted image batch run must report success == 0 in summary payload."
         )
 
-        # Verify terminal log contains [FAIL] tag and no false positive [OK] tags
         terminal_log = summary_payload.get("terminal_log", "")
         assert "[FAIL]" in terminal_log, (
             "[ui] Summary terminal log must contain '[FAIL]' for failed engine processing."
@@ -121,7 +115,6 @@ def test_video_compression_preflight_empty_supported_files(tmp_workspace, mock_p
         assert "MP4" in formats and "PDF" not in formats, (
             "[ui] Video preflight unsupported-files dialog must list supported video formats ('MP4') and exclude 'PDF'."
         )
-        # Execution must be blocked: no worker thread started.
         mock_thread.assert_not_called()
 
 
@@ -251,7 +244,6 @@ def test_single_file_compression_does_not_overwrite_preexisting_file(
     src_file = in_dir / "sample.png"
     src_file.write_bytes(b"source data")
 
-    # Create a pre-existing target file in output directory
     preexisting_file = out_dir / "sample_compressed.png"
     preexisting_file.write_bytes(b"original content")
 
@@ -268,7 +260,7 @@ def test_single_file_compression_does_not_overwrite_preexisting_file(
     )
     monkeypatch.setattr(
         "ui.controllers.image_compression_controller.file_compressor",
-        lambda input_path, output_path, quality: (
+        lambda input_path, output_path, quality, strip_metadata=False: (
             output_path.write_bytes(b"compressed data") or True
         ),
     )
@@ -281,11 +273,9 @@ def test_single_file_compression_does_not_overwrite_preexisting_file(
         btn_action=btn_action,
     )
 
-    # Pre-existing file content must remain untouched
     assert preexisting_file.read_bytes() == b"original content", (
         "[ui] Single-file compression must never overwrite a pre-existing file at the default destination path."
     )
-    # New file with unique suffix should be created
     expected_new_file = out_dir / "sample_compressed_2.png"
     assert expected_new_file.exists(), (
         "[ui] Single-file compression must allocate a suffixed filename ('sample_compressed_2.png') on collision."
@@ -293,6 +283,49 @@ def test_single_file_compression_does_not_overwrite_preexisting_file(
     assert expected_new_file.read_bytes() == b"compressed data", (
         "[ui] Newly suffixed output file must contain the compressed output bytes."
     )
+
+
+def test_single_file_compression_forwards_strip_metadata_flag(
+    tmp_workspace, mock_page, monkeypatch
+):
+    """Verifies that single-file compression forwards strip_metadata=True to file_compressor."""
+    in_dir, out_dir = tmp_workspace
+    src_file = in_dir / "photo.jpg"
+    src_file.write_bytes(b"source image")
+
+    controller = CompressionController()
+    controller.selected_input = src_file
+    controller.selected_output_dir = out_dir
+
+    lbl_status = MagicMock(spec=ft.Text)
+    progress_bar = MagicMock(spec=ft.ProgressBar)
+    btn_action = MagicMock(spec=ft.ElevatedButton)
+
+    captured_kwargs: dict[str, object] = {}
+
+    def fake_compressor(input_path, output_path, quality, strip_metadata=False):
+        captured_kwargs["strip_metadata"] = strip_metadata
+        output_path.write_bytes(b"clean compressed")
+        return True
+
+    monkeypatch.setattr(
+        "ui.controllers.image_compression_controller.show_summary_dialog", MagicMock()
+    )
+    monkeypatch.setattr(
+        "ui.controllers.image_compression_controller.file_compressor",
+        fake_compressor,
+    )
+
+    controller._execute_single_file(
+        page=mock_page,
+        quality=80,
+        lbl_status=lbl_status,
+        progress_bar=progress_bar,
+        btn_action=btn_action,
+        strip_metadata=True,
+    )
+
+    assert captured_kwargs.get("strip_metadata") is True
 
 
 def test_single_file_compression_cancellation_preserves_preexisting_file(
@@ -303,7 +336,6 @@ def test_single_file_compression_cancellation_preserves_preexisting_file(
     src_file = in_dir / "sample.mp4"
     src_file.write_bytes(b"source video")
 
-    # Create a pre-existing target file in output directory
     preexisting_file = out_dir / "sample_compressed.mp4"
     preexisting_file.write_bytes(b"preexisting user video")
 
@@ -332,7 +364,6 @@ def test_single_file_compression_cancellation_preserves_preexisting_file(
         btn_action=btn_action,
     )
 
-    # Pre-existing file must NOT be deleted upon cancellation
     assert preexisting_file.exists(), (
         "[ui] Cancelling single-file compression must not unlink pre-existing user files in output_dir."
     )
@@ -679,3 +710,81 @@ def test_single_file_resize_uses_unique_suffix_on_collision(
     expected_new = out_dir / "banner_resized_2.png"
     assert expected_new.exists()
     assert expected_new.read_bytes() == b"new resized data"
+
+
+def test_image_metadata_batch_no_supported_files(tmp_workspace, mock_page):
+    """Verifies image metadata controller handles empty/unsupported batch directories gracefully."""
+    in_dir, out_dir = tmp_workspace
+    (in_dir / "notes.txt").write_bytes(b"text data")
+
+    controller = ImageMetadataController()
+    controller.selected_input = in_dir
+    controller.selected_output_dir = out_dir
+
+    lbl_status = MagicMock(spec=ft.Text)
+    progress_bar = MagicMock(spec=ft.ProgressBar)
+    btn_action = MagicMock(spec=ft.ElevatedButton)
+
+    with (
+        patch(
+            "ui.controllers.image_metadata_controller.show_summary_dialog"
+        ) as mock_summary,
+        patch(
+            "ui.controllers.image_metadata_controller.show_no_supported_files_dialog"
+        ) as mock_no_files,
+    ):
+        controller._execute_batch_directory(
+            page=mock_page,
+            lbl_status=lbl_status,
+            progress_bar=progress_bar,
+            btn_action=btn_action,
+        )
+
+        mock_summary.assert_not_called()
+        mock_no_files.assert_called_once()
+        assert "PNG" in mock_no_files.call_args.args[1], (
+            "[ui] Image metadata unsupported-files dialog must advertise supported image formats such as 'PNG'."
+        )
+        assert progress_bar.visible is False
+
+
+def test_single_file_metadata_uses_unique_suffix_on_collision(
+    tmp_workspace, mock_page, monkeypatch
+):
+    """Verifies single-file metadata removal avoids overwriting pre-existing destination files."""
+    in_dir, out_dir = tmp_workspace
+    src_file = in_dir / "portrait.jpg"
+    src_file.write_bytes(b"source data")
+
+    preexisting_file = out_dir / "portrait_clean.jpg"
+    preexisting_file.write_bytes(b"existing clean content")
+
+    controller = ImageMetadataController()
+    controller.selected_input = src_file
+    controller.selected_output_dir = out_dir
+
+    lbl_status = MagicMock(spec=ft.Text)
+    progress_bar = MagicMock(spec=ft.ProgressBar)
+    btn_action = MagicMock(spec=ft.ElevatedButton)
+
+    monkeypatch.setattr(
+        "ui.controllers.image_metadata_controller.show_summary_dialog", MagicMock()
+    )
+    monkeypatch.setattr(
+        "ui.controllers.image_metadata_controller.file_metadata_remover",
+        lambda input_path, output_path: (
+            output_path.write_bytes(b"new clean data") or True
+        ),
+    )
+
+    controller._execute_single_file(
+        page=mock_page,
+        lbl_status=lbl_status,
+        progress_bar=progress_bar,
+        btn_action=btn_action,
+    )
+
+    assert preexisting_file.read_bytes() == b"existing clean content"
+    expected_new = out_dir / "portrait_clean_2.jpg"
+    assert expected_new.exists()
+    assert expected_new.read_bytes() == b"new clean data"

@@ -128,6 +128,8 @@ strings:
   # --- Image: Compression ---
   image_hub_card_compression_title: "图像压缩"
   image_hub_card_compression_desc: "通过调整视觉质量减小文件大小。"
+  lbl_strip_metadata: "移除元数据 (EXIF/GPS)"
+  tooltip_strip_metadata: "在压缩期间清除 EXIF、GPS 位置和色彩配置文件，以增强隐私保护并进一步节省空间。"
   # --- Image: Resize ---
   image_hub_card_resize_title: "调整图像尺寸"
   image_hub_card_resize_desc: "在保持纵横比的同时按目标尺寸或百分比缩放图像。"
@@ -141,6 +143,12 @@ strings:
   msg_supported_formats_notice_resize: "支持调整尺寸的格式: {formats}"
   msg_invalid_resize_dimensions: "请输入有效的正数宽度或高度。"
   msg_invalid_resize_percentage: "请输入 1 到 100 之间的有效百分比。"
+  # --- Image: Metadata Removal ---
+  image_hub_card_metadata_title: "移除元数据"
+  image_hub_card_metadata_desc: "清除 EXIF、GPS 位置、相机详情及嵌入的元数据以保护隐私。"
+  msg_metadata_privacy_hint: "在保留视觉方向的同时移除 EXIF、GPS 坐标、XMP 和色彩配置文件。"
+  msg_removing_metadata_progress: "正在移除元数据: [{current}/{total}] - {filename}"
+  msg_supported_formats_notice_metadata: "支持移除元数据的格式: {formats}"
 
   # ============================================================================
   # Module: Video

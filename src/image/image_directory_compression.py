@@ -17,6 +17,7 @@ def directory_compressor(
     input_dir: Path,
     output_dir: Path,
     quality: int = 80,
+    strip_metadata: bool = False,
     progress_callback: Callable[[ProgressInfo], None] | None = None,
     cancel_event: threading.Event | None = None,
 ) -> dict[str, Any]:
@@ -32,6 +33,8 @@ def directory_compressor(
             images will be saved.
         quality (int, optional): Compression quality percentage (1-100).
             Defaults to 80.
+        strip_metadata (bool, optional): If True, strips EXIF, GPS, XMP, ICC, and
+            embedded metadata chunks during compression. Defaults to False.
         progress_callback (Callable[[ProgressInfo], None] | None, optional): Callback
             function invoked after processing each file. Defaults to None.
         cancel_event (threading.Event | None, optional): Event triggering batch
@@ -46,6 +49,7 @@ def directory_compressor(
             input_path=src,
             output_path=dst,
             quality=quality,
+            strip_metadata=strip_metadata,
         )
 
     def build_destination(src_file: Path, session_out_dir: Path) -> Path:

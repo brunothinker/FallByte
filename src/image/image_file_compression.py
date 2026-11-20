@@ -58,25 +58,33 @@ def _quantize_png(img: Image.Image, quality: int) -> Image.Image:
         return img
 
 
-def file_compressor(input_path: Path, output_path: Path, quality: int = 80) -> bool:
+def file_compressor(
+    input_path: Path,
+    output_path: Path,
+    quality: int = 80,
+    strip_metadata: bool = False,
+) -> bool:
     """Compresses a single image file while strictly maintaining its original format.
 
     Uses format-specific optimizations: quality levels for JPEG/WEBP,
     pngquant-style palette quantization for PNG (when quality < 90),
     deflate for TIFF. EXIF orientation is applied; ICC profile and EXIF
-    metadata are preserved where the format allows.
+    metadata are preserved where the format allows unless `strip_metadata=True`.
 
     Writes output atomically to a temporary file before moving it into place via
     os.replace to ensure pre-existing files are never corrupted upon failure.
 
     Formats that cannot be re-encoded safely (BMP, PPM, GIF, ICO, HEIC, HEIF)
     and animated PNGs are copied unchanged. If the compressed result is not smaller
-    than the original, the original file is kept as the output.
+    than the original and `strip_metadata` is False, the original file is kept as
+    the output.
 
     Args:
         input_path (Path): Path to the source image file.
         output_path (Path): Destination path where compressed image will be written.
         quality (int, optional): Compression quality percentage (1-100). Defaults to 80.
+        strip_metadata (bool, optional): If True, strips EXIF, GPS, XMP, ICC, and
+            embedded metadata chunks during compression. Defaults to False.
 
     Returns:
         bool: True if compression succeeded, False otherwise.
@@ -116,25 +124,32 @@ def file_compressor(input_path: Path, output_path: Path, quality: int = 80) -> b
                     input_path, output_path, "animated PNG would lose its frames"
                 )
 
-            icc = img.info.get("icc_profile")
+            icc = None if strip_metadata else img.info.get("icc_profile")
             save_kwargs: dict[str, Any] = {}
             multi = n_frames > 1 and fmt in ("WEBP", "TIFF")
 
             if multi:
-                frames = [f.copy() for f in ImageSequence.Iterator(img)]
+                raw_frames = [f.copy() for f in ImageSequence.Iterator(img)]
                 if fmt == "WEBP":
                     save_kwargs["duration"] = [
-                        f.info.get("duration", 100) for f in frames
+                        f.info.get("duration", 100) for f in raw_frames
                     ]
                     save_kwargs["loop"] = img.info.get("loop", 0)
-                    frames = [f.convert("RGBA") for f in frames]
+                    frames = [f.convert("RGBA") for f in raw_frames]
+                else:
+                    frames = raw_frames
+                if strip_metadata:
+                    for f in frames:
+                        f.info.clear()
                 final_img = frames[0]
                 save_kwargs["save_all"] = True
                 save_kwargs["append_images"] = frames[1:]
             else:
                 final_img = ImageOps.exif_transpose(img)
 
-            exif = final_img.info.get("exif")
+            exif = None if strip_metadata else final_img.info.get("exif")
+            if strip_metadata:
+                final_img.info.clear()
 
             if fmt == "JPEG":
                 save_kwargs.update(quality=quality, optimize=True, progressive=True)
@@ -157,7 +172,7 @@ def file_compressor(input_path: Path, output_path: Path, quality: int = 80) -> b
             final_img.save(tmp_path, format=fmt, **save_kwargs)
 
         original_size = input_path.stat().st_size
-        if tmp_path.stat().st_size >= original_size:
+        if not strip_metadata and tmp_path.stat().st_size >= original_size:
             tmp_path.unlink(missing_ok=True)
             return copy_original_file_atomically(
                 input_path,
@@ -169,7 +184,7 @@ def file_compressor(input_path: Path, output_path: Path, quality: int = 80) -> b
 
         logger.info(
             f"Successfully compressed '{input_path.name}' "
-            f"[Format: {fmt} | Quality: {quality}%]."
+            f"[Format: {fmt} | Quality: {quality}% | StripMetadata: {strip_metadata}]."
         )
         return True
 

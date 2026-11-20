@@ -128,6 +128,8 @@ strings:
   # --- Image: Compression ---
   image_hub_card_compression_title: ""
   image_hub_card_compression_desc: ""
+  lbl_strip_metadata: ""
+  tooltip_strip_metadata: ""
   # --- Image: Resize ---
   image_hub_card_resize_title: ""
   image_hub_card_resize_desc: ""
@@ -141,6 +143,12 @@ strings:
   msg_supported_formats_notice_resize: ""
   msg_invalid_resize_dimensions: ""
   msg_invalid_resize_percentage: ""
+  # --- Image: Metadata Removal ---
+  image_hub_card_metadata_title: ""
+  image_hub_card_metadata_desc: ""
+  msg_metadata_privacy_hint: ""
+  msg_removing_metadata_progress: ""
+  msg_supported_formats_notice_metadata: ""
 
   # ============================================================================
   # Module: Video

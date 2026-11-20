@@ -1,8 +1,9 @@
-"""Tests for single-file image compression (`src/image/image_file_compression.py`)."""
+"""Tests for single-file and batch directory image compression (`src/image/image_file_compression.py` & `src/image/image_directory_compression.py`)."""
 
 import pillow_heif
-from PIL import Image
+from PIL import Image, PngImagePlugin
 
+from src.image.image_directory_compression import directory_compressor
 from src.image.image_file_compression import file_compressor
 
 
@@ -61,7 +62,6 @@ def test_image_compression_atomic_keep_original_on_failure(
     dst_gif = out_dir / "compressed.gif"
     dst_gif.write_bytes(b"original destination data")
 
-    # Force shutil.copy2 to fail during the fallback copy
     def failing_copy2(*args, **kwargs):
         raise OSError("Simulated disk error during copy")
 
@@ -81,3 +81,87 @@ def test_image_compression_atomic_keep_original_on_failure(
     assert list(out_dir.glob(".*_tmp_*")) == [], (
         "[image] Failed keep-original copy leaked temporary artifacts in the output directory."
     )
+
+
+def test_file_compressor_strip_metadata_flag(tmp_workspace):
+    """Verifies strip_metadata=True removes EXIF, GPS, and ICC data while strip_metadata=False preserves them."""
+    in_dir, out_dir = tmp_workspace
+    src_jpg = in_dir / "photo_meta.jpg"
+
+    img = Image.new("RGB", (240, 120), color=(30, 110, 220))
+    exif = img.getexif()
+    exif[271] = "CameraBrand"
+    exif[274] = 6
+    exif[34853] = {1: "S", 2: (19.0, 49.0, 0.0)}
+    img.save(
+        src_jpg,
+        format="JPEG",
+        quality=98,
+        exif=exif.tobytes(),
+        icc_profile=b"fake-icc-data",
+    )
+
+    dst_keep = out_dir / "keep_meta.jpg"
+    assert file_compressor(src_jpg, dst_keep, quality=80, strip_metadata=False) is True
+    with Image.open(dst_keep) as kept_img:
+        assert kept_img.size == (120, 240)
+        assert kept_img.getexif().get(271) == "CameraBrand"
+        assert "icc_profile" in kept_img.info
+
+    dst_strip = out_dir / "strip_meta.jpg"
+    assert file_compressor(src_jpg, dst_strip, quality=80, strip_metadata=True) is True
+    with Image.open(dst_strip) as clean_img:
+        assert clean_img.size == (120, 240), (
+            "[image] Display orientation must be preserved when strip_metadata=True."
+        )
+        assert len(clean_img.getexif()) == 0, (
+            "[image] EXIF and GPS tags must be stripped when strip_metadata=True."
+        )
+        assert "icc_profile" not in clean_img.info, (
+            "[image] Embedded ICC profile must be stripped when strip_metadata=True."
+        )
+
+
+def test_file_compressor_strip_metadata_removes_png_chunks_even_without_size_gain(
+    tmp_workspace,
+):
+    """Ensures strip_metadata=True strips PNG text chunks even if compressed output is not smaller."""
+    in_dir, out_dir = tmp_workspace
+    src_png = in_dir / "tagged.png"
+
+    pnginfo = PngImagePlugin.PngInfo()
+    pnginfo.add_text("Author", "Private User")
+    pnginfo.add_text("XML:com.adobe.xmp", "<x:xmpmeta>Secret</x:xmpmeta>")
+
+    img = Image.new("RGBA", (32, 32), color=(15, 190, 120, 255))
+    img.save(src_png, format="PNG", pnginfo=pnginfo)
+
+    dst_png = out_dir / "stripped.png"
+    assert file_compressor(src_png, dst_png, quality=95, strip_metadata=True) is True
+
+    with Image.open(dst_png) as out_img:
+        assert "Author" not in out_img.info
+        assert "XML:com.adobe.xmp" not in out_img.info
+
+
+def test_directory_compressor_forwards_strip_metadata(tmp_workspace):
+    """Verifies batch directory_compressor strips metadata across processed files when enabled."""
+    in_dir, out_dir = tmp_workspace
+    src_jpg = in_dir / "batch_photo.jpg"
+
+    img = Image.new("RGB", (200, 200), color=(90, 180, 70))
+    exif = img.getexif()
+    exif[271] = "BatchVendor"
+    img.save(src_jpg, format="JPEG", quality=98, exif=exif.tobytes())
+
+    summary = directory_compressor(
+        input_dir=in_dir,
+        output_dir=out_dir,
+        quality=80,
+        strip_metadata=True,
+    )
+
+    assert summary["success"] == 1
+    session_dir = next(p for p in out_dir.iterdir() if p.is_dir())
+    with Image.open(session_dir / "batch_photo.jpg") as out_img:
+        assert len(out_img.getexif()) == 0

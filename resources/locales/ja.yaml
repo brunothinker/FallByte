@@ -128,6 +128,8 @@ strings:
   # --- Image: Compression ---
   image_hub_card_compression_title: "画像圧縮"
   image_hub_card_compression_desc: "画質を調整してファイルサイズを削減します。"
+  lbl_strip_metadata: "メタデータを削除 (EXIF/GPS)"
+  tooltip_strip_metadata: "圧縮時にEXIF、GPS位置情報、カラープロファイルを削除し、プライバシー保護とさらなる容量削減を行います。"
   # --- Image: Resize ---
   image_hub_card_resize_title: "画像リサイズ"
   image_hub_card_resize_desc: "アスペクト比を維持したまま、指定サイズまたはパーセントで画像を縮小します。"
@@ -141,6 +143,12 @@ strings:
   msg_supported_formats_notice_resize: "リサイズ対応フォーマット: {formats}"
   msg_invalid_resize_dimensions: "有効な正の幅または高さを入力してください。"
   msg_invalid_resize_percentage: "1から100までの有効なパーセントを入力してください。"
+  # --- Image: Metadata Removal ---
+  image_hub_card_metadata_title: "メタデータの削除"
+  image_hub_card_metadata_desc: "プライバシー保護のため、EXIF、GPS位置情報、カメラ情報、埋め込みメタデータを削除します。"
+  msg_metadata_privacy_hint: "画像の向きを保持したまま、EXIF、GPS座標、XMP、カラープロファイルを削除します。"
+  msg_removing_metadata_progress: "メタデータを削除中: [{current}/{total}] - {filename}"
+  msg_supported_formats_notice_metadata: "メタデータ削除に対応している形式: {formats}"
 
   # ============================================================================
   # Module: Video

@@ -1,6 +1,6 @@
 """Tests for UI theme resolution, format lists, reusable cards, module registry, and pages."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import flet as ft
 
@@ -33,7 +33,6 @@ def test_format_utils_lists_follow_scanners():
     assert {"JPG", "PNG", "WEBP", "BMP", "GIF"} <= set(image_input_formats()), (
         "[ui] image_input_formats() must expose all core scanner-supported image extensions."
     )
-    # Scanned-but-uncompressible formats are not advertised for compression.
     assert not {"BMP", "PPM", "GIF", "ICO"} & set(image_compression_formats()), (
         "[ui] Uncompressible image formats (BMP, PPM, GIF, ICO) must be excluded from compression options."
     )
@@ -46,7 +45,6 @@ def test_format_utils_lists_follow_scanners():
         "[ui] video_input_formats() must expose all scanner-supported video container extensions."
     )
 
-    # Audio input, target output, lossy-only compression, and normalization formats
     assert {"MP3", "M4A", "AAC", "OGG", "OPUS", "FLAC", "WAV", "WMA", "AIFF"} <= set(
         audio_input_formats()
     ), "[ui] audio_input_formats() must expose all scanner-supported audio extensions."
@@ -181,6 +179,9 @@ def test_module_registry_route_and_active_state_resolution():
     assert "image_resize" in routes, (
         "[ui] Module registry must register the 'image_resize' route."
     )
+    assert "image_metadata" in routes, (
+        "[ui] Module registry must register the 'image_metadata' route."
+    )
     assert "video_compression" in routes, (
         "[ui] Module registry must register the 'video_compression' route."
     )
@@ -197,7 +198,6 @@ def test_module_registry_route_and_active_state_resolution():
         "[ui] Module registry must register the 'audio_normalization' route."
     )
 
-    # Active module ID resolution without string splitting
     assert resolve_active_module_id("home") == "home", (
         "[ui] resolve_active_module_id('home') must map to 'home'."
     )
@@ -209,6 +209,9 @@ def test_module_registry_route_and_active_state_resolution():
     )
     assert resolve_active_module_id("image_resize") == "image", (
         "[ui] resolve_active_module_id('image_resize') must map to 'image'."
+    )
+    assert resolve_active_module_id("image_metadata") == "image", (
+        "[ui] resolve_active_module_id('image_metadata') must map to 'image'."
     )
     assert resolve_active_module_id("video_compression") == "video", (
         "[ui] resolve_active_module_id('video_compression') must map to 'video'."
@@ -294,7 +297,7 @@ def test_audio_pages_render_and_register_pickers(mock_page):
     )
 
 
-def test_image_resize_page_renders_and_registers_pickers(mock_page):
+def test_image_resize_page_renders_and_register_pickers(mock_page):
     """Verifies that image resize page builds without error, registers FilePickers, and exposes expected modes."""
     from ui.pages.image_resize_page import create_image_resize_page
 
@@ -317,3 +320,43 @@ def test_image_resize_page_renders_and_registers_pickers(mock_page):
     assert mode_dropdown.value == "dimension", (
         "[ui] Image resize page dropdown must default to 'dimension' mode."
     )
+
+
+def test_image_metadata_page_renders_and_registers_pickers(mock_page):
+    """Verifies that image metadata removal page builds without error and registers FilePickers."""
+    from ui.pages.image_metadata_page import create_image_metadata_page
+
+    metadata_view = create_image_metadata_page(mock_page, {}, lambda _: None)
+    assert isinstance(metadata_view, ft.Container), (
+        "[ui] create_image_metadata_page() must return an ft.Container root view."
+    )
+    assert len(mock_page.overlay) == 3, (
+        "[ui] Image metadata page must register 3 FilePicker controls (file, folder, output) in page.overlay."
+    )
+
+
+def test_image_compression_page_renders_strip_metadata_checkbox(mock_page):
+    """Verifies image compression page renders unchecked strip_metadata checkbox and forwards its state."""
+    from ui.pages.image_compression_page import create_compression_page
+
+    mock_page.overlay.clear()
+    comp_view = create_compression_page(mock_page, {}, lambda _: None)
+    assert isinstance(comp_view, ft.Container)
+    assert len(mock_page.overlay) == 3
+
+    controls = comp_view.content.content.controls  # type: ignore[union-attr]
+    chk_strip = next(c for c in controls if isinstance(c, ft.Checkbox))
+    assert chk_strip.value is False, (
+        "[ui] Image compression strip_metadata checkbox must default to False."
+    )
+
+    btn_action = next(c for c in controls if isinstance(c, ft.ElevatedButton))
+    chk_strip.value = True
+
+    with patch(
+        "ui.pages.image_compression_page.CompressionController.handle_action_click"
+    ) as mock_click:
+        assert callable(btn_action.on_click)
+        btn_action.on_click(MagicMock())
+        mock_click.assert_called_once()
+        assert mock_click.call_args.kwargs["strip_metadata"] is True

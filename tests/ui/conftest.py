@@ -128,6 +128,18 @@ SPECS = [
         "supports_single": False,
         "in_name": "track.mp3",
     },
+    {
+        "id": "image-metadata",
+        "module": "ui.controllers.image_metadata_controller",
+        "cls": "ImageMetadataController",
+        "file_engine": "file_metadata_remover",
+        "dir_engine": "directory_metadata_remover",
+        "entry": "execute_metadata_removal",
+        "batch": "_execute_batch_directory",
+        "kwargs": {},
+        "has_cancel_event": True,
+        "in_name": "photo.png",
+    },
 ]
 
 

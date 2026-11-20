@@ -128,6 +128,8 @@ strings:
   # --- Image: Compression ---
   image_hub_card_compression_title: "Compressione Immagini"
   image_hub_card_compression_desc: "Riduci la dimensione dei file regolando la qualità visiva."
+  lbl_strip_metadata: "Rimuovi metadati (EXIF/GPS)"
+  tooltip_strip_metadata: "Rimuove EXIF, posizione GPS e profili colore durante la compressione per maggiore privacy e risparmio di spazio."
   # --- Image: Resize ---
   image_hub_card_resize_title: "Ridimensiona Immagine"
   image_hub_card_resize_desc: "Ridimensiona le immagini in base alle dimensioni o alla percentuale mantenendo le proporzioni."
@@ -141,6 +143,12 @@ strings:
   msg_supported_formats_notice_resize: "Formati supportati per il ridimensionamento: {formats}"
   msg_invalid_resize_dimensions: "Inserisci una larghezza o un'altezza positiva valida."
   msg_invalid_resize_percentage: "Inserisci una percentuale valida compresa tra 1 e 100."
+  # --- Image: Metadata Removal ---
+  image_hub_card_metadata_title: "Rimuovi Metadati"
+  image_hub_card_metadata_desc: "Rimuovi EXIF, posizione GPS, dettagli della fotocamera e metadati incorporati per la privacy."
+  msg_metadata_privacy_hint: "Rimuove EXIF, coordinate GPS, XMP e profili colore preservando l'orientamento visivo."
+  msg_removing_metadata_progress: "Rimozione metadati: [{current}/{total}] - {filename}"
+  msg_supported_formats_notice_metadata: "Formati supportati per la rimozione dei metadati: {formats}"
 
   # ============================================================================
   # Module: Video

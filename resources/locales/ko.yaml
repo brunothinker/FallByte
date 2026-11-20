@@ -128,6 +128,8 @@ strings:
   # --- Image: Compression ---
   image_hub_card_compression_title: "이미지 압축"
   image_hub_card_compression_desc: "시각적 품질을 조정하여 파일 크기를 줄입니다."
+  lbl_strip_metadata: "메타데이터 제거 (EXIF/GPS)"
+  tooltip_strip_metadata: "압축 시 EXIF, GPS 위치 및 색상 프로필을 제거하여 개인정보를 보호하고 용량을 추가로 절약합니다."
   # --- Image: Resize ---
   image_hub_card_resize_title: "이미지 크기 조정"
   image_hub_card_resize_desc: "가로세로 비율을 유지하면서 대상 크기 또는 백분율로 이미지 크기를 축소합니다."
@@ -141,6 +143,12 @@ strings:
   msg_supported_formats_notice_resize: "크기 조정 지원 형식: {formats}"
   msg_invalid_resize_dimensions: "유효한 양수 너비 또는 높이를 입력하세요."
   msg_invalid_resize_percentage: "1에서 100 사이의 유효한 백분율을 입력하세요."
+  # --- Image: Metadata Removal ---
+  image_hub_card_metadata_title: "메타데이터 제거"
+  image_hub_card_metadata_desc: "개인정보 보호를 위해 EXIF, GPS 위치, 카메라 정보 및 내장 메타데이터를 제거합니다."
+  msg_metadata_privacy_hint: "시각적 방향을 유지하면서 EXIF, GPS 좌표, XMP 및 색상 프로필을 제거합니다."
+  msg_removing_metadata_progress: "메타데이터 제거 중: [{current}/{total}] - {filename}"
+  msg_supported_formats_notice_metadata: "메타데이터 제거 지원 형식: {formats}"
 
   # ============================================================================
   # Module: Video

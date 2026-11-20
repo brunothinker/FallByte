@@ -12,6 +12,7 @@ from ui.pages.audio_normalization_page import create_audio_normalization_page
 from ui.pages.home_page import create_home_page
 from ui.pages.image_compression_page import create_compression_page
 from ui.pages.image_conversion_page import create_conversion_page
+from ui.pages.image_metadata_page import create_image_metadata_page
 from ui.pages.image_resize_page import create_image_resize_page
 from ui.pages.media_hub_page import create_media_hub_page
 from ui.pages.video_compression_page import create_video_compression_page
@@ -82,6 +83,12 @@ MODULE_REGISTRY: list[ModuleDefinition] = [
                     "icon": ft.icons.PHOTO_SIZE_SELECT_LARGE,
                     "route_key": "image_resize",
                 },
+                {
+                    "title_key": "image_hub_card_metadata_title",
+                    "desc_key": "image_hub_card_metadata_desc",
+                    "icon": ft.icons.PRIVACY_TIP_OUTLINED,
+                    "route_key": "image_metadata",
+                },
             ],
         ),
         options=[
@@ -108,6 +115,14 @@ MODULE_REGISTRY: list[ModuleDefinition] = [
                 icon=ft.icons.PHOTO_SIZE_SELECT_LARGE,
                 route_key="image_resize",
                 builder=create_image_resize_page,
+            ),
+            ModuleOption(
+                id="image_metadata",
+                title_key="image_hub_card_metadata_title",
+                desc_key="image_hub_card_metadata_desc",
+                icon=ft.icons.PRIVACY_TIP_OUTLINED,
+                route_key="image_metadata",
+                builder=create_image_metadata_page,
             ),
         ],
     ),
