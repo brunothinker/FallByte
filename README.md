@@ -14,27 +14,29 @@ Most media optimization tools require uploading sensitive files to cloud servers
 
 ## Key Features
 
-* **Local-First & Private:** Your files never leave your system. No server uploads, no telemetry, no internet required.
-* **Embedded Media Engine (FFmpeg):** Video and audio processing powered by a bundled static FFmpeg binary, so no external installation is required.
-* **Single file or whole folder:** Every tool works on one file or on a folder (subfolders included), keeping the original folder structure in the output.
-* **Safe by design:** Existing files are never overwritten (outputs get a unique name or a new session folder), writes are atomic, and cancelling a batch cleans up only what that session created.
-* **Themes & languages:** 5 dark and 5 light themes, with English, Portuguese, and Spanish interfaces (auto-detected from your system).
+- **Local-First & Private:** Your files never leave your system. No server uploads, no telemetry, no internet required.
+- **Embedded Media Engine (FFmpeg):** Video and audio processing powered by a bundled static FFmpeg binary, so no external installation is required.
+- **Single file or whole folder:** Tools work on a single file or recursively across folders, preserving the original directory structure in the output.
+- **Safe by design:** Existing files are never overwritten (outputs get a unique name or a new session folder), writes are atomic, and cancelling a batch cleans up only what that session created.
+- **Themes & languages:** 5 dark and 5 light themes, with 10 supported interface languages (auto-detected from your system).
 
 ### Images
 
-* **Compression:** Quality control and PNG palette quantization while strictly keeping the original format *(JPEG, PNG, WEBP, TIFF)*. Formats that cannot be safely re-encoded (BMP, PPM, GIF, ICO, HEIC/HEIF) and animated PNGs are copied untouched. If the result is not smaller, the original is kept.
-* **Conversion:** Read `JPEG`, `PNG`, `WEBP`, `BMP`, `TIFF`, `GIF`, `PPM`, `ICO`, `HEIC`, and `HEIF`, and convert to `JPEG`, `PNG`, `WEBP`, `BMP`, `TIFF`, `GIF`, `ICO`, `PPM`, or `PDF`. Transparency is blended into a background color of your choice for formats without alpha. EXIF rotation, ICC profiles, animations, and multi-page TIFF are handled when the target allows it.
+- **Compression:** Quality control and PNG palette quantization while strictly keeping the original format *(JPEG, PNG, WEBP, TIFF)*. Formats that cannot be safely re-encoded (BMP, PPM, GIF, ICO, HEIC/HEIF) and animated PNGs are copied untouched. If the result is not smaller, the original is kept.
+- **Conversion:** Read `JPEG`, `PNG`, `WEBP`, `BMP`, `TIFF`, `GIF`, `PPM`, `ICO`, `HEIC`, and `HEIF`, and convert to `JPEG`, `PNG`, `WEBP`, `BMP`, `TIFF`, `GIF`, `ICO`, `PPM`, or `PDF`. Transparency is blended into a background color of your choice for formats without alpha. EXIF rotation, ICC profiles, animations, and multi-page TIFF are handled when the target allows it.
 
 ### Videos
 
-* **Conversion:** From `MP4`, `MKV`, `WEBM`, `MOV`, `AVI`, `WMV`, `M4V`, `FLV`, `TS`, `3GP`, and `MPG` into `MP4`, `MKV`, `WEBM`, `MOV`, `AVI`, or `WMV`. FFmpeg strategies go from lossless remux, to partial re-encode, to full re-encode, to a "rescue" mode for damaged files.
-* **Compression:** Quality scale mapped to CRF/qscale, keeping the original container. HEVC sources stay HEVC.
-* **HEVC 10-bit / HDR:** When conversion to MP4, MOV or MKV requires re-encoding a 10-bit HEVC source, FallByte uses `libx265` to keep 10-bit video (`yuv420p10le`), with 8-bit H.264 as a fallback. MP4 and MOV use the `hvc1` tag for HEVC playback compatibility.
+- **Conversion:** From `MP4`, `MKV`, `WEBM`, `MOV`, `AVI`, `WMV`, `M4V`, `FLV`, `TS`, `3GP`, and `MPG` into `MP4`, `MKV`, `WEBM`, `MOV`, `AVI`, or `WMV`. FFmpeg strategies go from lossless remux, to partial re-encode, to full re-encode, to a "rescue" mode for damaged files.
+- **Compression:** Quality scale mapped to CRF/qscale, keeping the original container. HEVC sources stay HEVC.
+- **HEVC 10-bit / HDR:** When conversion to MP4, MOV or MKV requires re-encoding a 10-bit HEVC source, FallByte uses `libx265` to keep 10-bit video (`yuv420p10le`), with 8-bit H.264 as a fallback. MP4 and MOV use the `hvc1` tag for HEVC playback compatibility.
 
 ### Audio
 
-* **Conversion:** From `MP3`, `M4A`, `AAC`, `OGG`, `OPUS`, `FLAC`, `WAV`, `WMA`, and `AIFF` into `MP3`, `M4A`, `OPUS`, `OGG`, `FLAC`, or `WAV`. Embedded cover art is stripped and only the main audio track is converted.
-* **Compression:** Quality scale mapped to bitrate for lossy formats (`MP3`, `M4A`, `AAC`, `OGG`, `OPUS`). Lossless or legacy formats (`FLAC`, `WAV`, `WMA`, `AIFF`) are copied untouched, and the original is kept if re-encoding would not make the file smaller.
+- **Conversion:** From `MP3`, `M4A`, `AAC`, `OGG`, `OPUS`, `FLAC`, `WAV`, `WMA`, and `AIFF` into `MP3`, `M4A`, `OPUS`, `OGG`, `FLAC`, or `WAV`. Embedded cover art is stripped and only the main audio track is converted.
+- **Compression:** Quality scale mapped to bitrate for lossy formats (`MP3`, `M4A`, `AAC`, `OGG`, `OPUS`). Lossless or legacy formats (`FLAC`, `WAV`, `WMA`, `AIFF`) are copied untouched, and the original is kept if re-encoding would not make the file smaller.
+- **Video-to-Audio Extraction:** Extract audio tracks from video files (`MP4`, `MKV`, `WEBM`, `MOV`, `AVI`, `WMV`, `M4V`, `FLV`, `TS`, `3GP`, `MPG`) directly into `MP3`, `M4A`, `OPUS`, `OGG`, `FLAC`, or `WAV` for a single video or an entire folder, safely skipping silent video files.
+- **Volume Normalization (EBU R128):** Batch-normalize perceived loudness across folders of audio files (`MP3`, `M4A`, `AAC`, `OGG`, `OPUS`, `FLAC`, `WAV`) using FFmpeg's `loudnorm` filter with target presets for **Music / Streaming (`-14 LUFS`)**, **Podcast / Voice (`-16 LUFS`)**, and **Broadcast / Standard (`-23 LUFS`)**, preserving original formats and sample rates.
 
 ---
 
@@ -63,7 +65,7 @@ fallbyte --smoke-test   # checks dependencies, bundled FFmpeg and image encoders
 ## Development
 
 ```bash
-git clone https://github.com/brunothinker/FallByte.git
+git clone [https://github.com/brunothinker/FallByte.git](https://github.com/brunothinker/FallByte.git)
 cd FallByte
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
