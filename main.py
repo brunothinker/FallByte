@@ -1,6 +1,7 @@
 import argparse
 import atexit
 import logging
+import os
 import subprocess
 import sys
 from logging.handlers import RotatingFileHandler
@@ -23,6 +24,12 @@ logger = logging.getLogger(__name__)
 
 # Log file living next to the user configuration
 LOG_FILE = CONFIG_DIR / "fallbyte.log"
+
+# Window geometry
+WINDOW_WIDTH = 1100
+WINDOW_HEIGHT = 720
+WINDOW_MIN_WIDTH = 800
+WINDOW_MIN_HEIGHT = 600
 
 
 def shutdown_active_processes() -> None:
@@ -105,6 +112,42 @@ def setup_logging(debug: bool = False) -> Path:
     return LOG_FILE
 
 
+def configure_window(page: ft.Page) -> None:
+    """Applies window size/minimum size and registers the close handler.
+
+    Args:
+        page (ft.Page): Root Flet page window instance.
+    """
+    def _on_window_event(e: ft.ControlEvent) -> None:
+        if e.data == "close":
+            shutdown_active_processes()
+
+    page.on_window_event = _on_window_event
+
+    def _apply_geometry() -> None:
+        page.window_width = WINDOW_WIDTH
+        page.window_height = WINDOW_HEIGHT
+        page.window_min_width = WINDOW_MIN_WIDTH
+        page.window_min_height = WINDOW_MIN_HEIGHT
+        page.update()
+
+    try:
+        # Set size, position and resizability in ONE update while the window
+        # is still hidden, so the window manager sees a single, consistent
+        # geometry change instead of several racing ones.
+        page.window_resizable = True
+        _apply_geometry()
+        page.window_center()
+        page.update()
+    except Exception as err:  # noqa: BLE001 - geometry is best-effort only
+        logger.debug("Could not apply window geometry: %s", err)
+    finally:
+        # The window starts hidden (see FLET_HIDE_WINDOW_ON_START below);
+        # always make it visible, even if applying the geometry failed.
+        page.window_visible = True
+        page.update()
+
+
 def main(page: ft.Page) -> None:
     """Initializes configuration, themes, i18n, and root UI layout.
 
@@ -136,18 +179,9 @@ def main(page: ft.Page) -> None:
     page.theme = build_flet_theme()
     page.dark_theme = build_flet_theme()
 
-    # Configure standard desktop application window dimensions
-    page.window_width = 1100
-    page.window_height = 720
-    page.window_min_width = 900
-    page.window_min_height = 600
-    page.window_center()
+    # Standard desktop window dimensions with window controls preserved
+    configure_window(page)
 
-    def _on_window_event(e: ft.ControlEvent) -> None:
-        if e.data == "close":
-            shutdown_active_processes()
-
-    page.on_window_event = _on_window_event
     page.on_disconnect = lambda _: shutdown_active_processes()
 
     # Context dictionary holding global file paths across views
@@ -155,6 +189,23 @@ def main(page: ft.Page) -> None:
 
     # Assemble and mount primary layout frame to root page
     page.add(create_app_layout(page, selected_paths, app_version=APP_VERSION))
+    page.update()
+
+
+def prefer_x11_on_wayland() -> None:
+    """Forces the GTK client to run through XWayland on Wayland sessions.
+
+    Wayland compositors (GNOME/Mutter on Ubuntu) ignore client-requested
+    window sizes and positions. Running the Flet desktop client under X11
+    (XWayland) can make them work, but it may also break the maximized
+    state. Opt-in only: set ``FALLBYTE_FORCE_X11=1`` to enable it.
+    """
+    if not sys.platform.startswith("linux"):
+        return
+    if os.environ.get("FALLBYTE_FORCE_X11") != "1":
+        return
+    if os.environ.get("XDG_SESSION_TYPE") == "wayland" and os.environ.get("DISPLAY"):
+        os.environ.setdefault("GDK_BACKEND", "x11")
 
 
 if __name__ == "__main__":
@@ -167,4 +218,8 @@ if __name__ == "__main__":
         success = run_smoke_check()
         sys.exit(0 if success else 1)
 
+    prefer_x11_on_wayland()
+    # Start the desktop window hidden; configure_window() shows it once the
+    # size is applied, which avoids the random "default size" window.
+    os.environ.setdefault("FLET_HIDE_WINDOW_ON_START", "true")
     ft.app(target=main)
