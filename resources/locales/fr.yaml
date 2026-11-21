@@ -8,7 +8,7 @@ strings:
   # ============================================================================
   nav_home: "Accueil"
   lbl_github_repo: "Dépôt GitHub"
-  app_title: "FallByte - Suite Multimédia"
+  app_title: "FallByte - Media Tools"
   header_back_tooltip: "Retour"
   route_not_found: "Route '{route_key}' introuvable."
 
@@ -16,12 +16,14 @@ strings:
   # Global: Home Dashboard
   # ============================================================================
   home_header_title: "FallByte - Tableau de Bord"
-  home_mod_image_title: "Module Image"
-  home_mod_image_desc: "Conversion, compression et optimisation d'images à l'unité ou par lot."
-  home_mod_video_title: "Module Vidéo"
-  home_mod_video_desc: "Conversion et compression vidéo tout en préservant une haute qualité."
-  home_mod_audio_title: "Module Audio"
-  home_mod_audio_desc: "Conversion et compression audio vers de nombreux formats."
+  home_heading: "FallByte"
+  home_subheading: "Outils multimédias locaux, rapides et axés sur la confidentialité."
+  home_mod_image_title: "Outils Image"
+  home_mod_image_desc: "Convertissez, compressez, redimensionnez et supprimez les métadonnées des images."
+  home_mod_video_title: "Outils Vidéo"
+  home_mod_video_desc: "Convertissez, compressez, réduisez la résolution et gérez les pistes vidéo."
+  home_mod_audio_title: "Outils Audio"
+  home_mod_audio_desc: "Convertissez, compressez, extrayez et normalisez l'audio."
 
   # ============================================================================
   # Global: Selector Labels & Controls
@@ -34,15 +36,15 @@ strings:
   lbl_quality_title: "Qualité de compression"
   lbl_quality_percentage: "Qualité : {value}%"
   lbl_target_format: "Format cible"
-  lbl_transparency_color: "Arrière-plan de transparence"
+  lbl_transparency_color: "Fond de transparence"
   lbl_no_extension: "Sans extension"
   lbl_language: "Langue"
 
   # ============================================================================
   # Global: Themes
   # ============================================================================
-  lbl_theme: "Thème de l'application"
-  lbl_select_theme: "Sélectionner un thème"
+  lbl_theme: "Thème de l'app"
+  lbl_select_theme: "Choisir un thème"
   theme_section_dark: "Thèmes sombres"
   theme_section_light: "Thèmes clairs"
   theme_blue_dark: "Bleu"
@@ -71,21 +73,21 @@ strings:
   # ============================================================================
   # Global: Action Buttons & Status Messages
   # ============================================================================
-  btn_process: "Démarrer le traitement"
+  btn_process: "Lancer le traitement"
   btn_stop_process: "ARRÊTER LE TRAITEMENT"
   btn_ok: "OK"
   btn_cancel: "Annuler"
   btn_continue: "Continuer quand même"
-  btn_keep_running: "Non, continuer"
-  btn_stop_and_delete: "Oui, arrêter et supprimer"
+  btn_keep_running: "Continuer"
+  btn_stop_and_delete: "Arrêter et supprimer"
   btn_copy_log: "Copier le journal"
-  msg_log_copied: "Journal copié dans le presse-papiers !"
+  msg_log_copied: "Journal copié dans le presse-papiers."
   msg_processing: "Traitement en cours..."
-  msg_success: "Opération terminée avec succès !"
+  msg_success: "Opération terminée avec succès."
   msg_error: "Une erreur est survenue lors du traitement des fichiers."
-  msg_select_required: "Veuillez sélectionner une source et une destination pour continuer."
+  msg_select_required: "Sélectionnez la source et la destination pour continuer."
   msg_same_folder_error: "Le dossier de destination ne peut pas être identique au dossier source."
-  msg_nested_folder_error: "Le dossier de destination ne peut pas être inclus dans le dossier source ni en être un parent."
+  msg_nested_folder_error: "Le dossier de destination ne peut pas être à l'intérieur ou parent du dossier source."
   msg_cancelling: "Annulation et nettoyage des fichiers générés..."
   msg_converting_progress: "Conversion : [{current}/{total}] - {filename}"
   msg_compressing_progress: "Compression : [{current}/{total}] - {filename}"
@@ -97,42 +99,42 @@ strings:
   # ============================================================================
   # Global: Dialogs & Summary Log
   # ============================================================================
-  dialog_incompatible_title: "Formats non compressibles"
-  dialog_incompatible_body: "{unsupported_count} fichier(s) non pris en charge pour la compression directe ({sample_exts}).\n\nConseil : Vous pouvez les convertir au préalable via le module de conversion.\n\nVoulez-vous continuer en compressant uniquement les {supported_count} fichier(s) compatible(s) ?"
+  dialog_incompatible_title: "Formats incompatibles"
+  dialog_incompatible_body: "{unsupported_count} fichier(s) ne sont pas pris en charge pour la compression directe ({sample_exts}).\n\nAstuce : convertissez-les d'abord avec Conversion de Format.\n\nContinuer la compression uniquement avec les {supported_count} fichier(s) compatibles ?"
   dialog_cancel_title: "Confirmer l'annulation"
-  dialog_cancel_body: "Voulez-vous vraiment arrêter le traitement ?\nLes fichiers enregistrés dans le répertoire de destination durant cette session seront supprimés."
+  dialog_cancel_body: "Arrêter le traitement maintenant ?\nLes fichiers enregistrés dans la destination pendant cette session seront supprimés."
   dialog_no_files_title: "Aucun fichier pris en charge"
-  dialog_no_files_body: "Le dossier sélectionné ne contient aucun fichier compatible avec cette opération."
+  dialog_no_files_body: "Le dossier sélectionné ne contient aucun fichier pris en charge pour cette opération."
   dialog_no_files_formats: "Formats pris en charge : {formats}"
   log_dialog_title: "Résultats du traitement"
   log_summary_success: "Réussis"
-  log_summary_failed: "Échoués"
+  log_summary_failed: "Échecs"
   log_summary_total: "Total des fichiers"
   log_summary_time: "Temps écoulé"
   log_btn_view_logs: "Afficher le journal détaillé"
-  log_btn_hide_logs: "Masquer le journal"
-  log_detail_title: "Historique détaillé :"
-  log_no_errors: "Aucune erreur enregistrée pendant le traitement."
+  log_btn_hide_logs: "Masquer le journal détaillé"
+  log_detail_title: "Journal détaillé :"
+  log_no_errors: "Aucune erreur enregistrée."
   log_size_stat: "Taille : {orig} -> {comp}"
-  log_reduction_stat: "Réduction : -{pct:.1f}%"
-  log_increase_stat: "Augmentation : +{pct:.1f}%"
+  log_reduction_stat: "Gain : -{pct:.1f}%"
+  log_increase_stat: "Hausse : +{pct:.1f}%"
 
   # ============================================================================
   # Module: Image
   # ============================================================================
-  image_hub_heading: "Traitement d'Images"
-  image_hub_subheading: "Sélectionnez l'outil que vous souhaitez utiliser"
+  image_hub_heading: "Outils Image"
+  image_hub_subheading: "Sélectionnez un outil"
   # --- Image: Format Conversion ---
   image_hub_card_conversion_title: "Conversion de Format"
-  image_hub_card_conversion_desc: "Modifiez le format de vos images individuellement ou par lot."
+  image_hub_card_conversion_desc: "Convertissez les formats d'image individuellement ou par lot."
   # --- Image: Compression ---
-  image_hub_card_compression_title: "Compression d'Images"
-  image_hub_card_compression_desc: "Réduisez la taille des fichiers en ajustant la qualité visuelle."
-  lbl_strip_metadata: "Supprimer les métadonnées (EXIF/GPS)"
-  tooltip_strip_metadata: "Supprime les données EXIF, la position GPS et les profils colorimétriques lors de la compression pour plus de confidentialité et d'économie d'espace."
+  image_hub_card_compression_title: "Compression d'Image"
+  image_hub_card_compression_desc: "Réduisez la taille des fichiers en ajustant la qualité."
+  lbl_strip_metadata: "Supprimer les métadonnées"
+  tooltip_strip_metadata: "Supprime EXIF, GPS et profils colorimétriques pendant la compression."
   # --- Image: Resize ---
   image_hub_card_resize_title: "Redimensionner l'Image"
-  image_hub_card_resize_desc: "Redimensionnez les images selon des dimensions cibles ou un pourcentage en conservant les proportions."
+  image_hub_card_resize_desc: "Redimensionnez les images selon des dimensions ou un pourcentage en conservant les proportions."
   lbl_resize_mode: "Mode de redimensionnement"
   resize_mode_dimension: "Par dimensions"
   resize_mode_percentage: "Par pourcentage"
@@ -141,68 +143,68 @@ strings:
   lbl_scale_percentage: "Pourcentage d'échelle"
   msg_resizing_progress: "Redimensionnement : [{current}/{total}] - {filename}"
   msg_supported_formats_notice_resize: "Formats pris en charge pour le redimensionnement : {formats}"
-  msg_invalid_resize_dimensions: "Veuillez saisir une largeur ou une hauteur positive valide."
-  msg_invalid_resize_percentage: "Veuillez saisir un pourcentage valide entre 1 et 100."
+  msg_invalid_resize_dimensions: "Saisissez une largeur ou une hauteur positive valide."
+  msg_invalid_resize_percentage: "Saisissez un pourcentage valide entre 1 et 100."
   # --- Image: Metadata Removal ---
   image_hub_card_metadata_title: "Supprimer les Métadonnées"
-  image_hub_card_metadata_desc: "Supprimez les données EXIF, la position GPS, les informations de l'appareil photo et les métadonnées intégrées."
-  msg_metadata_privacy_hint: "Supprime les données EXIF, coordonnées GPS, XMP et profils colorimétriques tout en préservant l'orientation visuelle."
+  image_hub_card_metadata_desc: "Supprimez EXIF, GPS, données d'appareil et métadonnées intégrées."
+  msg_metadata_privacy_hint: "Supprime EXIF, GPS, XMP et profils colorimétriques tout en conservant l'orientation visuelle."
   msg_removing_metadata_progress: "Suppression des métadonnées : [{current}/{total}] - {filename}"
   msg_supported_formats_notice_metadata: "Formats pris en charge pour la suppression des métadonnées : {formats}"
 
   # ============================================================================
   # Module: Video
   # ============================================================================
-  video_hub_heading: "Traitement Vidéo"
-  video_hub_subheading: "Sélectionnez l'outil que vous souhaitez utiliser"
+  video_hub_heading: "Outils Vidéo"
+  video_hub_subheading: "Sélectionnez un outil"
   # --- Video: Format Conversion ---
   video_hub_card_conversion_title: "Conversion Vidéo"
-  video_hub_card_conversion_desc: "Modifiez les formats vidéo tout en préservant la compatibilité."
+  video_hub_card_conversion_desc: "Convertissez les fichiers vidéo entre différents formats."
   # --- Video: Compression ---
   video_hub_card_compression_title: "Compression Vidéo"
-  video_hub_card_compression_desc: "Réduisez la taille des fichiers vidéo sans perdre en qualité."
-  # --- Video: Track Selection ---
-  video_hub_card_tracks_title: "Sélectionner Audio & Sous-titres"
-  video_hub_card_tracks_desc: "Conservez uniquement les pistes audio et sous-titres souhaitées dans une copie sans perte et sans réencodage."
-  lbl_audio_tracks: "Pistes Audio"
-  lbl_subtitle_tracks: "Pistes de Sous-titres"
-  msg_inspecting_tracks: "Analyse des pistes intégrées..."
-  msg_no_audio_tracks: "Aucune piste audio intégrée trouvée."
-  msg_no_subtitle_tracks: "Aucune piste de sous-titres intégrée trouvée."
-  msg_single_video_required: "Veuillez sélectionner un seul fichier vidéo."
-  msg_remuxing_progress: "Remuxage des pistes : {filename}"
-  msg_supported_formats_notice_tracks: "Formats vidéo pris en charge : {formats}"
+  video_hub_card_compression_desc: "Réduisez la taille des vidéos tout en préservant la qualité."
   # --- Video: Downscale ---
   video_hub_card_downscale_title: "Réduire la Résolution Vidéo"
-  video_hub_card_downscale_desc: "Réduisez les vidéos haute résolution vers des résolutions standard tout en conservant les proportions."
-  lbl_target_resolution: "Résolution Cible"
-  preset_resolution_1080p: "1080p (Full HD)"
-  preset_resolution_720p: "720p (HD)"
-  preset_resolution_480p: "480p (SD)"
-  tooltip_skip_upscale: "Les vidéos dont la résolution est déjà inférieure ou égale à celle sélectionnée seront copiées sans agrandissement."
+  video_hub_card_downscale_desc: "Abaissez la résolution vidéo vers des préréglages standard en conservant les proportions."
+  lbl_target_resolution: "Résolution cible"
+  preset_resolution_1080p: "1080p Full HD"
+  preset_resolution_720p: "720p HD"
+  preset_resolution_480p: "480p SD"
+  tooltip_skip_upscale: "Les vidéos déjà égales ou inférieures à la résolution cible sont copiées sans mise à l'échelle."
   msg_downscaling_progress: "Réduction de résolution : [{current}/{total}] - {filename}"
   msg_supported_formats_notice_downscale: "Formats pris en charge pour la réduction de résolution : {formats}"
+  # --- Video: Track Selection ---
+  video_hub_card_tracks_title: "Choisir Audio et Sous-titres"
+  video_hub_card_tracks_desc: "Conservez les pistes audio et sous-titres sélectionnées dans un remux sans perte."
+  lbl_audio_tracks: "Pistas de audio"
+  lbl_subtitle_tracks: "Pistes de sous-titres"
+  msg_inspecting_tracks: "Inspection des pistes..."
+  msg_no_audio_tracks: "Aucune piste audio trouvée."
+  msg_no_subtitle_tracks: "Aucune piste de sous-titres trouvée."
+  msg_single_video_required: "Sélectionnez un seul fichier vidéo."
+  msg_remuxing_progress: "Remuxage des pistes : {filename}"
+  msg_supported_formats_notice_tracks: "Formats vidéo pris en charge : {formats}"
 
   # ============================================================================
   # Module: Audio
   # ============================================================================
-  audio_hub_heading: "Traitement Audio"
-  audio_hub_subheading: "Sélectionnez l'outil que vous souhaitez utiliser"
+  audio_hub_heading: "Outils Audio"
+  audio_hub_subheading: "Sélectionnez un outil"
   # --- Audio: Format Conversion ---
   audio_hub_card_conversion_title: "Conversion Audio"
-  audio_hub_card_conversion_desc: "Convertissez vos pistes audio d'un format à un autre, à l'unité ou par lot."
+  audio_hub_card_conversion_desc: "Convertissez les fichiers audio entre formats individuellement ou par lot."
   # --- Audio: Compression ---
   audio_hub_card_compression_title: "Compression Audio"
-  audio_hub_card_compression_desc: "Réduisez la taille des fichiers audio tout en préservant leur clarté."
+  audio_hub_card_compression_desc: "Réduisez la taille des fichiers audio tout en préservant la clarté."
   # --- Audio: Video-to-Audio Extraction ---
   audio_hub_card_extraction_title: "Extraction Audio"
-  audio_hub_card_extraction_desc: "Extrayez la piste audio principale des fichiers vidéo vers MP3, M4A, FLAC, WAV, OGG ou Opus."
+  audio_hub_card_extraction_desc: "Extrayez la piste audio principale des fichiers vidéo."
   # --- Audio: Volume Normalization ---
   audio_hub_card_normalization_title: "Normaliser le Volume"
-  audio_hub_card_normalization_desc: "Normalisez le volume perçu dans vos dossiers audio selon la norme EBU R128."
-  lbl_loudness_preset: "Cible de Sonie"
+  audio_hub_card_normalization_desc: "Normalisez le volume perçu des fichiers audio selon EBU R128."
+  lbl_loudness_preset: "Cible de sonie"
   preset_loudness_music: "Musique / Streaming (-14 LUFS)"
   preset_loudness_podcast: "Podcast / Voix (-16 LUFS)"
-  preset_loudness_broadcast: "Diffusion / Standard (-23 LUFS)"
+  preset_loudness_broadcast: "Diffusion (-23 LUFS)"
   msg_normalizing_progress: "Normalisation : [{current}/{total}] - {filename}"
   msg_supported_formats_notice_normalization: "Formats pris en charge pour la normalisation : {formats}"

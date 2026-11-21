@@ -16,6 +16,8 @@ strings:
   # Global: Home Dashboard
   # ============================================================================
   home_header_title: ""
+  home_heading: ""
+  home_subheading: ""
   home_mod_image_title: ""
   home_mod_image_desc: ""
   home_mod_video_title: ""

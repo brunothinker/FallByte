@@ -208,14 +208,14 @@ MODULE_REGISTRY: list[ModuleDefinition] = [
         id="audio",
         title_key="home_mod_audio_title",
         desc_key="home_mod_audio_desc",
-        icon=ft.icons.AUDIOTRACK,
-        sidebar_icon=ft.icons.AUDIOTRACK_OUTLINED,
+        icon=ft.icons.HEADPHONES,
+        sidebar_icon=ft.icons.HEADPHONES_OUTLINED,
         route_key="audio_hub",
         builder=lambda page, paths, navigate: create_media_hub_page(
             page=page,
             selected_paths=paths,
             on_navigate=navigate,
-            main_icon=ft.icons.AUDIOTRACK_OUTLINED,
+            main_icon=ft.icons.HEADPHONES_OUTLINED,
             heading_key="audio_hub_heading",
             subheading_key="audio_hub_subheading",
             options=[
@@ -234,7 +234,7 @@ MODULE_REGISTRY: list[ModuleDefinition] = [
                 {
                     "title_key": "audio_hub_card_extraction_title",
                     "desc_key": "audio_hub_card_extraction_desc",
-                    "icon": ft.icons.MUSIC_NOTE,
+                    "icon": ft.icons.AUDIOTRACK,
                     "route_key": "audio_extraction",
                 },
                 {
@@ -266,7 +266,7 @@ MODULE_REGISTRY: list[ModuleDefinition] = [
                 id="audio_extraction",
                 title_key="audio_hub_card_extraction_title",
                 desc_key="audio_hub_card_extraction_desc",
-                icon=ft.icons.MUSIC_NOTE,
+                icon=ft.icons.AUDIOTRACK,
                 route_key="audio_extraction",
                 builder=create_audio_extraction_page,
             ),
@@ -319,3 +319,27 @@ def resolve_active_module_id(current_route: str) -> str:
                 return mod.id
 
     return ""
+
+
+def resolve_parent_route(current_route: str) -> str | None:
+    """Resolves the deterministic parent route in the module hierarchy.
+
+    Returns None when already at 'home' or when no parent applies.
+    """
+    if not current_route or current_route == "home":
+        return None
+
+    for mod in MODULE_REGISTRY:
+        if current_route == mod.route_key:
+            return "home"
+        for opt in mod.options:
+            if current_route == opt.route_key:
+                return mod.route_key
+
+    normalized = current_route.strip("/")
+    for mod in MODULE_REGISTRY:
+        mod_slug = mod.route_key.removesuffix("_hub").strip("/")
+        if normalized.startswith(f"{mod_slug}/") or normalized.startswith(f"{mod_slug}_"):
+            return mod.route_key
+
+    return "home"

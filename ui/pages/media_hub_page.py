@@ -17,86 +17,98 @@ def create_media_hub_page(
     subheading_key: str,
     options: list[dict[str, Any]],
 ) -> ft.Container:
-    """Generic polymorphic hub page builder for media modules (Images, Videos, etc.).
+    """Generic polymorphic hub page builder for media modules (Images, Videos, Audio)."""
 
-    Args:
-        page: Current Flet window page instance.
-        selected_paths: Context dictionary holding shared global paths.
-        on_navigate: Navigation callback function for route transitions.
-        main_icon: Top header Flet icon identifier string.
-        heading_key: i18n translation key for main module heading.
-        subheading_key: i18n translation key for module subtitle.
-        options: List of option dictionary configurations for tool cards.
-
-    Returns:
-        ft.Container: Centered container layout housing tool selection cards.
-    """
-
-    def build_option_card(
+    def build_option_row_card(
         title_key: str,
         description_key: str,
         icon: str,
         route_key: str,
     ) -> ft.Container:
-        """Constructs a clickable option selection card for media operations."""
+        """Constructs a horizontal list-style card matching the Home layout."""
+
+        def on_hover(e: ft.ControlEvent) -> None:
+            is_hovered = e.data == "true"
+            e.control.bgcolor = (
+                get_color("card_hover") if is_hovered else get_color("card_bg")
+            )
+            e.control.border = ft.border.all(
+                1,
+                get_color("primary") if is_hovered else ft.colors.OUTLINE_VARIANT,
+            )
+            e.control.update()
+
         return ft.Container(
-            content=ft.Column(
-                [
-                    ft.Icon(icon, size=40, color=get_color("primary")),
-                    ft.Text(
-                        t(title_key),
-                        size=18,
-                        weight=ft.FontWeight.BOLD,
-                        color=get_color("text"),
-                    ),
-                    ft.Text(
-                        t(description_key),
-                        size=12,
-                        color=get_color("subtext"),
-                        text_align=ft.TextAlign.CENTER,
-                    ),
-                ],
-                alignment=ft.MainAxisAlignment.CENTER,
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            ),
-            width=260,
-            height=190,
-            padding=20,
+            width=580,
+            padding=ft.padding.symmetric(horizontal=20, vertical=15),
             bgcolor=get_color("card_bg"),
             border=ft.border.all(1, ft.colors.OUTLINE_VARIANT),
             border_radius=12,
             ink=True,
             on_click=lambda _: on_navigate(route_key),
-            on_hover=lambda e: (
-                setattr(
-                    e.control,
-                    "bgcolor",
-                    get_color("card_hover")
-                    if e.data == "true"
-                    else get_color("card_bg"),
-                )
-                or e.control.update()
+            on_hover=on_hover,
+            content=ft.Row(
+                controls=[
+                    ft.Container(
+                        content=ft.Icon(icon, size=24, color=get_color("primary")),
+                        padding=11,
+                        border_radius=10,
+                        bgcolor=ft.colors.with_opacity(0.12, get_color("primary")),
+                    ),
+                    ft.Column(
+                        controls=[
+                            ft.Text(
+                                t(title_key),
+                                size=15,
+                                weight=ft.FontWeight.W_600,
+                                color=get_color("text"),
+                                max_lines=1,
+                                overflow=ft.TextOverflow.ELLIPSIS,
+                            ),
+                            ft.Text(
+                                t(description_key),
+                                size=12,
+                                color=get_color("subtext"),
+                                max_lines=2,
+                                overflow=ft.TextOverflow.ELLIPSIS,
+                            ),
+                        ],
+                        spacing=3,
+                        expand=True,
+                    ),
+                    ft.Icon(
+                        ft.icons.CHEVRON_RIGHT,
+                        size=20,
+                        color=get_color("subtext"),
+                    ),
+                ],
+                spacing=16,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
             ),
         )
 
     return ft.Container(
-        expand=True,
         alignment=ft.alignment.center,
-        padding=25,
+        padding=ft.padding.symmetric(horizontal=24, vertical=20),
         content=ft.Column(
-            [
-                ft.Icon(main_icon, size=50, color=get_color("icon")),
+            controls=[
                 ft.Text(
                     t(heading_key),
                     size=26,
                     weight=ft.FontWeight.BOLD,
                     color=get_color("text"),
+                    text_align=ft.TextAlign.CENTER,
                 ),
-                ft.Text(t(subheading_key), color=get_color("subtext")),
-                ft.Container(height=20),
-                ft.Row(
-                    [
-                        build_option_card(
+                ft.Text(
+                    t(subheading_key),
+                    size=13,
+                    color=get_color("subtext"),
+                    text_align=ft.TextAlign.CENTER,
+                ),
+                ft.Container(height=16),
+                ft.Column(
+                    controls=[
+                        build_option_row_card(
                             title_key=str(opt.get("title_key", "")),
                             description_key=str(opt.get("desc_key", "")),
                             icon=str(opt.get("icon", "")),
@@ -105,11 +117,12 @@ def create_media_hub_page(
                         for opt in options
                     ],
                     alignment=ft.MainAxisAlignment.CENTER,
-                    spacing=20,
-                    wrap=True,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=12,
                 ),
             ],
             alignment=ft.MainAxisAlignment.CENTER,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=6,
         ),
     )
