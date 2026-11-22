@@ -15,12 +15,18 @@ def build_neon_brand_title(
 
     char_factor = 0.64 if size >= 30 else 0.60
     box_width = max(120.0, len(value) * size * char_factor)
-    box_height = size * 1.25
+
+    # The text line is taller than the font size (Segoe UI is ~1.33x), so the
+    # box needs enough vertical room or descenders ("y", "g", "p") get clipped.
+    box_height = size * 1.6
+
+    # Keep the glow the same size as before the box was made taller.
+    glow_base_height = size * 1.25
 
     glow_halo = ft.Container(
         width=box_width * 0.85,
-        height=box_height * 0.65,
-        border_radius=box_height,
+        height=glow_base_height * 0.65,
+        border_radius=glow_base_height,
         shadow=[
             ft.BoxShadow(
                 spread_radius=0,
