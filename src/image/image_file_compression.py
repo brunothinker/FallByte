@@ -8,6 +8,7 @@ import pillow_heif
 from PIL import Image, ImageOps, ImageSequence
 
 from src.formats import UNCOMPRESSIBLE_FORMATS
+from src.image.utils.image_metadata_utils import clear_metadata_keep_transparency
 from src.image.utils.image_remove_transparency import has_transparency
 from src.utils.cleanup import copy_original_file_atomically
 
@@ -140,7 +141,7 @@ def file_compressor(
                     frames = raw_frames
                 if strip_metadata:
                     for f in frames:
-                        f.info.clear()
+                        clear_metadata_keep_transparency(f)
                 final_img = frames[0]
                 save_kwargs["save_all"] = True
                 save_kwargs["append_images"] = frames[1:]
@@ -149,7 +150,7 @@ def file_compressor(
 
             exif = None if strip_metadata else final_img.info.get("exif")
             if strip_metadata:
-                final_img.info.clear()
+                clear_metadata_keep_transparency(final_img)
 
             if fmt == "JPEG":
                 save_kwargs.update(quality=quality, optimize=True, progressive=True)

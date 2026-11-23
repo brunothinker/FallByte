@@ -8,6 +8,8 @@ from typing import Any
 import pillow_heif
 from PIL import Image, ImageOps, ImageSequence
 
+from src.image.utils.image_metadata_utils import clear_metadata_keep_transparency
+
 # Register HEIC/HEIF opener at startup for Pillow integration
 if hasattr(pillow_heif, "register_heif_opener"):
     pillow_heif.register_heif_opener()
@@ -33,10 +35,12 @@ def _normalize_format(raw_format: str | None, path: Path) -> str:
 
 
 def _strip_frame_pixels(frame: Image.Image) -> Image.Image:
-    """Copies raw pixel data into a clean Image instance without info/metadata dictionaries."""
-    clean = frame.copy()
-    clean.info.clear()
-    return clean
+    """Copies raw pixel data into a clean Image instance without metadata.
+
+    Every ``info`` entry is dropped except ``transparency``, which is required
+    to render palette/grayscale/RGB images with a transparent color correctly.
+    """
+    return clear_metadata_keep_transparency(frame.copy())
 
 
 def file_metadata_remover(input_path: Path, output_path: Path) -> bool:
