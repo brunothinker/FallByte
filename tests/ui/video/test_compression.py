@@ -2,8 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-import flet as ft
-
+from tests.ui.helpers import make_job_ui
 from ui.controllers.video_compression_controller import VideoCompressionController
 
 
@@ -21,27 +20,24 @@ def test_single_file_compression_cancellation_preserves_preexisting_file(
     controller = VideoCompressionController()
     controller.selected_input = src_file
     controller.selected_output_dir = out_dir
-    controller.abort_requested = True
 
-    lbl_status = MagicMock(spec=ft.Text)
-    progress_bar = MagicMock(spec=ft.ProgressBar)
-    btn_action = MagicMock(spec=ft.ElevatedButton)
+    ui = make_job_ui(mock_page)
 
+    def cancelled_engine(**kwargs):
+        raise InterruptedError("CANCELLED_BY_USER")
+
+    mock_summary = MagicMock()
     monkeypatch.setattr(
-        "ui.controllers.video_compression_controller.show_summary_dialog", MagicMock()
+        "ui.controllers.base_controller.show_summary_dialog", mock_summary
     )
     monkeypatch.setattr(
         "ui.controllers.video_compression_controller.file_compressor",
-        lambda **kwargs: False,
+        cancelled_engine,
     )
 
-    controller._execute_single_file(
-        page=mock_page,
-        quality=80,
-        lbl_status=lbl_status,
-        progress_bar=progress_bar,
-        btn_action=btn_action,
-    )
+    controller._run_single_file_job(ui, 80)
+
+    mock_summary.assert_not_called()
 
     assert preexisting_file.exists(), (
         "[ui] Cancelling single-file compression must not unlink pre-existing user files in output_dir."
@@ -60,29 +56,18 @@ def test_video_compression_preflight_empty_supported_files(tmp_workspace, mock_p
     controller.selected_input = in_dir
     controller.selected_output_dir = out_dir
 
-    lbl_status = MagicMock(spec=ft.Text)
-    progress_bar = MagicMock(spec=ft.ProgressBar)
-    btn_action = MagicMock(spec=ft.ElevatedButton)
+    ui = make_job_ui(mock_page)
 
-    with (
-        patch(
-            "ui.controllers.video_compression_controller.show_no_supported_files_dialog"
-        ) as mock_no_files,
-        patch(
-            "ui.controllers.video_compression_controller.threading.Thread"
-        ) as mock_thread,
-    ):
-        controller._preflight_batch_execution(
-            page=mock_page,
-            quality=80,
-            lbl_status=lbl_status,
-            progress_bar=progress_bar,
-            btn_action=btn_action,
-        )
+    proceed = MagicMock()
+
+    with patch(
+        "ui.controllers.base_controller.show_no_supported_files_dialog"
+    ) as mock_no_files:
+        controller.preflight_batch(ui, 80, proceed)
 
         mock_no_files.assert_called_once()
         formats = mock_no_files.call_args.args[1]
         assert "MP4" in formats and "PDF" not in formats, (
             "[ui] Video preflight unsupported-files dialog must list supported video formats ('MP4') and exclude 'PDF'."
         )
-        mock_thread.assert_not_called()
+        proceed.assert_not_called()

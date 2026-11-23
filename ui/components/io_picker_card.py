@@ -4,6 +4,10 @@ import flet as ft
 
 from ui.theme import get_color
 
+# Shared dimensions for the source/destination selection cards.
+CARD_WIDTH = 185
+CARD_HEIGHT = 125
+
 
 def create_clickable_card(
     title: str, icon: str, lbl_text: ft.Text, on_click_action: Callable
@@ -21,8 +25,8 @@ def create_clickable_card(
         ft.Container: Configured clickable selection card UI component.
     """
     return ft.Container(
-        width=185,
-        height=125,
+        width=CARD_WIDTH,
+        height=CARD_HEIGHT,
         bgcolor=get_color("card_bg"),
         border=ft.border.all(1, ft.colors.OUTLINE_VARIANT),
         border_radius=12,

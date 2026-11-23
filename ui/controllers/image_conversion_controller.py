@@ -1,332 +1,68 @@
-import logging
-import threading
-import time
-
-import flet as ft
+from collections.abc import Callable
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 from src.image.image_directory_conversion import directory_converter
 from src.image.image_file_conversion import file_converter
 from src.utils.output_naming import unique_conversion_output_path
-from ui.components.dialog_utils import (
-    show_no_supported_files_dialog,
-    show_summary_dialog,
-)
-from ui.controllers.base_controller import BaseController
-from ui.i18n import t
-from ui.theme import get_color
+from src.utils.progress import ProgressInfo
+from ui.controllers.base_controller import BaseController, ProgressCallback
 from ui.utils.conversion_utils import resolve_color_key_to_hex
 from ui.utils.format_utils import image_input_formats
-from ui.utils.log_capture import TextRedirector
 
-logger = logging.getLogger(__name__)
+
+@dataclass(frozen=True)
+class ConversionOptions:
+    """User configuration for an image conversion run."""
+
+    target_format: str
+    color_key: str
 
 
 class ConversionController(BaseController):
-    """Controller managing single-file and batch directory image conversion business logic."""
+    """Image conversion. ``params`` is a ``ConversionOptions``."""
 
-    def __init__(self) -> None:
-        """Initializes state variables for conversion execution and safety guards."""
-        super().__init__()
-        self.cancel_event: threading.Event = threading.Event()
+    progress_i18n_key = "msg_converting_progress"
 
-    def handle_action_click(
-        self,
-        page: ft.Page,
-        target_format: str,
-        selected_color_key: str,
-        lbl_status: ft.Text,
-        progress_bar: ft.ProgressBar,
-        btn_action: ft.ElevatedButton,
-    ) -> None:
-        """Routes trigger button click to execute process or request cancellation."""
-        if self.is_processing:
-            self._confirm_cancel_process(page, lbl_status, progress_bar, btn_action)
-        else:
-            self.execute_conversion(
-                page,
-                target_format,
-                selected_color_key,
-                lbl_status,
-                progress_bar,
-                btn_action,
-            )
+    def supported_formats(self) -> list[str]:
+        return image_input_formats()
 
-    def execute_conversion(
-        self,
-        page: ft.Page,
-        target_format: str,
-        selected_color_key: str,
-        lbl_status: ft.Text,
-        progress_bar: ft.ProgressBar,
-        btn_action: ft.ElevatedButton,
-    ) -> None:
-        """Routes execution to single file or batch directory converter."""
-        validation_error = self.validate_paths()
-        if validation_error or not self.selected_input:
-            lbl_status.value = t(validation_error or "msg_select_required")
-            lbl_status.color = get_color("error")
-            lbl_status.update()
-            return
-
-        self.cancel_event.clear()
-
-        if self.selected_input.is_file():
-            threading.Thread(
-                target=self._execute_single_file,
-                args=(
-                    page,
-                    target_format,
-                    selected_color_key,
-                    lbl_status,
-                    progress_bar,
-                    btn_action,
-                ),
-                daemon=True,
-            ).start()
-        else:
-            threading.Thread(
-                target=self._execute_batch_directory,
-                args=(
-                    page,
-                    target_format,
-                    selected_color_key,
-                    lbl_status,
-                    progress_bar,
-                    btn_action,
-                ),
-                daemon=True,
-            ).start()
-
-    def _execute_single_file(
-        self,
-        page: ft.Page,
-        target_format: str,
-        selected_color_key: str,
-        lbl_status: ft.Text,
-        progress_bar: ft.ProgressBar,
-        btn_action: ft.ElevatedButton,
-    ) -> None:
-        """Executes single-file image conversion flow and presents summary dialog."""
-        if not self.selected_input or not self.selected_output_dir:
-            return
-
-        self._set_processing_ui(page, progress_bar, btn_action)
-
-        target_fmt = target_format.lower()
-        clean_color = resolve_color_key_to_hex(selected_color_key)
-        out_file = unique_conversion_output_path(
-            input_path=self.selected_input,
-            output_dir=self.selected_output_dir,
-            target_format=target_fmt,
+    def build_output_path(
+        self, input_path: Path, output_dir: Path, params: ConversionOptions
+    ) -> Path:
+        return unique_conversion_output_path(
+            input_path=input_path,
+            output_dir=output_dir,
+            target_format=params.target_format.lower(),
         )
 
-        lbl_status.value = t(
-            "msg_converting_progress",
-            current=1,
-            total=1,
-            filename=self.selected_input.name,
+    def run_single_engine(
+        self,
+        input_path: Path,
+        output_path: Path,
+        params: ConversionOptions,
+        progress_cb: ProgressCallback,
+    ) -> bool:
+        return file_converter(
+            input_path=input_path,
+            output_path=output_path,
+            target_format=params.target_format.lower(),
+            transparency_replacement_color=resolve_color_key_to_hex(params.color_key),
         )
-        lbl_status.color = get_color("text")
-        lbl_status.update()
 
-        redirector = TextRedirector()
-        redirector.start()
-
-        start_time = time.time()
-        success = False
-
-        try:
-            success = file_converter(
-                input_path=self.selected_input,
-                output_path=out_file,
-                target_format=target_fmt,
-                transparency_replacement_color=clean_color,
-            )
-            if success:
-                print(f"[OK] {self.selected_input.name}")
-            else:
-                print(f"[FAIL] {self.selected_input.name}")
-        except Exception as err:
-            success = False
-            print(f"[ERROR] {self.selected_input.name}: {err}")
-        finally:
-            redirector.stop()
-
-        elapsed = time.time() - start_time
-
-        self._close_cancel_dialog(page)
-
-        if not self.abort_requested:
-            if success:
-                lbl_status.value = t("msg_success")
-                lbl_status.color = get_color("success")
-            else:
-                lbl_status.value = t("msg_error")
-                lbl_status.color = get_color("error")
-            lbl_status.update()
-
-            summary = {
-                "total_files": 1,
-                "success": 1 if success else 0,
-                "failed": 0 if success else 1,
-                "elapsed_seconds": elapsed,
-                "terminal_log": redirector.get_logs(),
-                "errors": []
-                if success
-                else [{"file": self.selected_input.name, "error": t("msg_error")}],
-            }
-            show_summary_dialog(page, summary)
-        else:
-            if out_file.exists():
-                try:
-                    out_file.unlink()
-                except OSError:
-                    pass
-            lbl_status.value = t("msg_process_cancelled", count=1)
-            lbl_status.color = get_color("error")
-            lbl_status.update()
-
-        self._restore_idle_ui(page, progress_bar, btn_action)
-
-    def _execute_batch_directory(
+    def run_batch_engine(
         self,
-        page: ft.Page,
-        target_format: str,
-        selected_color_key: str,
-        lbl_status: ft.Text,
-        progress_bar: ft.ProgressBar,
-        btn_action: ft.ElevatedButton,
-    ) -> None:
-        """Executes batch directory image conversion with progress tracking and interruption."""
-        if not self.selected_input or not self.selected_output_dir:
-            return
-
-        self._set_processing_ui(page, progress_bar, btn_action)
-        progress_bar.value = 0
-        progress_bar.update()
-
-        target_fmt = target_format.lower()
-        clean_color = resolve_color_key_to_hex(selected_color_key)
-
-        redirector = TextRedirector()
-        redirector.start()
-
-        def update_progress(info) -> None:
-            if self.abort_requested or self.cancel_event.is_set():
-                raise InterruptedError("CANCELLED_BY_USER")
-
-            if info.total > 0:
-                progress_bar.value = info.current / info.total
-                filename = info.file_path.name if info.file_path else ""
-
-                if info.is_completed:
-                    if info.success:
-                        print(f"[OK] {filename}")
-                    else:
-                        print(f"[FAIL] {filename}")
-
-                lbl_status.value = t(
-                    "msg_converting_progress",
-                    current=info.current,
-                    total=info.total,
-                    filename=filename,
-                )
-                progress_bar.update()
-                lbl_status.update()
-
-        summary = {}
-        try:
-            summary = directory_converter(
-                input_dir=self.selected_input,
-                output_dir=self.selected_output_dir,
-                target_format=target_fmt,
-                transparency_replacement_color=clean_color,
-                progress_callback=update_progress,
-                cancel_event=self.cancel_event,
-            )
-
-            if summary.get("cancelled", False):
-                self.abort_requested = True
-
-            self._close_cancel_dialog(page)
-
-            if not self.abort_requested:
-                if summary.get("error"):
-                    # Batch-level failure reported by the engine: show it as an
-                    # error, never as success. The finally block restores the UI.
-                    logger.error(
-                        f"Batch processing returned an error: {summary['error']}"
-                    )
-                    lbl_status.value = t("msg_error")
-                    lbl_status.color = get_color("error")
-                    lbl_status.update()
-                    return
-
-                if summary.get("no_files", False):
-                    lbl_status.value = ""
-                    lbl_status.update()
-                    self._restore_idle_ui(page, progress_bar, btn_action)
-                    show_no_supported_files_dialog(page, image_input_formats())
-                    return
-
-                progress_bar.value = 1.0
-                progress_bar.update()
-
-                success_cnt = summary.get("success", summary.get("successful", 0))
-                total_cnt = summary.get("total_files", summary.get("total", 0))
-
-                lbl_status.value = t(
-                    "msg_success_summary",
-                    msg=t("msg_success"),
-                    successful=success_cnt,
-                    total=total_cnt,
-                )
-                lbl_status.color = get_color("success")
-                lbl_status.update()
-
-                summary["terminal_log"] = redirector.get_logs()
-                show_summary_dialog(page, summary)
-
-        except InterruptedError as err:
-            self.abort_requested = True
-            print(f"[FAIL] {err}")
-
-        except Exception as err:
-            logger.exception("Batch processing failed unexpectedly")
-            print(f"[ERROR] {err}")
-            lbl_status.value = t("msg_error")
-            lbl_status.color = get_color("error")
-            lbl_status.update()
-
-        finally:
-            redirector.stop()
-            self._close_cancel_dialog(page)
-
-            if self.abort_requested:
-                cleaned_count = summary.get("cleaned_files_count", 0)
-                lbl_status.value = t("msg_process_cancelled", count=cleaned_count)
-                lbl_status.color = get_color("error")
-                lbl_status.update()
-
-            self._restore_idle_ui(page, progress_bar, btn_action)
-
-    def _confirm_cancel_process(
-        self,
-        page: ft.Page,
-        lbl_status: ft.Text,
-        progress_bar: ft.ProgressBar,
-        btn_action: ft.ElevatedButton,
-    ) -> None:
-        """Overrides cancel confirmation to signal cancel_event."""
-        super()._confirm_cancel_process(page, lbl_status, progress_bar, btn_action)
-        if self.cancel_dialog and len(self.cancel_dialog.actions) > 1:
-            btn_confirm = self.cancel_dialog.actions[1]
-            if isinstance(btn_confirm, ft.ElevatedButton):
-                orig_on_click = btn_confirm.on_click
-
-                def on_confirm_click(e):
-                    self.cancel_event.set()
-                    if orig_on_click:
-                        orig_on_click(e)
-
-                btn_confirm.on_click = on_confirm_click
+        input_dir: Path,
+        output_dir: Path,
+        params: ConversionOptions,
+        progress_callback: Callable[[ProgressInfo], None],
+    ) -> dict[str, Any]:
+        return directory_converter(
+            input_dir=input_dir,
+            output_dir=output_dir,
+            target_format=params.target_format.lower(),
+            transparency_replacement_color=resolve_color_key_to_hex(params.color_key),
+            progress_callback=progress_callback,
+            cancel_event=self.cancel_event,
+        )

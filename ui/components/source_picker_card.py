@@ -2,6 +2,7 @@ from collections.abc import Callable
 
 import flet as ft
 
+from ui.components.io_picker_card import CARD_HEIGHT, CARD_WIDTH
 from ui.i18n import t
 from ui.theme import get_color
 
@@ -24,8 +25,8 @@ def create_source_picker_card(
         ft.Container: Configured clickable source selection card UI component.
     """
     return ft.Container(
-        width=185,
-        height=125,
+        width=CARD_WIDTH,
+        height=CARD_HEIGHT,
         bgcolor=get_color("card_bg"),
         border=ft.border.all(1, ft.colors.OUTLINE_VARIANT),
         border_radius=12,

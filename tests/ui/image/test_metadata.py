@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import flet as ft
 
+from tests.ui.helpers import make_job_ui
 from ui.controllers.image_metadata_controller import ImageMetadataController
 
 
@@ -16,31 +17,22 @@ def test_image_metadata_batch_no_supported_files(tmp_workspace, mock_page):
     controller.selected_input = in_dir
     controller.selected_output_dir = out_dir
 
-    lbl_status = MagicMock(spec=ft.Text)
-    progress_bar = MagicMock(spec=ft.ProgressBar)
-    btn_action = MagicMock(spec=ft.ElevatedButton)
+    ui = make_job_ui(mock_page)
 
     with (
+        patch("ui.controllers.base_controller.show_summary_dialog") as mock_summary,
         patch(
-            "ui.controllers.image_metadata_controller.show_summary_dialog"
-        ) as mock_summary,
-        patch(
-            "ui.controllers.image_metadata_controller.show_no_supported_files_dialog"
+            "ui.controllers.base_controller.show_no_supported_files_dialog"
         ) as mock_no_files,
     ):
-        controller._execute_batch_directory(
-            page=mock_page,
-            lbl_status=lbl_status,
-            progress_bar=progress_bar,
-            btn_action=btn_action,
-        )
+        controller._run_batch_directory_job(ui, None)
 
         mock_summary.assert_not_called()
         mock_no_files.assert_called_once()
         assert "PNG" in mock_no_files.call_args.args[1], (
             "[ui] Image metadata unsupported-files dialog must advertise supported image formats such as 'PNG'."
         )
-        assert progress_bar.visible is False
+        assert ui.progress_bar.visible is False
 
 
 def test_single_file_metadata_uses_unique_suffix_on_collision(
@@ -58,12 +50,10 @@ def test_single_file_metadata_uses_unique_suffix_on_collision(
     controller.selected_input = src_file
     controller.selected_output_dir = out_dir
 
-    lbl_status = MagicMock(spec=ft.Text)
-    progress_bar = MagicMock(spec=ft.ProgressBar)
-    btn_action = MagicMock(spec=ft.ElevatedButton)
+    ui = make_job_ui(mock_page)
 
     monkeypatch.setattr(
-        "ui.controllers.image_metadata_controller.show_summary_dialog", MagicMock()
+        "ui.controllers.base_controller.show_summary_dialog", MagicMock()
     )
     monkeypatch.setattr(
         "ui.controllers.image_metadata_controller.file_metadata_remover",
@@ -72,12 +62,7 @@ def test_single_file_metadata_uses_unique_suffix_on_collision(
         ),
     )
 
-    controller._execute_single_file(
-        page=mock_page,
-        lbl_status=lbl_status,
-        progress_bar=progress_bar,
-        btn_action=btn_action,
-    )
+    controller._run_single_file_job(ui, None)
 
     assert preexisting_file.read_bytes() == b"existing clean content"
     expected_new = out_dir / "portrait_clean_2.jpg"

@@ -2,8 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-import flet as ft
-
+from tests.ui.helpers import make_job_ui
 from ui.controllers.audio_compression_controller import AudioCompressionController
 
 
@@ -19,25 +18,14 @@ def test_audio_compression_preflight_blocks_uncompressible_only_directory(
     controller.selected_input = in_dir
     controller.selected_output_dir = out_dir
 
-    lbl_status = MagicMock(spec=ft.Text)
-    progress_bar = MagicMock(spec=ft.ProgressBar)
-    btn_action = MagicMock(spec=ft.ElevatedButton)
+    ui = make_job_ui(mock_page)
 
-    with (
-        patch(
-            "ui.controllers.audio_compression_controller.show_no_supported_files_dialog"
-        ) as mock_no_files,
-        patch(
-            "ui.controllers.audio_compression_controller.threading.Thread"
-        ) as mock_thread,
-    ):
-        controller._preflight_batch_execution(
-            page=mock_page,
-            quality=80,
-            lbl_status=lbl_status,
-            progress_bar=progress_bar,
-            btn_action=btn_action,
-        )
+    proceed = MagicMock()
+
+    with patch(
+        "ui.controllers.base_controller.show_no_supported_files_dialog"
+    ) as mock_no_files:
+        controller.preflight_batch(ui, 80, proceed)
 
         mock_no_files.assert_called_once()
         formats = mock_no_files.call_args.args[1]
@@ -47,7 +35,7 @@ def test_audio_compression_preflight_blocks_uncompressible_only_directory(
         assert "WAV" not in formats and "FLAC" not in formats, (
             "[ui] Audio compression preflight dialog must exclude lossless formats ('WAV', 'FLAC')."
         )
-        mock_thread.assert_not_called()
+        proceed.assert_not_called()
 
 
 def test_audio_compression_preflight_warns_when_uncompressible_mixed_with_lossy(
@@ -62,22 +50,13 @@ def test_audio_compression_preflight_warns_when_uncompressible_mixed_with_lossy(
     controller.selected_input = in_dir
     controller.selected_output_dir = out_dir
 
-    lbl_status = MagicMock(spec=ft.Text)
-    progress_bar = MagicMock(spec=ft.ProgressBar)
-    btn_action = MagicMock(spec=ft.ElevatedButton)
+    ui = make_job_ui(mock_page)
 
-    with patch(
-        "ui.controllers.audio_compression_controller.threading.Thread"
-    ) as mock_thread:
-        controller._preflight_batch_execution(
-            page=mock_page,
-            quality=80,
-            lbl_status=lbl_status,
-            progress_bar=progress_bar,
-            btn_action=btn_action,
-        )
+    proceed = MagicMock()
 
-        assert mock_page.dialog is not None and mock_page.dialog.open is True, (
-            "[ui] Mixing uncompressible WAV with compressible MP3 must open a confirmation warning dialog."
-        )
-        mock_thread.assert_not_called()
+    controller.preflight_batch(ui, 80, proceed)
+
+    assert mock_page.dialog is not None and mock_page.dialog.open is True, (
+        "[ui] Mixing uncompressible WAV with compressible MP3 must open a confirmation warning dialog."
+    )
+    proceed.assert_not_called()

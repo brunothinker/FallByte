@@ -8,6 +8,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from ui.controllers import base_controller
+from ui.controllers.base_controller import BaseController, JobUI
+from ui.controllers.image_compression_controller import CompressionOptions
+from ui.controllers.image_conversion_controller import ConversionOptions
 from ui.controllers.image_resize_controller import ResizeOptions
 
 # Per-controller wiring used to parametrize the characterization tests.
@@ -18,9 +22,7 @@ SPECS = [
         "cls": "CompressionController",
         "file_engine": "file_compressor",
         "dir_engine": "directory_compressor",
-        "entry": "prepare_and_execute",
-        "batch": "_run_batch_compression",
-        "kwargs": {"quality": 80},
+        "params": CompressionOptions(quality=80),
         "has_cancel_event": True,
         "in_name": "photo.png",
     },
@@ -30,9 +32,7 @@ SPECS = [
         "cls": "ConversionController",
         "file_engine": "file_converter",
         "dir_engine": "directory_converter",
-        "entry": "execute_conversion",
-        "batch": "_execute_batch_directory",
-        "kwargs": {"target_format": "webp", "selected_color_key": "color_white"},
+        "params": ConversionOptions(target_format="webp", color_key="color_white"),
         "has_cancel_event": True,
         "in_name": "photo.png",
     },
@@ -42,16 +42,12 @@ SPECS = [
         "cls": "ImageResizeController",
         "file_engine": "file_resizer",
         "dir_engine": "directory_resizer",
-        "entry": "execute_resize",
-        "batch": "_execute_batch_directory",
-        "kwargs": {
-            "options": ResizeOptions(
-                mode="dimension",
-                max_width=1280,
-                max_height=720,
-                percentage=None,
-            )
-        },
+        "params": ResizeOptions(
+            mode="dimension",
+            max_width=1280,
+            max_height=720,
+            percentage=None,
+        ),
         "has_cancel_event": True,
         "in_name": "photo.png",
     },
@@ -61,9 +57,7 @@ SPECS = [
         "cls": "VideoCompressionController",
         "file_engine": "file_compressor",
         "dir_engine": "directory_compressor",
-        "entry": "prepare_and_execute",
-        "batch": "_run_batch_compression",
-        "kwargs": {"quality": 80},
+        "params": 80,
         "has_cancel_event": True,
         "in_name": "clip.mp4",
     },
@@ -73,9 +67,7 @@ SPECS = [
         "cls": "VideoConversionController",
         "file_engine": "file_converter",
         "dir_engine": "directory_converter",
-        "entry": "execute_conversion",
-        "batch": "_execute_batch_directory",
-        "kwargs": {"target_format": "mp4"},
+        "params": "mp4",
         "has_cancel_event": True,
         "in_name": "clip.mp4",
     },
@@ -85,9 +77,7 @@ SPECS = [
         "cls": "AudioCompressionController",
         "file_engine": "file_compressor",
         "dir_engine": "directory_compressor",
-        "entry": "prepare_and_execute",
-        "batch": "_run_batch_compression",
-        "kwargs": {"quality": 80},
+        "params": 80,
         "has_cancel_event": True,
         "in_name": "track.mp3",
     },
@@ -97,9 +87,7 @@ SPECS = [
         "cls": "AudioConversionController",
         "file_engine": "file_converter",
         "dir_engine": "directory_converter",
-        "entry": "execute_conversion",
-        "batch": "_execute_batch_directory",
-        "kwargs": {"target_format": "opus"},
+        "params": "opus",
         "has_cancel_event": True,
         "in_name": "track.wav",
     },
@@ -109,9 +97,7 @@ SPECS = [
         "cls": "AudioExtractionController",
         "file_engine": "file_extractor",
         "dir_engine": "directory_extractor",
-        "entry": "execute_extraction",
-        "batch": "_execute_batch_directory",
-        "kwargs": {"target_format": "mp3"},
+        "params": "mp3",
         "has_cancel_event": True,
         "in_name": "clip.mp4",
     },
@@ -121,9 +107,7 @@ SPECS = [
         "cls": "AudioNormalizationController",
         "file_engine": None,
         "dir_engine": "directory_normalizer",
-        "entry": "execute_normalization",
-        "batch": "_execute_batch_directory",
-        "kwargs": {"preset_key": "music"},
+        "params": "music",
         "has_cancel_event": True,
         "supports_single": False,
         "in_name": "track.mp3",
@@ -134,9 +118,7 @@ SPECS = [
         "cls": "ImageMetadataController",
         "file_engine": "file_metadata_remover",
         "dir_engine": "directory_metadata_remover",
-        "entry": "execute_metadata_removal",
-        "batch": "_execute_batch_directory",
-        "kwargs": {},
+        "params": None,
         "has_cancel_event": True,
         "in_name": "photo.png",
     },
@@ -157,7 +139,9 @@ class Ctx:
         lbl_status (MagicMock): Fake status label.
         progress_bar (MagicMock): Fake progress bar.
         btn_action (MagicMock): Fake action button.
-        summary_dialog (MagicMock): Replacement for `show_summary_dialog`.
+        summary_dialog (MagicMock): Replacement for `show_summary_dialog`
+            (patched where it is looked up: `ui.controllers.base_controller`).
+        no_files_dialog (MagicMock): Replacement for `show_no_supported_files_dialog`.
     """
 
     spec: dict
@@ -170,6 +154,17 @@ class Ctx:
     progress_bar: MagicMock = field(default_factory=MagicMock)
     btn_action: MagicMock = field(default_factory=MagicMock)
     summary_dialog: MagicMock = field(default_factory=MagicMock)
+    no_files_dialog: MagicMock = field(default_factory=MagicMock)
+
+    @property
+    def ui(self) -> JobUI:
+        """Returns the `JobUI` handle bundling the page and the fake widgets."""
+        return JobUI(page=self.page, **self.widgets())
+
+    @property
+    def params(self):
+        """Returns the tool parameters forwarded to the controller."""
+        return self.spec["params"]
 
     def widgets(self) -> dict:
         """Returns the fake widgets as keyword arguments for controller methods."""
@@ -187,17 +182,17 @@ class Ctx:
         src.write_bytes(b"source data")
         self.controller.selected_input = src
         self.controller.selected_output_dir = self.out_dir
-        self.controller._execute_single_file(
-            page=self.page, **self.spec["kwargs"], **self.widgets()
-        )
+        self.controller._run_single_file_job(self.ui, self.params)
 
     def run_batch(self) -> None:
         """Runs the batch-directory flow synchronously on the input directory."""
         self.controller.selected_input = self.in_dir
         self.controller.selected_output_dir = self.out_dir
-        getattr(self.controller, self.spec["batch"])(
-            page=self.page, **self.spec["kwargs"], **self.widgets()
-        )
+        self.controller._run_batch_directory_job(self.ui, self.params)
+
+    def execute(self) -> None:
+        """Runs the public `execute` entrypoint (worker threads run synchronously)."""
+        self.controller.execute(self.ui, self.params)
 
     def fake_file_engine(self, ok: bool = True, raises: Exception | None = None):
         """Replaces the single-file engine with a fake.
@@ -257,7 +252,15 @@ def ctx(request, tmp_workspace, mock_page, monkeypatch) -> Ctx:
         in_dir=in_dir,
         out_dir=out_dir,
     )
-    monkeypatch.setattr(module, "show_summary_dialog", c.summary_dialog)
+    # The dialogs are looked up in the base controller module, not in each tool module.
+    monkeypatch.setattr(base_controller, "show_summary_dialog", c.summary_dialog)
+    monkeypatch.setattr(
+        base_controller, "show_no_supported_files_dialog", c.no_files_dialog
+    )
+    # Worker threads run inline so `execute()` is deterministic.
+    monkeypatch.setattr(
+        BaseController, "_start_thread", staticmethod(lambda target, *a: target(*a))
+    )
     # Restore engine attributes after each test.
     if spec.get("file_engine"):
         monkeypatch.setattr(

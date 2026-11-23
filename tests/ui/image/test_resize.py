@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import flet as ft
 
+from tests.ui.helpers import make_job_ui
 from ui.controllers.image_resize_controller import ImageResizeController, ResizeOptions
 from ui.i18n import t
 
@@ -20,34 +21,24 @@ def test_image_resize_validates_invalid_dimensions_and_percentage(
     controller.selected_input = src_file
     controller.selected_output_dir = out_dir
 
-    lbl_status = MagicMock(spec=ft.Text)
-    progress_bar = MagicMock(spec=ft.ProgressBar)
-    btn_action = MagicMock(spec=ft.ElevatedButton)
+    ui = make_job_ui(mock_page)
 
-    controller.execute_resize(
-        page=mock_page,
-        options=ResizeOptions(
-            mode="dimension", max_width=None, max_height=0, percentage=None
-        ),
-        lbl_status=lbl_status,
-        progress_bar=progress_bar,
-        btn_action=btn_action,
+    controller.execute(
+        ui,
+        ResizeOptions(mode="dimension", max_width=None, max_height=0, percentage=None),
     )
-    assert lbl_status.value == t("msg_invalid_resize_dimensions"), (
+    assert ui.lbl_status.value == t("msg_invalid_resize_dimensions"), (
         "[ui] Invalid resize dimensions must display 'msg_invalid_resize_dimensions'."
     )
     assert controller.is_processing is False
 
-    controller.execute_resize(
-        page=mock_page,
-        options=ResizeOptions(
+    controller.execute(
+        ui,
+        ResizeOptions(
             mode="percentage", max_width=None, max_height=None, percentage=150
         ),
-        lbl_status=lbl_status,
-        progress_bar=progress_bar,
-        btn_action=btn_action,
     )
-    assert lbl_status.value == t("msg_invalid_resize_percentage"), (
+    assert ui.lbl_status.value == t("msg_invalid_resize_percentage"), (
         "[ui] Percentage above 100 must display 'msg_invalid_resize_percentage'."
     )
     assert controller.is_processing is False
@@ -62,26 +53,19 @@ def test_image_resize_batch_no_supported_files(tmp_workspace, mock_page):
     controller.selected_input = in_dir
     controller.selected_output_dir = out_dir
 
-    lbl_status = MagicMock(spec=ft.Text)
-    progress_bar = MagicMock(spec=ft.ProgressBar)
-    btn_action = MagicMock(spec=ft.ElevatedButton)
+    ui = make_job_ui(mock_page)
 
     with (
+        patch("ui.controllers.base_controller.show_summary_dialog") as mock_summary,
         patch(
-            "ui.controllers.image_resize_controller.show_summary_dialog"
-        ) as mock_summary,
-        patch(
-            "ui.controllers.image_resize_controller.show_no_supported_files_dialog"
+            "ui.controllers.base_controller.show_no_supported_files_dialog"
         ) as mock_no_files,
     ):
-        controller._execute_batch_directory(
-            page=mock_page,
-            options=ResizeOptions(
+        controller._run_batch_directory_job(
+            ui,
+            ResizeOptions(
                 mode="dimension", max_width=800, max_height=600, percentage=None
             ),
-            lbl_status=lbl_status,
-            progress_bar=progress_bar,
-            btn_action=btn_action,
         )
 
         mock_summary.assert_not_called()
@@ -89,7 +73,7 @@ def test_image_resize_batch_no_supported_files(tmp_workspace, mock_page):
         assert "PNG" in mock_no_files.call_args.args[1], (
             "[ui] Image resize unsupported-files dialog must advertise supported image formats such as 'PNG'."
         )
-        assert progress_bar.visible is False
+        assert ui.progress_bar.visible is False
 
 
 def test_single_file_resize_uses_unique_suffix_on_collision(
@@ -107,12 +91,10 @@ def test_single_file_resize_uses_unique_suffix_on_collision(
     controller.selected_input = src_file
     controller.selected_output_dir = out_dir
 
-    lbl_status = MagicMock(spec=ft.Text)
-    progress_bar = MagicMock(spec=ft.ProgressBar)
-    btn_action = MagicMock(spec=ft.ElevatedButton)
+    ui = make_job_ui(mock_page)
 
     monkeypatch.setattr(
-        "ui.controllers.image_resize_controller.show_summary_dialog", MagicMock()
+        "ui.controllers.base_controller.show_summary_dialog", MagicMock()
     )
     monkeypatch.setattr(
         "ui.controllers.image_resize_controller.file_resizer",
@@ -121,14 +103,11 @@ def test_single_file_resize_uses_unique_suffix_on_collision(
         ),
     )
 
-    controller._execute_single_file(
-        page=mock_page,
-        options=ResizeOptions(
+    controller._run_single_file_job(
+        ui,
+        ResizeOptions(
             mode="percentage", max_width=None, max_height=None, percentage=50
         ),
-        lbl_status=lbl_status,
-        progress_bar=progress_bar,
-        btn_action=btn_action,
     )
 
     assert preexisting_file.read_bytes() == b"existing resized content"
@@ -154,9 +133,7 @@ def test_image_resize_page_renders_and_register_pickers(mock_page):
     assert [o.key for o in (mode_dropdown.options or [])] == [
         "dimension",
         "percentage",
-    ], (
-        "[ui] Image resize page dropdown must expose ['dimension', 'percentage'] modes."
-    )
+    ], "[ui] Image resize page dropdown must expose ['dimension', 'percentage'] modes."
     assert mode_dropdown.value == "dimension", (
         "[ui] Image resize page dropdown must default to 'dimension' mode."
     )

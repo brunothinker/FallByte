@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import flet as ft
 
 from src.video.utils.video_ffmpeg_utils import MediaTrack
+from tests.ui.helpers import make_job_ui
 from ui.controllers.video_tracks_controller import VideoTracksController
 from ui.i18n import t
 
@@ -138,18 +139,11 @@ def test_video_tracks_rejects_directory_input(tmp_workspace, mock_page):
     controller.selected_input = in_dir
     controller.selected_output_dir = out_dir
 
-    lbl_status = MagicMock(spec=ft.Text)
-    progress_bar = MagicMock(spec=ft.ProgressBar)
-    btn_action = MagicMock(spec=ft.ElevatedButton)
+    ui = make_job_ui(mock_page)
 
-    controller.handle_action_click(
-        page=mock_page,
-        lbl_status=lbl_status,
-        progress_bar=progress_bar,
-        btn_action=btn_action,
-    )
+    controller.execute(ui, [])
 
-    assert lbl_status.value == t("msg_single_video_required"), (
+    assert ui.lbl_status.value == t("msg_single_video_required"), (
         "[ui] VideoTracksController must display 'msg_single_video_required' when given a folder."
     )
     assert controller.is_processing is False
@@ -170,9 +164,7 @@ def test_video_tracks_execution_uses_unique_suffix_and_forwards_indices(
     controller.selected_input = src_video
     controller.selected_output_dir = out_dir
 
-    lbl_status = MagicMock(spec=ft.Text)
-    progress_bar = MagicMock(spec=ft.ProgressBar)
-    btn_action = MagicMock(spec=ft.ElevatedButton)
+    ui = make_job_ui(mock_page)
 
     captured: dict = {}
 
@@ -193,16 +185,8 @@ def test_video_tracks_execution_uses_unique_suffix_and_forwards_indices(
         "ui.controllers.video_tracks_controller.remux_selected_tracks", fake_remux
     )
 
-    with patch(
-        "ui.controllers.video_tracks_controller.show_summary_dialog"
-    ) as mock_summary:
-        controller._execute_single_file(
-            page=mock_page,
-            selected_indices=[2],
-            lbl_status=lbl_status,
-            progress_bar=progress_bar,
-            btn_action=btn_action,
-        )
+    with patch("ui.controllers.base_controller.show_summary_dialog") as mock_summary:
+        controller._run_single_file_job(ui, [2])
 
         mock_summary.assert_called_once()
         payload = mock_summary.call_args[0][1]

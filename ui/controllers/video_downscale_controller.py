@@ -1,8 +1,6 @@
-import logging
-import threading
-import time
-
-import flet as ft
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
 
 from src.utils.output_naming import unique_conversion_output_path
 from src.utils.progress import ProgressInfo
@@ -11,17 +9,8 @@ from src.video.video_file_downscale import (
     RESOLUTION_PRESETS,
     file_downscaler,
 )
-from ui.components.dialog_utils import (
-    show_no_supported_files_dialog,
-    show_summary_dialog,
-)
-from ui.controllers.base_controller import BaseController
-from ui.i18n import t
-from ui.theme import get_color
+from ui.controllers.base_controller import BaseController, ProgressCallback
 from ui.utils.format_utils import video_input_formats
-from ui.utils.log_capture import TextRedirector
-
-logger = logging.getLogger(__name__)
 
 SUPPORTED_VIDEO_DOWNSCALE_PRESETS: tuple[str, ...] = tuple(RESOLUTION_PRESETS.keys())
 
@@ -32,310 +21,50 @@ __all__ = [
 
 
 class VideoDownscaleController(BaseController):
-    """Controller managing single-file and batch directory video downscaling logic."""
+    """Video downscale. ``params`` is the target resolution preset key (e.g. ``"720p"``)."""
 
-    def __init__(self) -> None:
-        """Initializes state variables for video downscale execution and safety guards."""
-        super().__init__()
-        self.cancel_event: threading.Event = threading.Event()
+    progress_i18n_key = "msg_downscaling_progress"
+    show_speed = True
+    show_fps = True
 
-    def _on_cancel_confirmed(self) -> None:
-        """Hook override triggering cancellation event for active video downscale processes."""
-        self.cancel_event.set()
+    def supported_formats(self) -> list[str]:
+        return video_input_formats()
 
-    def handle_action_click(
-        self,
-        page: ft.Page,
-        target_resolution: str,
-        lbl_status: ft.Text,
-        progress_bar: ft.ProgressBar,
-        btn_action: ft.ElevatedButton,
-    ) -> None:
-        """Routes trigger button click to execute process or request cancellation."""
-        if self.is_processing:
-            self._confirm_cancel_process(page, lbl_status, progress_bar, btn_action)
-        else:
-            self.execute_downscale(
-                page,
-                target_resolution,
-                lbl_status,
-                progress_bar,
-                btn_action,
-            )
-
-    def execute_downscale(
-        self,
-        page: ft.Page,
-        target_resolution: str,
-        lbl_status: ft.Text,
-        progress_bar: ft.ProgressBar,
-        btn_action: ft.ElevatedButton,
-    ) -> None:
-        """Routes execution to single video file or batch directory downscaler."""
-        validation_error = self.validate_paths()
-        if validation_error or not self.selected_input:
-            lbl_status.value = t(validation_error or "msg_select_required")
-            lbl_status.color = get_color("error")
-            lbl_status.update()
-            return
-
-        if self.selected_input.is_file():
-            threading.Thread(
-                target=self._execute_single_file,
-                args=(
-                    page,
-                    target_resolution,
-                    lbl_status,
-                    progress_bar,
-                    btn_action,
-                ),
-                daemon=True,
-            ).start()
-        else:
-            threading.Thread(
-                target=self._execute_batch_directory,
-                args=(
-                    page,
-                    target_resolution,
-                    lbl_status,
-                    progress_bar,
-                    btn_action,
-                ),
-                daemon=True,
-            ).start()
-
-    def _execute_single_file(
-        self,
-        page: ft.Page,
-        target_resolution: str,
-        lbl_status: ft.Text,
-        progress_bar: ft.ProgressBar,
-        btn_action: ft.ElevatedButton,
-    ) -> None:
-        """Executes single-file video downscaling flow and presents summary dialog."""
-        if not self.selected_input or not self.selected_output_dir:
-            return
-
-        filename = self.selected_input.name
-        self._set_processing_ui(page, progress_bar, btn_action)
-        self.cancel_event.clear()
-
-        target_fmt = self.selected_input.suffix.lower().lstrip(".") or "mp4"
-        out_file = unique_conversion_output_path(
-            input_path=self.selected_input,
-            output_dir=self.selected_output_dir,
+    def build_output_path(self, input_path: Path, output_dir: Path, params: Any) -> Path:
+        # Downscaling keeps the original container.
+        target_fmt = input_path.suffix.lower().lstrip(".") or "mp4"
+        return unique_conversion_output_path(
+            input_path=input_path,
+            output_dir=output_dir,
             target_format=target_fmt,
         )
 
-        lbl_status.value = t(
-            "msg_downscaling_progress",
-            current=1,
-            total=1,
-            filename=filename,
-        )
-        lbl_status.color = get_color("text")
-        lbl_status.update()
-
-        redirector = TextRedirector()
-        redirector.start()
-
-        start_time = time.time()
-        orig_bytes = self.selected_input.stat().st_size
-        success = False
-
-        def file_progress_cb(
-            duration: float, processed: float, fps: float, speed: float
-        ) -> None:
-            if self.abort_requested:
-                return
-            if duration > 0.0:
-                pct = min(1.0, max(0.0, processed / duration))
-                progress_bar.value = pct
-                status_text = t(
-                    "msg_downscaling_progress",
-                    current=1,
-                    total=1,
-                    filename=filename,
-                )
-                if speed > 0.0:
-                    status_text += f" ({speed:.1f}x, {fps:.0f} fps)"
-                lbl_status.value = status_text
-                progress_bar.update()
-                lbl_status.update()
-
-        try:
-            success = file_downscaler(
-                input_path=self.selected_input,
-                output_path=out_file,
-                resolution=target_resolution,
-                cancel_event=self.cancel_event,
-                file_progress_callback=file_progress_cb,
-            )
-            if success:
-                print(f"[OK] {filename}")
-            else:
-                print(f"[FAIL] {filename}")
-        except Exception as err:
-            success = False
-            print(f"[ERROR] {filename}: {err}")
-        finally:
-            redirector.stop()
-
-        elapsed = time.time() - start_time
-        comp_bytes = out_file.stat().st_size if success and out_file.exists() else 0
-
-        self._close_cancel_dialog(page)
-
-        if not self.abort_requested:
-            if success:
-                lbl_status.value = t("msg_success")
-                lbl_status.color = get_color("success")
-            else:
-                lbl_status.value = t("msg_error")
-                lbl_status.color = get_color("error")
-            lbl_status.update()
-
-            summary = {
-                "total_files": 1,
-                "success": 1 if success else 0,
-                "failed": 0 if success else 1,
-                "elapsed_seconds": round(elapsed, 2),
-                "original_bytes": orig_bytes,
-                "compressed_bytes": comp_bytes,
-                "terminal_log": redirector.get_logs(),
-                "errors": []
-                if success
-                else [{"file": filename, "error": t("msg_error")}],
-            }
-            show_summary_dialog(page, summary)
-        else:
-            if out_file.exists():
-                try:
-                    out_file.unlink()
-                except OSError:
-                    pass
-            lbl_status.value = t("msg_process_cancelled", count=1)
-            lbl_status.color = get_color("error")
-            lbl_status.update()
-
-        self._restore_idle_ui(page, progress_bar, btn_action)
-
-    def _execute_batch_directory(
+    def run_single_engine(
         self,
-        page: ft.Page,
-        target_resolution: str,
-        lbl_status: ft.Text,
-        progress_bar: ft.ProgressBar,
-        btn_action: ft.ElevatedButton,
-    ) -> None:
-        """Executes batch directory video downscaling with progress tracking and interruption."""
-        if not self.selected_input or not self.selected_output_dir:
-            return
+        input_path: Path,
+        output_path: Path,
+        params: Any,
+        progress_cb: ProgressCallback,
+    ) -> bool:
+        return file_downscaler(
+            input_path=input_path,
+            output_path=output_path,
+            resolution=params,
+            cancel_event=self.cancel_event,
+            file_progress_callback=progress_cb,
+        )
 
-        self._set_processing_ui(page, progress_bar, btn_action)
-        self.cancel_event.clear()
-        progress_bar.value = 0
-        progress_bar.update()
-
-        def update_progress(info: ProgressInfo) -> None:
-            if self.abort_requested:
-                raise InterruptedError("CANCELLED_BY_USER")
-
-            if info.total > 0:
-                progress_bar.value = info.percentage / 100.0
-                file_name = info.file_path.name if info.file_path else ""
-
-                if info.is_completed:
-                    if info.success:
-                        print(f"[OK] {file_name}")
-                    else:
-                        print(f"[FAIL] {file_name}")
-
-                status_text = t(
-                    "msg_downscaling_progress",
-                    current=info.current,
-                    total=info.total,
-                    filename=file_name,
-                )
-                if info.speed > 0.0:
-                    status_text += f" ({info.speed:.1f}x, {info.fps:.0f} fps)"
-
-                lbl_status.value = status_text
-                progress_bar.update()
-                lbl_status.update()
-
-        redirector = TextRedirector()
-        redirector.start()
-
-        summary = {}
-        try:
-            summary = directory_downscaler(
-                input_dir=self.selected_input,
-                output_dir=self.selected_output_dir,
-                resolution=target_resolution,
-                progress_callback=update_progress,
-                cancel_event=self.cancel_event,
-            )
-
-            if summary.get("cancelled", False):
-                self.abort_requested = True
-
-            self._close_cancel_dialog(page)
-
-            if not self.abort_requested:
-                if summary.get("error"):
-                    logger.error(
-                        f"Batch processing returned an error: {summary['error']}"
-                    )
-                    lbl_status.value = t("msg_error")
-                    lbl_status.color = get_color("error")
-                    lbl_status.update()
-                    return
-
-                if summary.get("no_files", False):
-                    lbl_status.value = ""
-                    lbl_status.update()
-                    self._restore_idle_ui(page, progress_bar, btn_action)
-                    show_no_supported_files_dialog(page, video_input_formats())
-                    return
-
-                progress_bar.value = 1.0
-                progress_bar.update()
-
-                success_cnt = summary.get("success", 0)
-                total_cnt = summary.get("success", 0) + summary.get("failed", 0)
-
-                lbl_status.value = t(
-                    "msg_success_summary",
-                    msg=t("msg_success"),
-                    successful=success_cnt,
-                    total=total_cnt,
-                )
-                lbl_status.color = get_color("success")
-                lbl_status.update()
-
-                summary["terminal_log"] = redirector.get_logs()
-                show_summary_dialog(page, summary)
-
-        except InterruptedError as err:
-            self.abort_requested = True
-            print(f"[FAIL] {err}")
-
-        except Exception as err:
-            logger.exception("Batch processing failed unexpectedly")
-            print(f"[ERROR] {err}")
-            lbl_status.value = t("msg_error")
-            lbl_status.color = get_color("error")
-            lbl_status.update()
-
-        finally:
-            redirector.stop()
-            self._close_cancel_dialog(page)
-
-            if self.abort_requested:
-                cleaned_count = summary.get("cleaned_files_count", 0)
-                lbl_status.value = t("msg_process_cancelled", count=cleaned_count)
-                lbl_status.color = get_color("error")
-                lbl_status.update()
-
-            self._restore_idle_ui(page, progress_bar, btn_action)
+    def run_batch_engine(
+        self,
+        input_dir: Path,
+        output_dir: Path,
+        params: Any,
+        progress_callback: Callable[[ProgressInfo], None],
+    ) -> dict[str, Any]:
+        return directory_downscaler(
+            input_dir=input_dir,
+            output_dir=output_dir,
+            resolution=params,
+            progress_callback=progress_callback,
+            cancel_event=self.cancel_event,
+        )

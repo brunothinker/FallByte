@@ -1,6 +1,21 @@
 """Shared assertion helpers for UI controller tests."""
 
+from unittest.mock import MagicMock
+
+import flet as ft
+
+from ui.controllers.base_controller import JobUI
 from ui.i18n import t
+
+
+def make_job_ui(page) -> JobUI:
+    """Builds a `JobUI` whose status label, progress bar and button are spec'd mocks."""
+    return JobUI(
+        page=page,
+        lbl_status=MagicMock(spec=ft.Text),
+        progress_bar=MagicMock(spec=ft.ProgressBar),
+        btn_action=MagicMock(spec=ft.ElevatedButton),
+    )
 
 
 def assert_idle_ui(c) -> None:

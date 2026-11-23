@@ -4,7 +4,11 @@ from unittest.mock import MagicMock, patch
 
 import flet as ft
 
-from ui.controllers.image_compression_controller import CompressionController
+from tests.ui.helpers import make_job_ui
+from ui.controllers.image_compression_controller import (
+    CompressionController,
+    CompressionOptions,
+)
 
 
 def test_ui_log_reflects_failed_compression(tmp_workspace, mock_page):
@@ -18,20 +22,12 @@ def test_ui_log_reflects_failed_compression(tmp_workspace, mock_page):
     controller.selected_input = in_dir
     controller.selected_output_dir = out_dir
 
-    lbl_status = MagicMock(spec=ft.Text)
-    progress_bar = MagicMock(spec=ft.ProgressBar)
-    btn_action = MagicMock(spec=ft.ElevatedButton)
+    ui = make_job_ui(mock_page)
 
     with patch(
-        "ui.controllers.image_compression_controller.show_summary_dialog"
+        "ui.controllers.base_controller.show_summary_dialog"
     ) as mock_show_dialog:
-        controller._run_batch_compression(
-            page=mock_page,
-            quality=80,
-            lbl_status=lbl_status,
-            progress_bar=progress_bar,
-            btn_action=btn_action,
-        )
+        controller._run_batch_directory_job(ui, CompressionOptions(quality=80))
 
         mock_show_dialog.assert_called_once()
 
@@ -83,12 +79,10 @@ def test_single_file_compression_does_not_overwrite_preexisting_file(
     controller.selected_input = src_file
     controller.selected_output_dir = out_dir
 
-    lbl_status = MagicMock(spec=ft.Text)
-    progress_bar = MagicMock(spec=ft.ProgressBar)
-    btn_action = MagicMock(spec=ft.ElevatedButton)
+    ui = make_job_ui(mock_page)
 
     monkeypatch.setattr(
-        "ui.controllers.image_compression_controller.show_summary_dialog", MagicMock()
+        "ui.controllers.base_controller.show_summary_dialog", MagicMock()
     )
     monkeypatch.setattr(
         "ui.controllers.image_compression_controller.file_compressor",
@@ -97,13 +91,7 @@ def test_single_file_compression_does_not_overwrite_preexisting_file(
         ),
     )
 
-    controller._execute_single_file(
-        page=mock_page,
-        quality=80,
-        lbl_status=lbl_status,
-        progress_bar=progress_bar,
-        btn_action=btn_action,
-    )
+    controller._run_single_file_job(ui, CompressionOptions(quality=80))
 
     assert preexisting_file.read_bytes() == b"original content", (
         "[ui] Single-file compression must never overwrite a pre-existing file at the default destination path."
@@ -129,9 +117,7 @@ def test_single_file_compression_forwards_strip_metadata_flag(
     controller.selected_input = src_file
     controller.selected_output_dir = out_dir
 
-    lbl_status = MagicMock(spec=ft.Text)
-    progress_bar = MagicMock(spec=ft.ProgressBar)
-    btn_action = MagicMock(spec=ft.ElevatedButton)
+    ui = make_job_ui(mock_page)
 
     captured_kwargs: dict[str, object] = {}
 
@@ -141,20 +127,15 @@ def test_single_file_compression_forwards_strip_metadata_flag(
         return True
 
     monkeypatch.setattr(
-        "ui.controllers.image_compression_controller.show_summary_dialog", MagicMock()
+        "ui.controllers.base_controller.show_summary_dialog", MagicMock()
     )
     monkeypatch.setattr(
         "ui.controllers.image_compression_controller.file_compressor",
         fake_compressor,
     )
 
-    controller._execute_single_file(
-        page=mock_page,
-        quality=80,
-        lbl_status=lbl_status,
-        progress_bar=progress_bar,
-        btn_action=btn_action,
-        strip_metadata=True,
+    controller._run_single_file_job(
+        ui, CompressionOptions(quality=80, strip_metadata=True)
     )
 
     assert captured_kwargs.get("strip_metadata") is True
@@ -169,32 +150,22 @@ def test_image_compression_batch_no_supported_files(tmp_workspace, mock_page):
     controller.selected_input = in_dir
     controller.selected_output_dir = out_dir
 
-    lbl_status = MagicMock(spec=ft.Text)
-    progress_bar = MagicMock(spec=ft.ProgressBar)
-    btn_action = MagicMock(spec=ft.ElevatedButton)
+    ui = make_job_ui(mock_page)
 
     with (
+        patch("ui.controllers.base_controller.show_summary_dialog") as mock_summary,
         patch(
-            "ui.controllers.image_compression_controller.show_summary_dialog"
-        ) as mock_summary,
-        patch(
-            "ui.controllers.image_compression_controller.show_no_supported_files_dialog"
+            "ui.controllers.base_controller.show_no_supported_files_dialog"
         ) as mock_no_files,
     ):
-        controller._run_batch_compression(
-            page=mock_page,
-            quality=80,
-            lbl_status=lbl_status,
-            progress_bar=progress_bar,
-            btn_action=btn_action,
-        )
+        controller._run_batch_directory_job(ui, CompressionOptions(quality=80))
 
         mock_summary.assert_not_called()
         mock_no_files.assert_called_once()
         assert "JPG" in mock_no_files.call_args.args[1], (
             "[ui] Image compression unsupported-files dialog must advertise supported image formats such as 'JPG'."
         )
-        assert progress_bar.visible is False, (
+        assert ui.progress_bar.visible is False, (
             "[ui] Progress bar must remain hidden when batch directory has no supported images."
         )
 
@@ -218,9 +189,13 @@ def test_image_compression_page_renders_strip_metadata_checkbox(mock_page):
     chk_strip.value = True
 
     with patch(
-        "ui.pages.image_compression_page.CompressionController.handle_action_click"
+        "ui.pages.image_compression_page.CompressionController.execute"
     ) as mock_click:
         assert callable(btn_action.on_click)
         btn_action.on_click(MagicMock())
         mock_click.assert_called_once()
-        assert mock_click.call_args.kwargs["strip_metadata"] is True
+        # The class attribute is patched, so the call is (JobUI, params).
+        params = mock_click.call_args.args[1]
+        assert isinstance(params, CompressionOptions)
+        assert params.strip_metadata is True
+        assert params.quality == 80

@@ -247,13 +247,9 @@ def test_batch_engine_exception_restores_ui_without_summary(ctx):
     assert_idle_ui(ctx)
 
 
-def test_batch_returned_error_shows_error_without_success_dialog(
-    ctx, caplog, monkeypatch
-):
+def test_batch_returned_error_shows_error_without_success_dialog(ctx, caplog):
     """A returned batch-level error is logged and shown as an error, never as a success summary."""
     c = ctx
-    no_files_dialog = MagicMock()
-    monkeypatch.setattr(c.module, "show_no_supported_files_dialog", no_files_dialog)
     c.fake_dir_engine(
         {
             "total_files": 3,
@@ -282,7 +278,7 @@ def test_batch_returned_error_shows_error_without_success_dialog(
         "[ui] A returned batch error must use the error color for the status label."
     )
     c.summary_dialog.assert_not_called()
-    no_files_dialog.assert_not_called()
+    c.no_files_dialog.assert_not_called()
     assert c.progress_bar.value != 1.0, (
         "[ui] A batch error must not fill the progress bar as if the batch completed."
     )
@@ -461,9 +457,7 @@ def test_open_picker_fallback_to_home_on_deleted_directory(ctx):
 
 def test_action_click_without_selection_asks_for_paths(ctx):
     """Starting without input/output selected asks the user to pick both and runs nothing."""
-    getattr(ctx.controller, ctx.spec["entry"])(
-        page=ctx.page, **ctx.spec["kwargs"], **ctx.widgets()
-    )
+    ctx.execute()
 
     assert ctx.lbl_status.value == t("msg_select_required"), (
         "[ui] Attempting execution without input/output paths must display 'msg_select_required'."
@@ -479,9 +473,7 @@ def test_action_click_same_folder_blocks_execution(ctx):
     ctx.controller.selected_input = ctx.in_dir
     ctx.controller.selected_output_dir = ctx.in_dir
 
-    getattr(ctx.controller, ctx.spec["entry"])(
-        page=ctx.page, **ctx.spec["kwargs"], **ctx.widgets()
-    )
+    ctx.execute()
 
     assert ctx.lbl_status.value == t("msg_same_folder_error"), (
         "[ui] Identical input and output directories must be blocked with 'msg_same_folder_error'."
@@ -499,9 +491,7 @@ def test_action_click_nested_folder_blocks_execution(ctx):
     ctx.controller.selected_input = ctx.in_dir
     ctx.controller.selected_output_dir = nested_dir
 
-    getattr(ctx.controller, ctx.spec["entry"])(
-        page=ctx.page, **ctx.spec["kwargs"], **ctx.widgets()
-    )
+    ctx.execute()
 
     assert ctx.lbl_status.value == t("msg_nested_folder_error"), (
         "[ui] Output directory nested inside input directory must be blocked with 'msg_nested_folder_error'."
@@ -517,9 +507,7 @@ def test_action_click_while_processing_opens_cancel_dialog(ctx):
     ctx.controller.is_processing = True
     ctx.controller._confirm_cancel_process = MagicMock()
 
-    ctx.controller.handle_action_click(
-        page=ctx.page, **ctx.spec["kwargs"], **ctx.widgets()
-    )
+    ctx.execute()
 
     ctx.controller._confirm_cancel_process.assert_called_once()
 
@@ -631,9 +619,7 @@ def test_image_cancellation_path_end_to_end(ctx):
 
     setattr(ctx.module, ctx.spec["dir_engine"], fake_dir_engine_interrupted)
 
-    getattr(ctx.controller, ctx.spec["batch"])(
-        page=ctx.page, **ctx.spec["kwargs"], **ctx.widgets()
-    )
+    ctx.run_batch()
 
     assert ctx.lbl_status.value == t("msg_process_cancelled", count=1), (
         "[ui] End-to-end mid-batch cancellation must display 'msg_process_cancelled' with cleaned file count."
