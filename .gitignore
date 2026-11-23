@@ -16,6 +16,8 @@ packaging/appimage/appimagetool
 # Documentation tools
 repomix-output.xml
 repomix.config.json
+.repomix/
+repomix_help
 
 # Python bytecode and cache
 __pycache__/

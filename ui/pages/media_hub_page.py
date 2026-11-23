@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -8,6 +8,13 @@ from ui.i18n import t
 from ui.theme import get_color
 
 
+def _resolve_option_field(option: Any, key: str) -> str:
+    """Extracts a string attribute or dictionary field from a hub option entry."""
+    if isinstance(option, dict):
+        return str(option.get(key, ""))
+    return str(getattr(option, key, ""))
+
+
 def create_media_hub_page(
     page: ft.Page,
     selected_paths: dict[str, Path],
@@ -15,7 +22,7 @@ def create_media_hub_page(
     main_icon: str,
     heading_key: str,
     subheading_key: str,
-    options: list[dict[str, Any]],
+    options: Sequence[Any],
 ) -> ft.Container:
     """Generic polymorphic hub page builder for media modules (Images, Videos, Audio)."""
 
@@ -109,10 +116,10 @@ def create_media_hub_page(
                 ft.Column(
                     controls=[
                         build_option_row_card(
-                            title_key=str(opt.get("title_key", "")),
-                            description_key=str(opt.get("desc_key", "")),
-                            icon=str(opt.get("icon", "")),
-                            route_key=str(opt.get("route_key", "")),
+                            title_key=_resolve_option_field(opt, "title_key"),
+                            description_key=_resolve_option_field(opt, "desc_key"),
+                            icon=_resolve_option_field(opt, "icon"),
+                            route_key=_resolve_option_field(opt, "route_key"),
                         )
                         for opt in options
                     ],
