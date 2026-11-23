@@ -653,3 +653,88 @@ def test_run_strategies_caps_stderr_buffer_and_logs_only_tail(
     assert "diagnostic error detail line 0\n" not in warning_messages, (
         "[ffmpeg] Unbounded stderr buffer regression: early stderr lines leaked into the warning output instead of keeping only the bounded tail."
     )
+
+
+def test_run_strategies_cancels_promptly_when_stdout_readline_blocks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Terminates FFmpeg within ~200ms on cancel_event even when stdout.readline() blocks indefinitely."""
+    output_file = tmp_path / "stalled_video.mp4"
+    output_file.write_bytes(b"partial-video-payload")
+
+    started = threading.Event()
+    unblock_io = threading.Event()
+
+    class _StalledVideoProc:
+        def __init__(self, *args, **kwargs):
+            self.returncode: int | None = None
+            self.terminated = False
+            self.killed = False
+            self.stdout = self._BlockingPipe()
+            self.stderr = self._BlockingPipe()
+            started.set()
+
+        class _BlockingPipe:
+            def readline(self) -> bytes:
+                unblock_io.wait(timeout=5.0)
+                return b""
+
+        def poll(self) -> int | None:
+            return self.returncode
+
+        def terminate(self) -> None:
+            self.terminated = True
+            self.returncode = -15
+            unblock_io.set()
+
+        def kill(self) -> None:
+            self.killed = True
+            self.returncode = -9
+            unblock_io.set()
+
+        def wait(self, timeout: float | None = None) -> int:
+            unblock_io.wait(timeout=5.0)
+            return self.returncode if self.returncode is not None else -15
+
+    spawned: list[_StalledVideoProc] = []
+
+    def _fake_popen(*args, **kwargs):
+        proc = _StalledVideoProc(*args, **kwargs)
+        spawned.append(proc)
+        return proc
+
+    monkeypatch.setattr(video_ffmpeg_utils.subprocess, "Popen", _fake_popen)
+
+    cancel_event = threading.Event()
+
+    def _trigger_cancel() -> None:
+        assert started.wait(timeout=2.0)
+        time.sleep(0.05)
+        cancel_event.set()
+
+    canceller = threading.Thread(target=_trigger_cancel, daemon=True)
+    canceller.start()
+
+    start = time.perf_counter()
+    with pytest.raises(InterruptedError, match="CANCELLED_BY_USER"):
+        run_strategies(
+            [("stalled_strategy", ["ffmpeg", "-i", "in.mp4", str(output_file)])],
+            output_file,
+            "in.mp4",
+            cancel_event=cancel_event,
+        )
+    elapsed_after_set = time.perf_counter() - start
+    canceller.join(timeout=2.0)
+
+    assert len(spawned) == 1
+    assert spawned[0].terminated is True
+    assert spawned[0].poll() is not None
+    assert elapsed_after_set < 0.35, (
+        f"[video] Stalled process took too long to cancel ({elapsed_after_set:.3f}s)."
+    )
+    assert not output_file.exists(), (
+        "[video] Partial output must be unlinked when stalled FFmpeg is cancelled."
+    )
+    assert not video_ffmpeg_utils._active_processes, (
+        "[video] _active_processes registry must be cleared after stalled cancellation."
+    )

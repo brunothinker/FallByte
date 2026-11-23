@@ -18,6 +18,7 @@ existing imports.
 
 import atexit
 import logging
+import queue
 import re
 import subprocess
 import sys
@@ -64,6 +65,8 @@ RESCUE_INPUT_ARGS: list[str] = ["-fflags", "+genpts", "-err_detect", "ignore_err
 
 # Grace period (seconds) before a terminated FFmpeg process is force-killed.
 TERMINATE_TIMEOUT = 3.0
+# Polling interval (seconds) while waiting for FFmpeg progress lines or cancellation.
+CANCEL_POLL_INTERVAL = 0.1
 # Maximum number of trailing stderr lines retained per FFmpeg strategy attempt.
 STDERR_TAIL_BUFFER_SIZE = 50
 
@@ -641,8 +644,8 @@ def run_strategies(
     """Runs FFmpeg strategies in order until one produces a valid output file.
 
     Partial outputs from failed attempts are removed before the next attempt.
-    If cancel_event is set while FFmpeg is running, the process is terminated
-    and the partial output is removed.
+    Decouples stdout pipe reads onto a background reader thread so `cancel_event`
+    terminates FFmpeg promptly even when stdout emits no lines.
 
     Args:
         strategies: Ordered (label, command) pairs to attempt.
@@ -669,43 +672,63 @@ def run_strategies(
             _active_processes[process] = output_path
 
         stderr_lines: deque[str] = deque(maxlen=STDERR_TAIL_BUFFER_SIZE)
+        stdout_queue: queue.Queue[bytes | None] = queue.Queue()
 
         def _read_stderr(proc=process, lines=stderr_lines) -> None:
             if proc.stderr:
                 for raw_err in iter(proc.stderr.readline, b""):
                     lines.append(raw_err.decode("utf-8", errors="ignore"))
 
+        def _read_stdout(proc=process, line_q=stdout_queue) -> None:
+            try:
+                if proc.stdout:
+                    for raw_out in iter(proc.stdout.readline, b""):
+                        line_q.put(raw_out)
+            finally:
+                line_q.put(None)
+
         stderr_thread = threading.Thread(target=_read_stderr, daemon=True)
+        stdout_thread = threading.Thread(target=_read_stdout, daemon=True)
         stderr_thread.start()
+        stdout_thread.start()
 
         progress_state = _ProgressState()
 
         try:
-            if process.stdout:
-                for raw_line in iter(process.stdout.readline, b""):
-                    if cancel_event is not None and cancel_event.is_set():
-                        _terminate_process(process)
-                        output_path.unlink(missing_ok=True)
-                        raise InterruptedError("CANCELLED_BY_USER")
+            while True:
+                if cancel_event is not None and cancel_event.is_set():
+                    _terminate_process(process)
+                    output_path.unlink(missing_ok=True)
+                    raise InterruptedError("CANCELLED_BY_USER")
 
-                    decoded_line = raw_line.decode("utf-8", errors="ignore")
-                    if (
-                        _parse_progress_line(decoded_line, progress_state)
-                        and progress_callback
-                    ):
-                        progress_callback(
-                            progress_state.out_time,
-                            progress_state.fps,
-                            progress_state.speed,
-                        )
+                try:
+                    raw_line = stdout_queue.get(timeout=CANCEL_POLL_INTERVAL)
+                except queue.Empty:
+                    continue
+
+                if raw_line is None:
+                    break
+
+                decoded_line = raw_line.decode("utf-8", errors="ignore")
+                if (
+                    _parse_progress_line(decoded_line, progress_state)
+                    and progress_callback
+                ):
+                    progress_callback(
+                        progress_state.out_time,
+                        progress_state.fps,
+                        progress_state.speed,
+                    )
 
             process.wait()
+            stdout_thread.join(timeout=1.0)
             stderr_thread.join(timeout=1.0)
 
         except BaseException:
             if process.poll() is None:
                 _terminate_process(process)
             output_path.unlink(missing_ok=True)
+            stdout_thread.join(timeout=1.0)
             stderr_thread.join(timeout=1.0)
             raise
 

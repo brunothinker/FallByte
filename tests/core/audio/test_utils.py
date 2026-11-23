@@ -1,6 +1,7 @@
 """Core (audio): audio_ffmpeg_utils + audio_scanner."""
 
 import threading
+import time
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -410,4 +411,89 @@ def test_terminate_active_processes_kills_orphans_and_removes_partials(
     )
     assert not partial_file.exists(), (
         f"[audio] Expected `terminate_active_processes` to delete tracked partial file '{partial_file}'."
+    )
+
+
+def test_run_audio_strategies_cancels_promptly_when_stdout_readline_blocks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Terminates FFmpeg within ~200ms on cancel_event even when stdout.readline() blocks indefinitely."""
+    output_file = tmp_path / "stalled_audio.mp3"
+    output_file.write_bytes(b"partial-audio-payload")
+
+    started = threading.Event()
+    unblock_io = threading.Event()
+
+    class _StalledAudioProc:
+        def __init__(self, *args, **kwargs):
+            self.returncode: int | None = None
+            self.terminated = False
+            self.killed = False
+            self.stdout = self._BlockingPipe()
+            self.stderr = self._BlockingPipe()
+            started.set()
+
+        class _BlockingPipe:
+            def readline(self) -> bytes:
+                unblock_io.wait(timeout=5.0)
+                return b""
+
+        def poll(self) -> int | None:
+            return self.returncode
+
+        def terminate(self) -> None:
+            self.terminated = True
+            self.returncode = -15
+            unblock_io.set()
+
+        def kill(self) -> None:
+            self.killed = True
+            self.returncode = -9
+            unblock_io.set()
+
+        def wait(self, timeout: float | None = None) -> int:
+            unblock_io.wait(timeout=5.0)
+            return self.returncode if self.returncode is not None else -15
+
+    spawned: list[_StalledAudioProc] = []
+
+    def _fake_popen(*args, **kwargs):
+        proc = _StalledAudioProc(*args, **kwargs)
+        spawned.append(proc)
+        return proc
+
+    monkeypatch.setattr(audio_ffmpeg_utils.subprocess, "Popen", _fake_popen)
+
+    cancel_event = threading.Event()
+
+    def _trigger_cancel() -> None:
+        assert started.wait(timeout=2.0)
+        time.sleep(0.05)
+        cancel_event.set()
+
+    canceller = threading.Thread(target=_trigger_cancel, daemon=True)
+    canceller.start()
+
+    start = time.perf_counter()
+    with pytest.raises(InterruptedError, match="CANCELLED_BY_USER"):
+        audio_ffmpeg_utils.run_audio_strategies(
+            [("stalled_strategy", ["ffmpeg", "-i", "in.wav", str(output_file)])],
+            output_file,
+            "in.wav",
+            cancel_event=cancel_event,
+        )
+    elapsed_after_set = time.perf_counter() - start
+    canceller.join(timeout=2.0)
+
+    assert len(spawned) == 1
+    assert spawned[0].terminated is True
+    assert spawned[0].poll() is not None
+    assert elapsed_after_set < 0.35, (
+        f"[audio] Stalled process took too long to cancel ({elapsed_after_set:.3f}s)."
+    )
+    assert not output_file.exists(), (
+        "[audio] Partial output must be unlinked when stalled FFmpeg is cancelled."
+    )
+    assert not audio_ffmpeg_utils._active_processes, (
+        "[audio] _active_processes registry must be cleared after stalled cancellation."
     )
