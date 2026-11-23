@@ -50,6 +50,57 @@ COPY_AUDIO_OK: dict[str, set[str] | None] = {
     "webm": {"opus", "vorbis"},
     "wmv": set(),
 }
+COPY_SUBTITLE_OK: dict[str, set[str] | None] = {
+    "mp4": {"mov_text", "text"},
+    "mov": {"mov_text", "text"},
+    "m4v": {"mov_text", "text"},
+    "3gp": {"mov_text", "text"},
+    "mkv": None,
+    "webm": {"webvtt"},
+    "avi": set(),
+    "wmv": set(),
+    "flv": set(),
+}
+
+# Text-based subtitle codecs that FFmpeg can convert to mov_text or webvtt.
+TEXT_SUBTITLE_CODECS: set[str] = {
+    "subrip",
+    "srt",
+    "ass",
+    "ssa",
+    "webvtt",
+    "mov_text",
+    "text",
+    "ttml",
+    "microdvd",
+    "sami",
+    "realtext",
+    "subviewer",
+    "subviewer1",
+    "mpl2",
+    "vplayer",
+    "pjs",
+    "jacosub",
+    "stl",
+}
+
+# Image/bitmap-based subtitle codecs that cannot be converted to text subtitles.
+BITMAP_SUBTITLE_CODECS: set[str] = {
+    "hdmv_pgs_subtitle",
+    "dvd_subtitle",
+    "dvb_subtitle",
+    "dvb_teletext",
+    "xsub",
+}
+
+# Target subtitle encoder per container when stream-copy is not supported for text subtitles.
+SUBTITLE_TRANSCODE_CODEC: dict[str, str] = {
+    "mp4": "mov_text",
+    "mov": "mov_text",
+    "m4v": "mov_text",
+    "3gp": "mov_text",
+    "webm": "webvtt",
+}
 
 # First real video stream (0:V excludes cover art) + every audio stream.
 # Subtitles and data streams are dropped because most containers reject them.
@@ -435,6 +486,44 @@ def copy_compatibility(target_fmt: str, info: StreamInfo) -> tuple[bool, bool]:
         COPY_AUDIO_OK.get(target_fmt, set()), info.audio_codecs
     )
     return video_ok, audio_ok
+
+
+def subtitle_transcode_target(target_fmt: str) -> str | None:
+    """Returns the target subtitle encoder for `target_fmt` when text re-encoding is needed."""
+    return SUBTITLE_TRANSCODE_CODEC.get(target_fmt.lower().lstrip("."))
+
+
+def classify_subtitle_codec(
+    target_fmt: str, codec: str
+) -> Literal["copy", "transcode", "incompatible"]:
+    """Classifies how a subtitle codec can be muxed into `target_fmt`.
+
+    Returns:
+        Literal["copy", "transcode", "incompatible"]:
+            - `"copy"`: The subtitle stream can be stream-copied directly.
+            - `"transcode"`: A text subtitle that can be re-encoded for `target_fmt`
+              (e.g., `mov_text` for MP4/MOV or `webvtt` for WebM).
+            - `"incompatible"`: Cannot be stored in `target_fmt` (e.g., bitmap
+              subtitles in MP4/MOV/WebM or any subtitle in AVI/WMV).
+    """
+    fmt = target_fmt.lower().lstrip(".")
+    normalized_codec = codec.lower().strip()
+
+    allowed = COPY_SUBTITLE_OK.get(fmt)
+    if fmt not in COPY_SUBTITLE_OK or allowed is None:
+        return "copy"
+
+    if normalized_codec in allowed:
+        return "copy"
+
+    if (
+        normalized_codec in TEXT_SUBTITLE_CODECS
+        and normalized_codec not in BITMAP_SUBTITLE_CODECS
+        and fmt in SUBTITLE_TRANSCODE_CODEC
+    ):
+        return "transcode"
+
+    return "incompatible"
 
 
 def container_flags(target_fmt: str) -> list[str]:
