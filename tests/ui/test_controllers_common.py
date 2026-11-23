@@ -625,3 +625,56 @@ def test_image_cancellation_path_end_to_end(ctx):
         "[ui] End-to-end mid-batch cancellation must display 'msg_process_cancelled' with cleaned file count."
     )
     assert_idle_ui(ctx)
+
+
+EXPECTED_SINGLE_FILE_NAME = {
+    "image-compression": "photo_compressed.png",
+    "image-conversion": "photo_converted.webp",
+    "image-resize": "photo_resized.png",
+    "image-metadata": "photo_clean.png",
+    "video-compression": "clip_compressed.mp4",
+    "video-conversion": "clip_converted.mp4",
+    "audio-compression": "track_compressed.mp3",
+    "audio-conversion": "track_converted.opus",
+    "audio-extraction": "clip_extracted.mp3",
+}
+
+
+def test_single_file_output_name_uses_operation_suffix(ctx):
+    """Single-file jobs name their output with the operation suffix."""
+    if not ctx.spec.get("supports_single", True):
+        pytest.skip(f"{ctx.spec['id']} is directory-only.")
+
+    src = ctx.in_dir / ctx.spec["in_name"]
+    out = ctx.controller.build_output_path(src, ctx.out_dir, ctx.params)
+
+    assert out == ctx.out_dir / EXPECTED_SINGLE_FILE_NAME[ctx.spec["id"]], (
+        f"[ui] '{ctx.spec['id']}' single-file output must be "
+        f"'{EXPECTED_SINGLE_FILE_NAME[ctx.spec['id']]}', got '{out.name}'."
+    )
+
+
+def test_video_downscale_single_file_name_uses_height_suffix(tmp_path):
+    """Downscale appends the resolved height and keeps the original container."""
+    from ui.controllers.video_downscale_controller import VideoDownscaleController
+
+    out = VideoDownscaleController().build_output_path(
+        tmp_path / "clip.MKV", tmp_path / "out", "720p"
+    )
+
+    assert out == tmp_path / "out" / "clip_720p.mkv", (
+        f"[ui] Downscale single-file output must be 'clip_720p.mkv', got '{out.name}'."
+    )
+
+
+def test_video_tracks_single_file_name_uses_tracks_suffix(tmp_path):
+    """Track selection appends '_tracks' and keeps the original container."""
+    from ui.controllers.video_tracks_controller import VideoTracksController
+
+    out = VideoTracksController().build_output_path(
+        tmp_path / "movie.MKV", tmp_path / "out", []
+    )
+
+    assert out == tmp_path / "out" / "movie_tracks.mkv", (
+        f"[ui] Tracks single-file output must be 'movie_tracks.mkv', got '{out.name}'."
+    )

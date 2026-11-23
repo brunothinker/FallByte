@@ -4,7 +4,7 @@ from typing import Any
 
 from src.audio.audio_directory_extraction import directory_extractor
 from src.audio.audio_file_extraction import file_extractor
-from src.utils.output_naming import unique_conversion_output_path
+from src.utils.output_naming import unique_extraction_output_path
 from src.utils.progress import ProgressInfo
 from ui.controllers.base_controller import BaseController, ProgressCallback
 from ui.utils.format_utils import video_input_formats
@@ -20,7 +20,7 @@ class AudioExtractionController(BaseController):
         return video_input_formats()
 
     def build_output_path(self, input_path: Path, output_dir: Path, params: Any) -> Path:
-        return unique_conversion_output_path(
+        return unique_extraction_output_path(
             input_path=input_path,
             output_dir=output_dir,
             target_format=str(params).lower(),

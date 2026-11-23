@@ -7,6 +7,7 @@ from typing import Any
 from src.image.image_file_resize import UNRESIZABLE_FORMATS, file_resizer
 from src.image.utils.image_scanner import scan_image_files
 from src.utils.batch_runner import run_batch
+from src.utils.output_naming import unique_batch_output_path
 from src.utils.progress import ProgressInfo
 
 logger = logging.getLogger(__name__)
@@ -59,12 +60,17 @@ def directory_resizer(
             percentage=percentage,
         )
 
+    reserved_paths: set[str] = set()
+
     def build_destination(src_file: Path, session_out_dir: Path) -> Path:
-        relative_path = src_file.relative_to(input_dir)
-        dst_path = session_out_dir / relative_path
-        if dst_path.suffix.lstrip(".").upper() in UNRESIZABLE_FORMATS:
-            return dst_path.with_suffix(".png")
-        return dst_path
+        ext = src_file.suffix.lstrip(".").upper()
+        return unique_batch_output_path(
+            input_path=src_file,
+            output_dir=session_out_dir,
+            target_format="png" if ext in UNRESIZABLE_FORMATS else None,
+            reserved_paths=reserved_paths,
+            relative_path=src_file.relative_to(input_dir),
+        )
 
     return run_batch(
         input_dir=input_dir,

@@ -148,6 +148,10 @@ def test_directory_processor_creates_separate_session_folder(
     assert any(path.is_file() for path in outputs), (
         f"[batch] Expected processed output file inside '{session_dir}'."
     )
+    produced = [path for path in outputs if path.is_file()]
+    assert {path.stem for path in produced} == {"sample"}, (
+        f"[batch] Batch output of '{module.__name__}' must keep the original file stem."
+    )
 
     # A second run must use a new folder and preserve the first result.
     first_files = [path for path in session_dir.rglob("*") if path.is_file()]

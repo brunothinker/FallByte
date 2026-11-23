@@ -4,7 +4,7 @@ from typing import Any
 
 import flet as ft
 
-from src.utils.output_naming import unique_conversion_output_path
+from src.utils.output_naming import unique_tracks_output_path
 from src.video.utils.video_ffmpeg_utils import MediaTrack
 from src.video.video_track_selector import (
     inspect_video_tracks,
@@ -124,7 +124,7 @@ class VideoTracksController(BaseController):
     def build_output_path(self, input_path: Path, output_dir: Path, params: Any) -> Path:
         """Non-colliding output path preserving the original container extension."""
         original_ext = input_path.suffix.lstrip(".").lower() or "mkv"
-        return unique_conversion_output_path(
+        return unique_tracks_output_path(
             input_path=input_path,
             output_dir=output_dir,
             target_format=original_ext,

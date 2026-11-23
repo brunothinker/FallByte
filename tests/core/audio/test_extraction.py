@@ -240,7 +240,14 @@ def test_directory_extractor_preserves_hierarchy_handles_collisions_and_skips_si
     assert len(extracted_mp3s) == 3, (
         f"[audio] Expected 3 unique extracted MP3 files in '{session_dir}', got {extracted_mp3s}."
     )
-    assert (session_dir / "module1" / "lesson_converted.mp3").exists(), (
+    assert {p.name for p in extracted_mp3s} == {
+        "talk.mp3",
+        "talk_2.mp3",
+        "lesson.mp3",
+    }, (
+        f"[audio] Batch extraction must keep original names, got {[p.name for p in extracted_mp3s]}."
+    )
+    assert (session_dir / "module1" / "lesson.mp3").exists(), (
         "[audio] Subdirectory structure 'module1/' was not preserved during batch extraction."
     )
     assert any(p.is_completed for p in progress_events), (

@@ -10,6 +10,7 @@ from src.image.image_file_metadata import (
 )
 from src.image.utils.image_scanner import scan_image_files
 from src.utils.batch_runner import run_batch
+from src.utils.output_naming import unique_batch_output_path
 from src.utils.progress import ProgressInfo
 
 logger = logging.getLogger(__name__)
@@ -43,12 +44,17 @@ def directory_metadata_remover(
     def process_file(src: Path, dst: Path) -> bool:
         return file_metadata_remover(input_path=src, output_path=dst)
 
+    reserved_paths: set[str] = set()
+
     def build_destination(src_file: Path, session_out_dir: Path) -> Path:
-        relative_path = src_file.relative_to(input_dir)
-        dst_path = session_out_dir / relative_path
-        if dst_path.suffix.lstrip(".").upper() in UNWRITABLE_METADATA_FORMATS:
-            return dst_path.with_suffix(".png")
-        return dst_path
+        ext = src_file.suffix.lstrip(".").upper()
+        return unique_batch_output_path(
+            input_path=src_file,
+            output_dir=session_out_dir,
+            target_format="png" if ext in UNWRITABLE_METADATA_FORMATS else None,
+            reserved_paths=reserved_paths,
+            relative_path=src_file.relative_to(input_dir),
+        )
 
     return run_batch(
         input_dir=input_dir,

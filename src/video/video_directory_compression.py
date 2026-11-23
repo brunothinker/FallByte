@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from src.utils.batch_runner import run_batch
+from src.utils.output_naming import unique_batch_output_path
 from src.utils.progress import BatchProgressBridge, ProgressInfo
 from src.video.utils.video_scanner import scan_video_files
 from src.video.video_file_compression import file_compressor
@@ -51,9 +52,15 @@ def directory_compressor(
             file_progress_callback=bridge.on_file_progress,
         )
 
+    reserved_paths: set[str] = set()
+
     def build_destination(src_file: Path, session_out_dir: Path) -> Path:
-        relative_path = src_file.relative_to(input_dir)
-        return session_out_dir / relative_path
+        return unique_batch_output_path(
+            input_path=src_file,
+            output_dir=session_out_dir,
+            reserved_paths=reserved_paths,
+            relative_path=src_file.relative_to(input_dir),
+        )
 
     return run_batch(
         input_dir=input_dir,

@@ -7,7 +7,7 @@ from typing import Any
 from src.audio.audio_file_conversion import file_converter
 from src.audio.utils.audio_scanner import scan_audio_files
 from src.utils.batch_runner import run_batch
-from src.utils.output_naming import unique_conversion_output_path
+from src.utils.output_naming import unique_batch_output_path
 from src.utils.progress import BatchProgressBridge, ProgressInfo
 
 logger = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ def directory_converter(
         )
 
     def build_destination(src_file: Path, session_out_dir: Path) -> Path:
-        return unique_conversion_output_path(
+        return unique_batch_output_path(
             input_path=src_file,
             output_dir=session_out_dir,
             target_format=target_fmt,

@@ -7,6 +7,7 @@ from typing import Any
 from src.image.image_file_compression import file_compressor
 from src.image.utils.image_scanner import scan_image_files
 from src.utils.batch_runner import run_batch
+from src.utils.output_naming import unique_batch_output_path
 from src.utils.progress import ProgressInfo
 
 # Setup module logger
@@ -52,9 +53,15 @@ def directory_compressor(
             strip_metadata=strip_metadata,
         )
 
+    reserved_paths: set[str] = set()
+
     def build_destination(src_file: Path, session_out_dir: Path) -> Path:
-        relative_path = src_file.relative_to(input_dir)
-        return session_out_dir / relative_path
+        return unique_batch_output_path(
+            input_path=src_file,
+            output_dir=session_out_dir,
+            reserved_paths=reserved_paths,
+            relative_path=src_file.relative_to(input_dir),
+        )
 
     return run_batch(
         input_dir=input_dir,

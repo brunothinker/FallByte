@@ -7,7 +7,6 @@ of sync with the processing code.
 
 from collections.abc import Collection
 
-from src.audio.audio_file_normalization import NORMALIZABLE_AUDIO_FORMATS
 from src.formats import (
     AUDIO_TARGET_FORMATS,
     SUPPORTED_AUDIO_EXTENSIONS,
@@ -57,11 +56,6 @@ def audio_compression_formats() -> list[str]:
         for name in audio_input_formats()
         if name not in UNCOMPRESSIBLE_AUDIO_FORMATS
     ]
-
-
-def audio_normalization_formats() -> list[str]:
-    """Audio formats accepted as input by the EBU R128 volume normalization module."""
-    return _to_names(NORMALIZABLE_AUDIO_FORMATS)
 
 
 def format_list(formats: list[str]) -> str:

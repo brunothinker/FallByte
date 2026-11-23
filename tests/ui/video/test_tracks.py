@@ -157,7 +157,7 @@ def test_video_tracks_execution_uses_unique_suffix_and_forwards_indices(
     src_video = in_dir / "sample_video.mp4"
     src_video.write_bytes(b"source video data")
 
-    preexisting = out_dir / "sample_video_converted.mp4"
+    preexisting = out_dir / "sample_video_tracks.mp4"
     preexisting.write_bytes(b"existing output")
 
     controller = VideoTracksController()
@@ -199,6 +199,6 @@ def test_video_tracks_execution_uses_unique_suffix_and_forwards_indices(
     assert preexisting.read_bytes() == b"existing output", (
         "[ui] VideoTracksController must never overwrite pre-existing files in the destination folder."
     )
-    expected_new = out_dir / "sample_video_mp4_converted.mp4"
+    expected_new = out_dir / "sample_video_tracks_2.mp4"
     assert expected_new.exists()
     assert expected_new.read_bytes() == b"remuxed video data"

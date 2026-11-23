@@ -2,12 +2,13 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from src.utils.output_naming import unique_conversion_output_path
+from src.utils.output_naming import unique_downscale_output_path
 from src.utils.progress import ProgressInfo
 from src.video.video_directory_downscale import directory_downscaler
 from src.video.video_file_downscale import (
     RESOLUTION_PRESETS,
     file_downscaler,
+    resolve_target_height,
 )
 from ui.controllers.base_controller import BaseController, ProgressCallback
 from ui.utils.format_utils import video_input_formats
@@ -33,9 +34,10 @@ class VideoDownscaleController(BaseController):
     def build_output_path(self, input_path: Path, output_dir: Path, params: Any) -> Path:
         # Downscaling keeps the original container.
         target_fmt = input_path.suffix.lower().lstrip(".") or "mp4"
-        return unique_conversion_output_path(
+        return unique_downscale_output_path(
             input_path=input_path,
             output_dir=output_dir,
+            target_height=resolve_target_height(params),
             target_format=target_fmt,
         )
 

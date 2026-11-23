@@ -5,6 +5,7 @@ from typing import Any
 
 from src.image.image_directory_resize import directory_resizer
 from src.image.image_file_resize import UNRESIZABLE_FORMATS, file_resizer
+from src.utils.output_naming import unique_resize_output_path
 from src.utils.progress import ProgressInfo
 from ui.controllers.base_controller import BaseController, ProgressCallback
 from ui.utils.format_utils import image_input_formats
@@ -18,25 +19,6 @@ class ResizeOptions:
     max_width: int | None
     max_height: int | None
     percentage: int | None
-
-
-def unique_resize_output_path(input_path: Path, output_dir: Path) -> Path:
-    """Computes a collision-free output file path for single-file image resizing."""
-    ext = input_path.suffix.lower().lstrip(".")
-    if ext.upper() in UNRESIZABLE_FORMATS:
-        ext = "png"
-
-    stem = input_path.stem
-    candidate = output_dir / (f"{stem}_resized.{ext}" if ext else f"{stem}_resized")
-    index = 2
-    while candidate.exists():
-        candidate = (
-            output_dir / f"{stem}_resized_{index}.{ext}"
-            if ext
-            else output_dir / f"{stem}_resized_{index}"
-        )
-        index += 1
-    return candidate
 
 
 class ImageResizeController(BaseController):
@@ -64,7 +46,12 @@ class ImageResizeController(BaseController):
     def build_output_path(
         self, input_path: Path, output_dir: Path, params: ResizeOptions
     ) -> Path:
-        return unique_resize_output_path(input_path, output_dir)
+        ext = input_path.suffix.lstrip(".").upper()
+        return unique_resize_output_path(
+            input_path=input_path,
+            output_dir=output_dir,
+            target_format="png" if ext in UNRESIZABLE_FORMATS else None,
+        )
 
     def run_single_engine(
         self,

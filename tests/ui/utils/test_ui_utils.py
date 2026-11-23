@@ -31,10 +31,12 @@ def test_text_redirector_handles_none_standard_streams(monkeypatch):
 
 def test_format_utils_lists_follow_scanners():
     """Format lists shown in the UI must come from the scanners and not drift."""
+    from ui.controllers.audio_normalization_controller import (
+        normalizable_audio_formats,
+    )
     from ui.utils.format_utils import (
         audio_compression_formats,
         audio_input_formats,
-        audio_normalization_formats,
         audio_output_formats,
         image_compression_formats,
         image_input_formats,
@@ -71,7 +73,7 @@ def test_format_utils_lists_follow_scanners():
         "[ui] audio_compression_formats() must include only lossy compressible audio formats."
     )
     assert {"MP3", "M4A", "AAC", "OGG", "OPUS", "FLAC", "WAV"} == set(
-        audio_normalization_formats()
+        normalizable_audio_formats()
     ), (
-        "[ui] audio_normalization_formats() must match the exact set of normalizable audio formats."
+        "[ui] normalizable_audio_formats() must match the exact set of normalizable audio formats."
     )

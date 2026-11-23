@@ -64,7 +64,14 @@ def test_directory_converter_preserves_hierarchy_and_handles_name_collisions(
     assert len(converted_mp3s) == 3, (
         f"[audio] Expected 3 unique converted MP3 files in '{session_dir}', got {converted_mp3s}."
     )
-    assert (session_dir / "album" / "track01_converted.mp3").exists(), (
+    assert {p.name for p in converted_mp3s} == {
+        "song.mp3",
+        "song_2.mp3",
+        "track01.mp3",
+    }, (
+        f"[audio] Batch outputs must keep original names, got {[p.name for p in converted_mp3s]}."
+    )
+    assert (session_dir / "album" / "track01.mp3").exists(), (
         "[audio] Subdirectory structure 'album/' was not preserved during batch conversion."
     )
     assert any(p.is_completed for p in progress_events), (

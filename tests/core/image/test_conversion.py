@@ -63,7 +63,7 @@ def test_image_batch_conversion_preserves_existing_output(tmp_workspace, monkeyp
     previous_session = out_dir / "converted"
     previous_session.mkdir(parents=True)
 
-    existing_output = previous_session / "photo_converted.webp"
+    existing_output = previous_session / "photo.webp"
     existing_output.write_bytes(b"existing user data")
 
     def fake_converter(
@@ -91,6 +91,9 @@ def test_image_batch_conversion_preserves_existing_output(tmp_workspace, monkeyp
     new_session = out_dir / "converted_1"
     assert new_session.is_dir(), (
         "[batch] New batch run must allocate 'converted_1' alongside the existing 'converted' folder."
+    )
+    assert (new_session / "photo.webp").exists(), (
+        "[batch] New session folder must hold the output with the original file name."
     )
     assert len(list(out_dir.rglob("*.webp"))) == 2, (
         "[batch] Both the pre-existing WebP and newly converted WebP must exist across sessions."

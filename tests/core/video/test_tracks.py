@@ -98,7 +98,7 @@ def test_remux_selected_tracks_raises_when_already_cancelled(tmp_path):
     """Raises `InterruptedError` immediately when `cancel_event` is pre-set."""
     src_file = tmp_path / "sample_video.mp4"
     src_file.write_bytes(b"original video")
-    out_file = tmp_path / "sample_video_converted.mp4"
+    out_file = tmp_path / "sample_video_tracks.mp4"
 
     cancel_event = threading.Event()
     cancel_event.set()
@@ -119,7 +119,7 @@ def test_remux_selected_tracks_builds_lossless_copy_commands_without_chapters(
     """Verifies lossless `-c copy`, `-map_chapters -1`, atomic temp target, and fallback strategies."""
     src_file = tmp_path / "sample_video.mp4"
     src_file.write_bytes(b"source mp4 bytes")
-    out_file = tmp_path / "out" / "sample_video_converted.mp4"
+    out_file = tmp_path / "out" / "sample_video_tracks.mp4"
 
     monkeypatch.setattr(
         video_track_selector,

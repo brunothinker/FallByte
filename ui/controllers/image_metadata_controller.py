@@ -7,28 +7,10 @@ from src.image.image_file_metadata import (
     UNWRITABLE_METADATA_FORMATS,
     file_metadata_remover,
 )
+from src.utils.output_naming import unique_metadata_output_path
 from src.utils.progress import ProgressInfo
 from ui.controllers.base_controller import BaseController, ProgressCallback
 from ui.utils.format_utils import image_input_formats
-
-
-def unique_metadata_output_path(input_path: Path, output_dir: Path) -> Path:
-    """Computes a collision-free output file path for single-file metadata removal."""
-    ext = input_path.suffix.lower().lstrip(".")
-    if ext.upper() in UNWRITABLE_METADATA_FORMATS:
-        ext = "png"
-
-    stem = input_path.stem
-    candidate = output_dir / (f"{stem}_clean.{ext}" if ext else f"{stem}_clean")
-    index = 2
-    while candidate.exists():
-        candidate = (
-            output_dir / f"{stem}_clean_{index}.{ext}"
-            if ext
-            else output_dir / f"{stem}_clean_{index}"
-        )
-        index += 1
-    return candidate
 
 
 class ImageMetadataController(BaseController):
@@ -40,7 +22,12 @@ class ImageMetadataController(BaseController):
         return image_input_formats()
 
     def build_output_path(self, input_path: Path, output_dir: Path, params: Any) -> Path:
-        return unique_metadata_output_path(input_path, output_dir)
+        ext = input_path.suffix.lstrip(".").upper()
+        return unique_metadata_output_path(
+            input_path=input_path,
+            output_dir=output_dir,
+            target_format="png" if ext in UNWRITABLE_METADATA_FORMATS else None,
+        )
 
     def run_single_engine(
         self,

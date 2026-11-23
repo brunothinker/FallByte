@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from src.utils.batch_runner import run_batch
-from src.utils.output_naming import unique_conversion_output_path
+from src.utils.output_naming import unique_batch_output_path
 from src.utils.progress import BatchProgressBridge, ProgressInfo
 from src.video.utils.video_scanner import scan_video_files
 from src.video.video_file_downscale import file_downscaler, resolve_target_height
@@ -42,7 +42,7 @@ def directory_downscaler(
 
     def build_destination(src_file: Path, session_out_dir: Path) -> Path:
         target_fmt = src_file.suffix.lower().lstrip(".") or "mp4"
-        return unique_conversion_output_path(
+        return unique_batch_output_path(
             input_path=src_file,
             output_dir=session_out_dir,
             target_format=target_fmt,
