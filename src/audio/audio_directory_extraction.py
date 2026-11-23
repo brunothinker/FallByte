@@ -8,7 +8,7 @@ from src.audio.audio_file_extraction import file_extractor
 from src.formats import SUPPORTED_VIDEO_EXTENSIONS
 from src.utils.batch_runner import run_batch
 from src.utils.output_naming import unique_conversion_output_path
-from src.utils.progress import ProgressInfo
+from src.utils.progress import BatchProgressBridge, ProgressInfo
 
 logger = logging.getLogger(__name__)
 
@@ -87,25 +87,15 @@ def directory_extractor(
     """
     target_fmt = target_format.lower().lstrip(".")
     reserved_paths: set[str] = set()
-    active_progress_info: ProgressInfo | None = None
+    bridge = BatchProgressBridge(progress_callback)
 
     def process_file(src: Path, dst: Path) -> bool:
-        def file_progress_cb(
-            duration: float, processed: float, fps: float, speed: float
-        ) -> None:
-            if active_progress_info and progress_callback:
-                active_progress_info.duration_seconds = duration
-                active_progress_info.processed_seconds = processed
-                active_progress_info.fps = fps
-                active_progress_info.speed = speed
-                progress_callback(active_progress_info)
-
         return file_extractor(
             input_path=src,
             output_path=dst,
             target_format=target_fmt,
             cancel_event=cancel_event,
-            file_progress_callback=file_progress_cb,
+            file_progress_callback=bridge.on_file_progress,
         )
 
     def build_destination(src_file: Path, session_out_dir: Path) -> Path:
@@ -117,12 +107,6 @@ def directory_extractor(
             relative_path=src_file.relative_to(input_dir),
         )
 
-    def intercept_progress(info: ProgressInfo) -> None:
-        nonlocal active_progress_info
-        active_progress_info = info
-        if progress_callback:
-            progress_callback(info)
-
     return run_batch(
         input_dir=input_dir,
         output_dir=output_dir,
@@ -130,7 +114,7 @@ def directory_extractor(
         scanner=scan_video_sources,
         process_file=process_file,
         build_destination=build_destination,
-        progress_callback=intercept_progress,
+        progress_callback=bridge.on_batch_progress,
         cancel_event=cancel_event,
         sort=True,
         remove_empty_session_dir=True,

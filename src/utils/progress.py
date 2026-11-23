@@ -1,6 +1,7 @@
 """Centralized execution progress data structures for FallByte engines and controllers."""
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -82,3 +83,42 @@ class ProgressInfo:
         avg_time = self.elapsed_seconds / self.current
         remaining = self.total - self.current
         return round(avg_time * remaining, 1)
+
+
+class BatchProgressBridge:
+    """Bridges batch-level `ProgressInfo` snapshots with intra-file FFmpeg updates.
+
+    Replaces repeated closure boilerplate across directory batch processors by
+    tracking the active item's `ProgressInfo` and enriching it with live
+    duration, processed time, framerate, and speed metrics as FFmpeg progresses.
+    """
+
+    def __init__(
+        self,
+        progress_callback: Callable[[ProgressInfo], None] | None = None,
+    ) -> None:
+        self._progress_callback = progress_callback
+        self._active_info: ProgressInfo | None = None
+
+    def on_batch_progress(self, info: ProgressInfo) -> None:
+        """Receives batch lifecycle updates from `run_batch` and forwards them."""
+        self._active_info = None if info.is_completed else info
+        if self._progress_callback is not None:
+            self._progress_callback(info)
+
+    def on_file_progress(
+        self,
+        duration: float,
+        processed: float,
+        fps: float,
+        speed: float,
+    ) -> None:
+        """Enriches the active `ProgressInfo` with intra-file FFmpeg metrics."""
+        if self._active_info is None or self._progress_callback is None:
+            return
+
+        self._active_info.duration_seconds = duration
+        self._active_info.processed_seconds = processed
+        self._active_info.fps = fps
+        self._active_info.speed = speed
+        self._progress_callback(self._active_info)

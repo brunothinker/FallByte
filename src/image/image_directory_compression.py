@@ -65,6 +65,6 @@ def directory_compressor(
         build_destination=build_destination,
         progress_callback=progress_callback,
         cancel_event=cancel_event,
-        sort=False,
+        sort=True,
         remove_empty_session_dir=True,
     )
