@@ -53,7 +53,7 @@ Most media optimization tools require uploading sensitive files to cloud servers
 | Linux (Arch / Universal Linux) | Portable `.AppImage` | Supported |
 | Windows (x64) | Portable `.zip` | Supported |
 
-> **[Get FallByte for your OS (Official Download Page)](https://brunothinker.github.io/page/)**
+> **[Get FallByte for your OS (Official Download Page)](https://fallbyte.brunothinker.workers.dev/)**
 >
 > *Prefer raw build artifacts? Browse all compiled files on the [GitHub Releases Page](https://github.com/brunothinker/FallByte/releases).*
 
