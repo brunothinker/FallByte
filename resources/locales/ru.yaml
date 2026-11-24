@@ -93,6 +93,7 @@ strings:
   msg_compressing_progress: "Сжатие: [{current}/{total}] - {filename}"
   msg_process_cancelled: "Обработка отменена. Удалено созданных файлов: {count}."
   msg_success_summary: "{msg} | Успешно: {successful} / {total}"
+  msg_batch_summary: "{msg} | Успешно: {successful} | Пропущено: {skipped} | Ошибок: {failed} | Всего: {total}"
   msg_supported_formats_notice: "Поддерживаемые форматы для сжатия: {formats}"
   msg_supported_formats_notice_conversion: "Поддерживаемые форматы для конвертации: {formats}"
 
@@ -108,6 +109,7 @@ strings:
   dialog_no_files_formats: "Поддерживаемые форматы: {formats}"
   log_dialog_title: "Результаты обработки"
   log_summary_success: "Успешно"
+  log_summary_skipped: "Пропущено"
   log_summary_failed: "Ошибок"
   log_summary_total: "Всего файлов"
   log_summary_time: "Затраченное время"
@@ -118,6 +120,15 @@ strings:
   log_size_stat: "Размер: {orig} -> {comp}"
   log_reduction_stat: "Экономия: -{pct:.1f}%"
   log_increase_stat: "Прирост: +{pct:.1f}%"
+  msg_kept_original: "Файл оставлен без изменений: никаких действий не потребовалось."
+  skip_uncompressible_format: "{fmt} невозможно безопасно сжать"
+  skip_animated_png: "анимированный PNG потеряет свои кадры"
+  skip_not_smaller: "результат не стал меньше при качестве {quality}%"
+  skip_same_format: "уже имеет формат .{fmt}, конвертация не требуется"
+  skip_audio_not_reencoded: "{fmt} не перекодируется при сжатии аудио"
+  skip_no_upscale: "уже {src_width}x{src_height} (не выше {target_height}p), масштабирование не выполнено"
+  skip_no_audio_stream: "видео не содержит аудиодорожки"
+  skip_unsupported_normalization_format: "{fmt} не поддерживается для нормализации громкости"
 
   # ============================================================================
   # Module: Image

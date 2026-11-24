@@ -1,4 +1,4 @@
-"""Core (video): testes de compression (engines de arquivo e de diretorio)."""
+"""Core (video): tests from compression"""
 
 import threading
 
@@ -56,16 +56,42 @@ def test_video_compression_levels(tmp_workspace, create_sample_video, quality):
     src_mp4 = create_sample_video(in_dir / "input.mp4", duration_sec=1)
 
     dst_mp4 = out_dir / f"compressed_q{quality}.mp4"
-    success = video_compressor(src_mp4, dst_mp4, quality=quality)
+    res = video_compressor(src_mp4, dst_mp4, quality=quality)
 
-    assert success is True, (
-        f"[video] Video compression at quality={quality} unexpectedly returned False."
+    assert res and not res.is_failed, (
+        f"[video] Video compression at quality={quality} unexpectedly failed: {res}."
     )
     assert dst_mp4.exists(), (
         f"[video] Compressed video output '{dst_mp4}' was not written to disk."
     )
     assert dst_mp4.stat().st_size > 0, (
         f"[video] Compressed video output '{dst_mp4}' is empty (0 bytes)."
+    )
+
+
+def test_video_compression_keeps_original_when_not_smaller(
+    tmp_workspace, create_sample_video
+):
+    """Ensures video compression returns skipped ('skip_not_smaller') when re-encode is larger."""
+    in_dir, out_dir = tmp_workspace
+    src_mp4 = create_sample_video(in_dir / "input.mp4", duration_sec=1)
+    dst_mp4 = out_dir / "compressed_q100.mp4"
+
+    res = video_compressor(src_mp4, dst_mp4, quality=100)
+
+    assert (
+        res
+        and res.is_skipped
+        and res.reason_key == "skip_not_smaller"
+        and res.reason_params.get("quality") == 100
+    ), (
+        f"[video] Expected skipped FileResult ('skip_not_smaller', quality=100) when output is not smaller, got {res}."
+    )
+    assert dst_mp4.exists(), (
+        "[video] Keep-original fallback must still copy the video file to the destination path."
+    )
+    assert dst_mp4.read_bytes() == src_mp4.read_bytes(), (
+        "[video] Keep-original fallback must preserve exact source bytes."
     )
 
 
@@ -85,10 +111,10 @@ def test_video_compression_atomic_keep_original_on_failure(
     monkeypatch.setattr("src.utils.cleanup.shutil.copy2", failing_copy2)
 
     # Compress at quality=100 where compressed output is >= original
-    success = video_compressor(src_mp4, dst_mp4, quality=100)
+    res = video_compressor(src_mp4, dst_mp4, quality=100)
 
-    assert success is False, (
-        "[video] Simulated I/O error during keep-original fallback copy must return False."
+    assert res.is_failed and not res, (
+        f"[video] Simulated I/O error during keep-original fallback copy must return failed FileResult, got {res}."
     )
     assert dst_mp4.exists(), (
         "[video] Failed keep-original fallback copy must not delete pre-existing destination file."

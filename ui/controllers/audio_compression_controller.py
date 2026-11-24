@@ -5,6 +5,7 @@ from typing import Any
 from src.audio.audio_directory_compression import directory_compressor
 from src.audio.audio_file_compression import file_compressor
 from src.formats import SUPPORTED_AUDIO_EXTENSIONS, UNCOMPRESSIBLE_AUDIO_FORMATS
+from src.utils.file_result import FileResult
 from src.utils.output_naming import unique_compression_output_path
 from src.utils.progress import ProgressInfo
 from ui.controllers.base_controller import BaseController, JobUI, ProgressCallback
@@ -44,7 +45,7 @@ class AudioCompressionController(BaseController):
         output_path: Path,
         params: Any,
         progress_cb: ProgressCallback,
-    ) -> bool:
+    ) -> FileResult:
         return file_compressor(
             input_path=input_path,
             output_path=output_path,

@@ -4,14 +4,17 @@ import shutil
 import tempfile
 from collections.abc import Iterable
 from pathlib import Path
+from typing import Any
+
+from src.utils.file_result import FileResult
 
 # Setup module logger
 logger = logging.getLogger(__name__)
 
 
 def copy_original_file_atomically(
-    input_path: Path, output_path: Path, reason: str
-) -> bool:
+    input_path: Path, output_path: Path, reason_key: str, **params: Any
+) -> FileResult:
     """Copies a source file untouched to the destination via atomic replace.
 
     Ensures pre-existing files are never corrupted and no partial files are left behind
@@ -20,10 +23,14 @@ def copy_original_file_atomically(
     Args:
         input_path (Path): Path to the source file.
         output_path (Path): Destination path where the file will be saved.
-        reason (str): Context description explaining why the original file is kept.
+        reason_key (str): Locale key explaining why the original file is kept.
+            Legacy callers may still pass a plain English sentence; the UI
+            translation layer returns unknown keys unchanged.
+        **params (Any): Format parameters for the locale key.
 
     Returns:
-        bool: True if copy succeeded, False otherwise.
+        FileResult: ``FileResult.skipped(reason_key, **params)`` if the copy
+            succeeded, ``FileResult.failed()`` otherwise.
     """
     tmp_path = None
     try:
@@ -38,13 +45,14 @@ def copy_original_file_atomically(
 
         shutil.copy2(input_path, tmp_path)
         os.replace(tmp_path, output_path)
-        logger.info(f"'{input_path.name}' kept as-is: {reason}.")
-        return True
+        # Only key and parameters are logged: free text would be colored by keyword.
+        logger.info(f"'{input_path.name}' kept as-is [{reason_key}] {params}")
+        return FileResult.skipped(reason_key, **params)
     except Exception as e:
         logger.error(f"Failed to copy original file for '{input_path.name}': {e}")
         if tmp_path and tmp_path.exists():
             tmp_path.unlink(missing_ok=True)
-        return False
+        return FileResult.failed()
 
 
 def safe_cleanup_session_files(

@@ -1,4 +1,4 @@
-"""Core (audio): testes de compression (engines de arquivo e de diretorio)."""
+"""Core (audio): tests from compression."""
 
 import threading
 from pathlib import Path
@@ -22,7 +22,7 @@ from tests.core.audio.helpers import (
 def test_directory_compressor_preserves_hierarchy_and_formats(
     sample_audio_factory, tmp_path: Path
 ):
-    """`directory_compressor` must compress lossy files, copy lossless ones, and keep folder structure."""
+    """`directory_compressor` must compress lossy files, copy/skip lossless ones, and keep folder structure."""
     in_dir = tmp_path / "input"
     out_dir = tmp_path / "output"
 
@@ -36,8 +36,11 @@ def test_directory_compressor_preserves_hierarchy_and_formats(
     )
 
     assert (
-        stats["total_files"] == 2 and stats["success"] == 2 and stats["failed"] == 0
-    ), f"[audio] Expected 2/2 successful batch compressions, got stats={stats}."
+        stats["total_files"] == 2
+        and stats["success"] == 1
+        and stats["skipped"] == 1
+        and stats["failed"] == 0
+    ), f"[audio] Expected 1 processed + 1 skipped batch compressions, got stats={stats}."
 
     session_dir = out_dir / "compressed"
     dst_mp3 = session_dir / "podcast.mp3"
@@ -64,15 +67,15 @@ def test_file_compressor_reduces_size_for_lossy_formats(
     dst = tmp_path / "compressed" / f"high.{ext}"
     progress_calls: list[tuple[float, float, float, float]] = []
 
-    ok = audio_file_compression.file_compressor(
+    res = audio_file_compression.file_compressor(
         input_path=src,
         output_path=dst,
         quality=15,
         file_progress_callback=lambda d, p, f, s: progress_calls.append((d, p, f, s)),
     )
 
-    assert ok is True, (
-        f"[audio] Compression of '{src.name}' at quality=15 unexpectedly returned False."
+    assert res.is_processed, (
+        f"[audio] Compression of '{src.name}' at quality=15 unexpectedly failed or skipped: {res}."
     )
     assert dst.exists() and dst.stat().st_size > 0, (
         f"[audio] Compressed output '{dst}' was not created or is empty."
@@ -99,13 +102,13 @@ def test_file_compressor_handles_mono_ogg_at_max_quality_without_vorbis_error(
     )
     dst = tmp_path / "compressed" / "mono_voice.ogg"
 
-    ok = audio_file_compression.file_compressor(
+    res = audio_file_compression.file_compressor(
         input_path=src,
         output_path=dst,
         quality=100,
     )
 
-    assert ok is True, (
+    assert res and not res.is_failed, (
         "[audio] Mono OGG compression at quality=100 failed; libvorbis mono cap (256 kbps) should prevent error -22."
     )
     assert dst.exists() and dst.stat().st_size > 0, (
@@ -117,7 +120,7 @@ def test_file_compressor_handles_mono_ogg_at_max_quality_without_vorbis_error(
 def test_file_compressor_copies_uncompressible_formats_atomically(
     sample_audio_factory, tmp_path: Path, ext: str, monkeypatch
 ):
-    """Formats in `UNCOMPRESSIBLE_AUDIO_FORMATS` must be copied untouched without calling FFmpeg transcode."""
+    """Formats in `UNCOMPRESSIBLE_AUDIO_FORMATS` must be copied untouched and marked skipped without calling FFmpeg."""
     src = sample_audio_factory(f"lossless.{ext}", duration=0.8)
     dst = tmp_path / "compressed" / f"lossless.{ext}"
 
@@ -130,14 +133,14 @@ def test_file_compressor_copies_uncompressible_formats_atomically(
         audio_file_compression, "run_audio_strategies", _forbid_strategies
     )
 
-    ok = audio_file_compression.file_compressor(
+    res = audio_file_compression.file_compressor(
         input_path=src,
         output_path=dst,
         quality=50,
     )
 
-    assert ok is True, (
-        f"[audio] Uncompressible format '{ext}' should succeed via atomic copy."
+    assert res and res.is_skipped and res.reason_key == "skip_audio_not_reencoded", (
+        f"[audio] Uncompressible format '{ext}' should return skipped ('skip_audio_not_reencoded'), got {res}."
     )
     assert dst.read_bytes() == src.read_bytes(), (
         f"[audio] Uncompressible format '{ext}' must preserve exact source bytes."
@@ -147,7 +150,7 @@ def test_file_compressor_copies_uncompressible_formats_atomically(
 def test_file_compressor_copies_wma_uncompressible_format_atomically(
     tmp_path: Path, monkeypatch
 ):
-    """`WMA` in `UNCOMPRESSIBLE_AUDIO_FORMATS` must bypass FFmpeg transcoding and copy atomically."""
+    """`WMA` in `UNCOMPRESSIBLE_AUDIO_FORMATS` must bypass FFmpeg transcoding, copy atomically, and return skipped."""
     src = tmp_path / "legacy_track.wma"
     payload = b"ASF_WMA_HEADER_AND_AUDIO_PAYLOAD_BYTES"
     src.write_bytes(payload)
@@ -174,14 +177,14 @@ def test_file_compressor_copies_wma_uncompressible_format_atomically(
         audio_file_compression, "run_audio_strategies", _forbid_strategies
     )
 
-    ok = audio_file_compression.file_compressor(
+    res = audio_file_compression.file_compressor(
         input_path=src,
         output_path=dst,
         quality=50,
     )
 
-    assert ok is True, (
-        "[audio] Uncompressible format 'wma' should succeed via atomic copy."
+    assert res and res.is_skipped and res.reason_key == "skip_audio_not_reencoded", (
+        f"[audio] Uncompressible format 'wma' should return skipped ('skip_audio_not_reencoded'), got {res}."
     )
     assert dst.exists() and dst.read_bytes() == payload, (
         "[audio] Uncompressible format 'wma' must preserve exact source bytes."
@@ -192,17 +195,19 @@ def test_file_compressor_copies_wma_uncompressible_format_atomically(
 def test_file_compressor_keeps_original_when_compressed_is_not_smaller(
     sample_audio_factory, tmp_path: Path
 ):
-    """If re-encoding at high quality produces a larger file, the original file must be preserved."""
+    """If re-encoding at high quality produces a larger file, the original file must be preserved and marked skipped."""
     src = sample_audio_factory("already_tiny.mp3", duration=1.5, bitrate="48k")
     dst = tmp_path / "compressed" / "already_tiny.mp3"
 
-    ok = audio_file_compression.file_compressor(
+    res = audio_file_compression.file_compressor(
         input_path=src,
         output_path=dst,
         quality=100,
     )
 
-    assert ok is True, "[audio] Compression fallback to original file must return True."
+    assert res and res.is_skipped and res.reason_key == "skip_not_smaller", (
+        f"[audio] Compression fallback to original file must return skipped ('skip_not_smaller'), got {res}."
+    )
     assert dst.read_bytes() == src.read_bytes(), (
         "[audio] When compressed output >= original size, destination must match original bytes exactly."
     )
@@ -215,16 +220,17 @@ def test_file_compressor_rejects_invalid_and_handles_cancellation(
     """`file_compressor` must validate paths/streams and clean up temp files on cancellation."""
     valid = sample_audio_factory("source.mp3", duration=1.0, bitrate="192k")
 
-    assert audio_file_compression.file_compressor(valid, valid, quality=50) is False, (
+    same_res = audio_file_compression.file_compressor(valid, valid, quality=50)
+    assert same_res.is_failed and not same_res, (
         "[audio] Compressor must refuse overwriting source file when input_path == output_path."
     )
 
-    assert (
-        audio_file_compression.file_compressor(
-            tmp_path / "ghost.mp3", tmp_path / "out.mp3", quality=50
-        )
-        is False
-    ), "[audio] Compressor must return False for missing input file."
+    missing_res = audio_file_compression.file_compressor(
+        tmp_path / "ghost.mp3", tmp_path / "out.mp3", quality=50
+    )
+    assert missing_res.is_failed and not missing_res, (
+        "[audio] Compressor must return failed FileResult for missing input file."
+    )
 
     cancel = threading.Event()
     cancel.set()
@@ -251,19 +257,20 @@ def test_file_compressor_monotonic_size_across_quality_curve(
     skip_if_format_encoders_unavailable(ext)
     src = sample_audio_factory(f"master_{ext}.wav", duration=2.5, channels=2)
     high_src = tmp_path / f"source_high.{ext}"
-    assert (
-        audio_file_conversion.file_converter(src, high_src, target_format=ext) is True
-    ), f"[audio] Failed to prepare baseline '{ext}' file for quality curve test."
+    prep_res = audio_file_conversion.file_converter(src, high_src, target_format=ext)
+    assert prep_res.is_processed, (
+        f"[audio] Failed to prepare baseline '{ext}' file for quality curve test: {prep_res}."
+    )
 
     sizes: dict[int, int] = {}
     for q in (20, 60, 95):
         out = tmp_path / f"out_q{q}.{ext}"
-        ok = audio_file_compression.file_compressor(
+        res = audio_file_compression.file_compressor(
             input_path=high_src,
             output_path=out,
             quality=q,
         )
-        assert ok is True, f"[audio] Compression failed for '{ext}' at quality={q}."
+        assert res, f"[audio] Compression failed for '{ext}' at quality={q}: {res}."
         sizes[q] = out.stat().st_size
 
     assert sizes[20] < sizes[60] <= sizes[95], (

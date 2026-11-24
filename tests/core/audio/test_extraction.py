@@ -41,15 +41,15 @@ def test_file_extractor_extracts_all_target_formats_and_strips_video(
     dst = tmp_path / "extracted" / f"clip.{target_fmt}"
     progress_calls: list[tuple[float, float, float, float]] = []
 
-    ok = audio_file_extraction.file_extractor(
+    res = audio_file_extraction.file_extractor(
         input_path=src,
         output_path=dst,
         target_format=target_fmt,
         file_progress_callback=lambda d, p, f, s: progress_calls.append((d, p, f, s)),
     )
 
-    assert ok is True, (
-        f"[audio] Extraction from MP4 to '{target_fmt}' unexpectedly returned False."
+    assert res.is_processed, (
+        f"[audio] Extraction from MP4 to '{target_fmt}' unexpectedly failed or skipped: {res}."
     )
     assert dst.exists() and dst.stat().st_size > 0, (
         f"[audio] Extracted file '{dst}' was not created or is empty."
@@ -69,21 +69,24 @@ def test_file_extractor_extracts_all_target_formats_and_strips_video(
 
 
 @requires_libmp3lame
-def test_file_extractor_returns_false_for_silent_video_without_audio_stream(
+def test_file_extractor_skips_silent_video_without_audio_stream(
     sample_video_factory, tmp_path: Path
 ):
-    """Videos lacking any audio stream must cleanly return False without creating output."""
+    """Videos lacking any audio stream must cleanly return skipped (`skip_no_audio_stream`) without creating output."""
     silent_video = sample_video_factory("silent.mp4", duration=0.8, with_audio=False)
     dst = tmp_path / "extracted" / "silent.mp3"
 
-    ok = audio_file_extraction.file_extractor(
+    res = audio_file_extraction.file_extractor(
         input_path=silent_video,
         output_path=dst,
         target_format="mp3",
     )
 
-    assert ok is False, (
-        "[audio] Expected `file_extractor` to return False when video has no audio track."
+    assert res.is_skipped and res.reason_key == "skip_no_audio_stream", (
+        f"[audio] Expected `file_extractor` to return skipped ('skip_no_audio_stream') for silent video, got {res}."
+    )
+    assert not res.is_failed and not res.is_processed, (
+        f"[audio] Skipped silent video must not be marked failed or processed: {res}."
     )
     assert not dst.exists(), (
         "[audio] Silent video extraction must not leave an output file behind."
@@ -94,22 +97,23 @@ def test_file_extractor_rejects_invalid_inputs_and_cleans_temp_on_cancel(
     sample_video_factory, tmp_path: Path
 ):
     """`file_extractor` must reject missing/empty/same-path files and clean temp files on cancellation."""
-    assert (
-        audio_file_extraction.file_extractor(
-            tmp_path / "missing.mp4", tmp_path / "out.mp3", "mp3"
-        )
-        is False
-    ), "[audio] Missing video file must return False without raising."
+    res_missing = audio_file_extraction.file_extractor(
+        tmp_path / "missing.mp4", tmp_path / "out.mp3", "mp3"
+    )
+    assert res_missing.is_failed and not res_missing, (
+        "[audio] Missing video file must return failed FileResult without raising."
+    )
 
     empty = tmp_path / "empty.mp4"
     empty.write_bytes(b"")
-    assert (
-        audio_file_extraction.file_extractor(empty, tmp_path / "out.mp3", "mp3")
-        is False
-    ), "[audio] Zero-byte video file must return False."
+    res_empty = audio_file_extraction.file_extractor(empty, tmp_path / "out.mp3", "mp3")
+    assert res_empty.is_failed and not res_empty, (
+        "[audio] Zero-byte video file must return failed FileResult."
+    )
 
     valid = sample_video_factory("valid.mp4", duration=0.8)
-    assert audio_file_extraction.file_extractor(valid, valid, "mp3") is False, (
+    res_same = audio_file_extraction.file_extractor(valid, valid, "mp3")
+    assert res_same.is_failed and not res_same, (
         "[audio] Extractor must refuse overwriting source file when input_path == output_path."
     )
 
@@ -166,9 +170,10 @@ def test_file_extractor_triggers_rescue_stereo_fallback(
         audio_file_extraction, "run_audio_strategies", _fail_first_strategy
     )
 
-    assert (
-        audio_file_extraction.file_extractor(src, dst, target_format="ogg") is True
-    ), "[audio] file_extractor did not recover using the rescue stereo strategy."
+    res = audio_file_extraction.file_extractor(src, dst, target_format="ogg")
+    assert res.is_processed, (
+        f"[audio] file_extractor did not recover using the rescue stereo strategy: {res}."
+    )
     assert dst.exists() and dst.stat().st_size > 0, (
         "[audio] Rescue audio extraction did not produce a non-empty output file."
     )
@@ -208,7 +213,7 @@ def test_scan_video_sources_recursive_and_non_recursive(tmp_path: Path):
 def test_directory_extractor_preserves_hierarchy_handles_collisions_and_skips_silent(
     sample_video_factory, tmp_path: Path
 ):
-    """`directory_extractor` must preserve folder hierarchy, isolate silent/corrupt videos, and avoid collisions."""
+    """`directory_extractor` must preserve folder hierarchy, skip silent videos, and avoid collisions."""
     in_dir = tmp_path / "videos"
     out_dir = tmp_path / "output"
 
@@ -231,8 +236,11 @@ def test_directory_extractor_preserves_hierarchy_handles_collisions_and_skips_si
     assert stats["success"] == 3, (
         f"[audio] Expected 3 successful audio extractions, got {stats['success']} (stats={stats})."
     )
-    assert stats["failed"] == 1, (
-        f"[audio] Expected 1 failed extraction for silent video, got {stats['failed']}."
+    assert stats["skipped"] == 1, (
+        f"[audio] Expected 1 skipped extraction for silent video, got {stats['skipped']} (stats={stats})."
+    )
+    assert stats["failed"] == 0, (
+        f"[audio] Expected 0 failed extractions for silent video, got {stats['failed']} (stats={stats})."
     )
 
     session_dir = out_dir / "extracted"

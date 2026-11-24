@@ -7,6 +7,7 @@ from pathlib import Path
 
 from src.utils.binary_manager import get_ffmpeg_path
 from src.utils.cleanup import copy_original_file_atomically
+from src.utils.file_result import FileResult
 from src.video.utils.video_ffmpeg_utils import (
     HEVC_COMPRESSION_CONTAINERS,
     RESCUE_INPUT_ARGS,
@@ -122,7 +123,7 @@ def file_converter(
     target_format: str,
     cancel_event: threading.Event | None = None,
     file_progress_callback: Callable[[float, float, float, float], None] | None = None,
-) -> bool:
+) -> FileResult:
     """Converts a video file to the specified target format using FFmpeg.
 
     Tries a chain of strategies, from fastest/lossless to most tolerant, and
@@ -150,7 +151,7 @@ def file_converter(
           Callback receiving (duration_seconds, processed_seconds, fps, speed).
 
     Returns:
-        bool: True if conversion succeeded, False otherwise.
+        FileResult: Outcome of the conversion operation.
 
     Raises:
         InterruptedError: If cancellation was requested via cancel_event.
@@ -161,13 +162,13 @@ def file_converter(
             logger.error(
                 f"Refusing to convert '{input_path.name}': file does not exist or is empty."
             )
-            return False
+            return FileResult.failed()
 
         if is_same_file(input_path, output_path):
             logger.error(
                 f"Refusing to convert '{input_path.name}': output path is the source file."
             )
-            return False
+            return FileResult.failed()
 
         # Ensure the destination directory exists
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -183,14 +184,15 @@ def file_converter(
             logger.error(
                 f"Failed to probe media streams for '{input_path.name}': corrupted or unsupported file."
             )
-            return False
+            return FileResult.failed()
 
         # Bypass FFmpeg re-encoding if extensions match and media streams are valid
         if input_ext == target_fmt:
             return copy_original_file_atomically(
                 input_path,
                 output_path,
-                f"already .{target_fmt}, skipping re-encoding",
+                "skip_same_format",
+                fmt=target_fmt,
             )
 
         video_ok, audio_ok = copy_compatibility(target_fmt, info)
@@ -233,12 +235,12 @@ def file_converter(
         if used is None:
             if tmp_path.exists():
                 tmp_path.unlink(missing_ok=True)
-            return False
+            return FileResult.failed()
 
         os.replace(tmp_path, output_path)
 
         logger.info(f"Successfully converted '{input_path.name}' to '{target_fmt}'.")
-        return True
+        return FileResult.processed()
 
     except InterruptedError:
         if tmp_path and tmp_path.exists():
@@ -249,4 +251,4 @@ def file_converter(
         logger.exception(f"Failed to convert '{input_path.name}'.")
         if tmp_path and tmp_path.exists():
             tmp_path.unlink(missing_ok=True)
-        return False
+        return FileResult.failed()

@@ -5,6 +5,7 @@ from typing import Any
 from src.formats import (
     VIDEO_TARGET_FORMATS as SUPPORTED_VIDEO_CONVERSION_FORMATS,
 )
+from src.utils.file_result import FileResult
 from src.utils.output_naming import unique_conversion_output_path
 from src.utils.progress import ProgressInfo
 from src.video.video_directory_conversion import directory_converter
@@ -41,7 +42,7 @@ class VideoConversionController(BaseController):
         output_path: Path,
         params: Any,
         progress_cb: ProgressCallback,
-    ) -> bool:
+    ) -> FileResult:
         return file_converter(
             input_path=input_path,
             output_path=output_path,

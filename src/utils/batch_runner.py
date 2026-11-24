@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from src.utils.cleanup import safe_cleanup_session_files
+from src.utils.file_result import FileResult, as_file_result
 from src.utils.output_directory import create_unique_output_dir
 from src.utils.progress import ProgressInfo
 
@@ -57,7 +58,7 @@ def run_batch(
     output_dir: str | Path,
     session_name: str,
     scanner: Callable[[Path], list[Path]],
-    process_file: Callable[[Path, Path], bool],
+    process_file: Callable[[Path, Path], "bool | FileResult"],
     build_destination: Callable[[Path, Path], Path],
     progress_callback: Callable[[ProgressInfo], None] | None = None,
     cancel_event: Any | None = None,
@@ -75,7 +76,8 @@ def run_batch(
         output_dir (str | Path): Destination directory for processed results.
         session_name (str): Identifier used to name the unique output subfolder.
         scanner (Callable[[Path], list[Path]]): Function returning a list of valid file paths.
-        process_file (Callable[[Path, Path], bool]): Function processing a single file (src -> dst).
+        process_file (Callable[[Path, Path], bool | FileResult]): Function processing a
+            single file (src -> dst). A legacy ``bool`` is converted via ``as_file_result``.
         build_destination (Callable[[Path, Path], Path]): Function computing output path for a file.
         progress_callback (Callable[[ProgressInfo], None] | None, optional): Callback receiving
             detailed ProgressInfo instances. Defaults to None.
@@ -85,7 +87,10 @@ def run_batch(
             upon cancellation. Defaults to False.
 
     Returns:
-        dict[str, Any]: Summary dictionary containing execution statistics.
+        dict[str, Any]: Summary dictionary containing execution statistics. ``success``
+            counts processed files, ``skipped`` counts files kept as-is or not
+            generated, and ``failed`` counts failures. Byte totals only include
+            processed files.
     """
     input_path = Path(input_dir)
     output_path = Path(output_dir)
@@ -94,6 +99,7 @@ def run_batch(
     stats: dict[str, Any] = {
         "total_files": 0,
         "success": 0,
+        "skipped": 0,
         "failed": 0,
         "elapsed_seconds": 0.0,
         "original_bytes": 0,
@@ -129,7 +135,7 @@ def run_batch(
             if cancel_event and cancel_event.is_set():
                 raise InterruptedError("Processamento cancelado pelo usuário.")
 
-            success = False
+            result = FileResult.failed()
             orig_size = 0
             comp_size = 0
             # Per-file tracking state: reset every iteration so a failure while
@@ -149,7 +155,6 @@ def run_batch(
                     orig_size = src_file.stat().st_size
                 except OSError:
                     orig_size = 0
-                stats["original_bytes"] += orig_size
 
                 # Emit initial progress before processing to allow live intra-file tracking
                 if progress_callback:
@@ -165,12 +170,16 @@ def run_batch(
                     )
                     _emit_progress(progress_callback, start_info)
 
-                success = process_file(src_file, dst_file)
+                result = as_file_result(process_file(src_file, dst_file))
 
-                if success and dst_file.exists():
+                # Processed and skipped files both leave an output the cancellation
+                # cleanup must be able to remove (pre-existing ones stay protected).
+                if not result.is_failed and dst_file.exists():
                     created_destination_files.append(dst_file)
-                    comp_size = dst_file.stat().st_size
-                    stats["compressed_bytes"] += comp_size
+                    if result.is_processed:
+                        comp_size = dst_file.stat().st_size
+                        stats["original_bytes"] += orig_size
+                        stats["compressed_bytes"] += comp_size
             except InterruptedError:
                 # Cancellation is not a file failure: let the outer handler clean up.
                 # Register a known-new output first (OSError-safe, never replaces this).
@@ -182,15 +191,18 @@ def run_batch(
                 raise
             except Exception:
                 logger.exception(f"Failed to process file '{src_file}'")
-                success = False
+                result = FileResult.failed()
+                comp_size = 0
                 # A failed file may still have left a new (possibly partial) output
                 # behind. Keep it eligible for cancellation cleanup, but only when we
                 # positively know the destination did not exist before processing.
                 if dst_file is not None and dst_preexisted is False:
                     _track_new_output(dst_file, created_destination_files)
 
-            if success:
+            if result.is_processed:
                 stats["success"] += 1
+            elif result.is_skipped:
+                stats["skipped"] += 1
             else:
                 stats["failed"] += 1
 
@@ -201,10 +213,16 @@ def run_batch(
                     total=total_files,
                     start_time=start_time,
                     file_path=src_file,
-                    success=success,
+                    # `success` means "did not fail"; a skip is success=True + skipped=True
+                    success=not result.is_failed,
                     orig_bytes=orig_size,
                     comp_bytes=comp_size,
                     is_completed=True,
+                    skipped=result.is_skipped,
+                    skip_reason_key=result.reason_key if result.is_skipped else None,
+                    skip_reason_params=(
+                        dict(result.reason_params) if result.is_skipped else {}
+                    ),
                 )
                 _emit_progress(progress_callback, progress_info)
 

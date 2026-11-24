@@ -1,4 +1,4 @@
-"""Core (image): testes de compression (engines de arquivo e de diretorio)."""
+"""Core (image): tests from compression"""
 
 import threading
 
@@ -41,10 +41,15 @@ def test_image_compression_keep_original_when_uncompressible(
     create_sample_image(src_gif, mode="P", fmt="GIF")
 
     dst_gif = out_dir / "compressed.gif"
-    success = file_compressor(src_gif, dst_gif, quality=80)
+    res = file_compressor(src_gif, dst_gif, quality=80)
 
-    assert success is True, (
-        "[image] Compressing uncompressible GIF format must succeed via keep-original fallback."
+    assert (
+        res
+        and res.is_skipped
+        and res.reason_key == "skip_uncompressible_format"
+        and res.reason_params.get("fmt") == "GIF"
+    ), (
+        f"[image] Compressing uncompressible GIF format must return skipped ('skip_uncompressible_format'), got {res}."
     )
     assert dst_gif.exists(), (
         "[image] Keep-original fallback must still copy the GIF file to the destination path."
@@ -63,10 +68,15 @@ def test_heic_image_compression_keeps_original(tmp_workspace, create_sample_imag
     heif_file.save(src_heic)
 
     dst_heic = out_dir / "compressed.heic"
-    success = file_compressor(src_heic, dst_heic, quality=80)
+    res = file_compressor(src_heic, dst_heic, quality=80)
 
-    assert success is True, (
-        "[image] HEIC compression must succeed cleanly via untouched atomic copy."
+    assert (
+        res
+        and res.is_skipped
+        and res.reason_key == "skip_uncompressible_format"
+        and res.reason_params.get("fmt") == "HEIF"
+    ), (
+        f"[image] HEIC compression must return skipped ('skip_uncompressible_format') via atomic copy, got {res}."
     )
     assert dst_heic.exists(), (
         "[image] Destination HEIC file was not created during keep-original copy."
@@ -92,10 +102,10 @@ def test_image_compression_atomic_keep_original_on_failure(
 
     monkeypatch.setattr("src.utils.cleanup.shutil.copy2", failing_copy2)
 
-    success = file_compressor(src_gif, dst_gif, quality=80)
+    res = file_compressor(src_gif, dst_gif, quality=80)
 
-    assert success is False, (
-        "[image] Simulated I/O error during atomic keep-original copy must return False."
+    assert res.is_failed and not res, (
+        f"[image] Simulated I/O error during atomic keep-original copy must return failed FileResult, got {res}."
     )
     assert dst_gif.exists(), (
         "[image] Failed keep-original copy must not unlink pre-existing destination file."
@@ -127,14 +137,16 @@ def test_file_compressor_strip_metadata_flag(tmp_workspace):
     )
 
     dst_keep = out_dir / "keep_meta.jpg"
-    assert file_compressor(src_jpg, dst_keep, quality=80, strip_metadata=False) is True
+    res_keep = file_compressor(src_jpg, dst_keep, quality=80, strip_metadata=False)
+    assert res_keep.is_processed, f"[image] Expected processed FileResult, got {res_keep}."
     with Image.open(dst_keep) as kept_img:
         assert kept_img.size == (120, 240)
         assert kept_img.getexif().get(271) == "CameraBrand"
         assert "icc_profile" in kept_img.info
 
     dst_strip = out_dir / "strip_meta.jpg"
-    assert file_compressor(src_jpg, dst_strip, quality=80, strip_metadata=True) is True
+    res_strip = file_compressor(src_jpg, dst_strip, quality=80, strip_metadata=True)
+    assert res_strip.is_processed, f"[image] Expected processed FileResult, got {res_strip}."
     with Image.open(dst_strip) as clean_img:
         assert clean_img.size == (120, 240), (
             "[image] Display orientation must be preserved when strip_metadata=True."
@@ -162,7 +174,10 @@ def test_file_compressor_strip_metadata_removes_png_chunks_even_without_size_gai
     img.save(src_png, format="PNG", pnginfo=pnginfo)
 
     dst_png = out_dir / "stripped.png"
-    assert file_compressor(src_png, dst_png, quality=95, strip_metadata=True) is True
+    res = file_compressor(src_png, dst_png, quality=95, strip_metadata=True)
+    assert res.is_processed, (
+        f"[image] strip_metadata=True must return processed even without size reduction, got {res}."
+    )
 
     with Image.open(dst_png) as out_img:
         assert "Author" not in out_img.info
@@ -187,6 +202,8 @@ def test_directory_compressor_forwards_strip_metadata(tmp_workspace):
     )
 
     assert summary["success"] == 1
+    assert summary["skipped"] == 0
+    assert summary["failed"] == 0
     session_dir = next(p for p in out_dir.iterdir() if p.is_dir())
     with Image.open(session_dir / "batch_photo.jpg") as out_img:
         assert len(out_img.getexif()) == 0

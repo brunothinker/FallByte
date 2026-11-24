@@ -8,6 +8,7 @@ from typing import Any
 
 import flet as ft
 
+from src.utils.file_result import FileResult, as_file_result
 from src.utils.progress import ProgressInfo
 from ui.components.dialog_utils import (
     show_no_supported_files_dialog,
@@ -304,7 +305,7 @@ class BaseController:
         output_path: Path,
         params: Any,
         progress_cb: ProgressCallback,
-    ) -> bool:
+    ) -> FileResult:
         """Runs the single-file engine. ``progress_cb(duration, processed, fps, speed)`` is optional to use."""
         raise NotImplementedError
 
@@ -424,13 +425,32 @@ class BaseController:
         return text + self._speed_suffix(speed, fps)
 
     @staticmethod
-    def _summary_counts(summary: dict[str, Any]) -> tuple[int, int]:
-        """Normalizes (success, total) across the different engine summary shapes."""
+    def _result_line(
+        filename: str,
+        *,
+        skipped: bool = False,
+        success: bool = True,
+        reason_key: str | None = None,
+        reason_params: dict[str, Any] | None = None,
+    ) -> str:
+        """Formats a single-file outcome line ([OK], [SKIP], or [FAIL]) for the log."""
+        if skipped:
+            reason = t(reason_key, **(reason_params or {})) if reason_key else ""
+            return f"[SKIP] {filename} - {reason}" if reason else f"[SKIP] {filename}"
+        if success:
+            return f"[OK] {filename}"
+        return f"[FAIL] {filename}"
+
+    @staticmethod
+    def _summary_counts(summary: dict[str, Any]) -> tuple[int, int, int, int]:
+        """Normalizes (success, skipped, failed, total) across engine summary shapes."""
         success = summary.get("success", summary.get("successful", 0))
+        skipped = summary.get("skipped", 0)
+        failed = summary.get("failed", 0)
         total = summary.get("total_files", summary.get("total"))
         if total is None:
-            total = success + summary.get("failed", 0)
-        return success, total
+            total = success + skipped + failed
+        return success, skipped, failed, total
 
     def _run_single_file_job(self, ui: JobUI, params: Any) -> None:
         """Template for a single-file job: lifecycle, metrics, cancellation and summary dialog."""
@@ -453,7 +473,7 @@ class BaseController:
 
             orig_bytes = input_path.stat().st_size
             start_time = time.time()
-            success = False
+            result = FileResult.failed()
 
             redirector = TextRedirector()
             redirector.start()
@@ -470,44 +490,65 @@ class BaseController:
                 ui.lbl_status.update()
 
             try:
-                success = self.run_single_engine(
-                    input_path, out_file, params, file_progress_cb
+                result = as_file_result(
+                    self.run_single_engine(
+                        input_path, out_file, params, file_progress_cb
+                    )
                 )
-                print(f"[OK] {filename}" if success else f"[FAIL] {filename}")
+                print(
+                    self._result_line(
+                        filename,
+                        skipped=result.is_skipped,
+                        success=not result.is_failed,
+                        reason_key=result.reason_key,
+                        reason_params=result.reason_params,
+                    )
+                )
             except InterruptedError:
-                success = False
+                result = FileResult.failed()
                 self.abort_requested = True
                 print(f"[CANCELLED] {filename}")
             except Exception as err:
-                success = False
+                result = FileResult.failed()
                 print(f"[ERROR] {filename}: {err}")
             finally:
                 redirector.stop()
 
             elapsed = time.time() - start_time
-            comp_bytes = out_file.stat().st_size if success and out_file.exists() else 0
+            comp_bytes = (
+                out_file.stat().st_size
+                if result.is_processed and out_file.exists()
+                else 0
+            )
 
             self._close_cancel_dialog(ui.page)
 
             if not self.abort_requested:
-                self._set_status(
-                    ui.lbl_status,
-                    t("msg_success" if success else "msg_error"),
-                    "success" if success else "error",
-                )
+                if result.is_processed:
+                    status_key = "msg_success"
+                    status_color = "success"
+                elif result.is_skipped:
+                    status_key = "msg_kept_original"
+                    status_color = "warning"
+                else:
+                    status_key = "msg_error"
+                    status_color = "error"
+
+                self._set_status(ui.lbl_status, t(status_key), status_color)
                 show_summary_dialog(
                     ui.page,
                     {
                         "total_files": 1,
-                        "success": 1 if success else 0,
-                        "failed": 0 if success else 1,
+                        "success": 1 if result.is_processed else 0,
+                        "skipped": 1 if result.is_skipped else 0,
+                        "failed": 1 if result.is_failed else 0,
                         "elapsed_seconds": round(elapsed, 2),
-                        "original_bytes": orig_bytes,
+                        "original_bytes": orig_bytes if result.is_processed else 0,
                         "compressed_bytes": comp_bytes,
                         "terminal_log": redirector.get_logs(),
-                        "errors": []
-                        if success
-                        else [{"file": filename, "error": t("msg_error")}],
+                        "errors": [{"file": filename, "error": t("msg_error")}]
+                        if result.is_failed
+                        else [],
                     },
                 )
             else:
@@ -543,7 +584,15 @@ class BaseController:
                 file_name = info.file_path.name if info.file_path else ""
 
                 if info.is_completed:
-                    print(f"[OK] {file_name}" if info.success else f"[FAIL] {file_name}")
+                    print(
+                        self._result_line(
+                            file_name,
+                            skipped=info.skipped,
+                            success=info.success,
+                            reason_key=info.skip_reason_key,
+                            reason_params=info.skip_reason_params,
+                        )
+                    )
 
                 ui.lbl_status.value = self._progress_text(
                     info.current,
@@ -585,13 +634,17 @@ class BaseController:
                 ui.progress_bar.value = 1.0
                 ui.progress_bar.update()
 
-                success_cnt, total_cnt = self._summary_counts(summary)
+                success_cnt, skipped_cnt, failed_cnt, total_cnt = self._summary_counts(
+                    summary
+                )
                 self._set_status(
                     ui.lbl_status,
                     t(
-                        "msg_success_summary",
+                        "msg_batch_summary",
                         msg=t("msg_success"),
                         successful=success_cnt,
+                        skipped=skipped_cnt,
+                        failed=failed_cnt,
                         total=total_cnt,
                     ),
                     "success",

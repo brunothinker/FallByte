@@ -32,8 +32,9 @@ def format_size(size_bytes: int) -> str:
 def get_log_line_color(line_str: str) -> str:
     """Determines the theme color key for a terminal log line based on tags and keywords.
 
-    Prioritizes explicit bracket tags ([fail], [error], [warning], [ok]) before falling back
-    to general text matching to prevent false-positive matches (e.g. '[FAIL] image_compressed.png').
+    Prioritizes explicit bracket tags ([fail], [error], [warning], [skip], [ok]) before
+    falling back to general text matching to prevent false-positive matches
+    (e.g. '[FAIL] image_compressed.png' or '[SKIP] video_converted.mp4').
 
     Args:
         line_str (str): The raw log line string to evaluate.
@@ -46,7 +47,7 @@ def get_log_line_color(line_str: str) -> str:
     # Priority 1: Check explicit bracket tags first to prevent false positive matches on file names
     if any(tag in line_lower for tag in ["[fail]", "[error]"]):
         return get_color("error")
-    if "[warning]" in line_lower:
+    if any(tag in line_lower for tag in ["[warning]", "[skip]"]):
         return get_color("warning")
     if "[ok]" in line_lower:
         return get_color("success")
@@ -96,8 +97,11 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
         summary: Dictionary containing process statistics, file lists, and execution logs.
     """
     success = summary.get("success", summary.get("successful", 0))
+    skipped = summary.get("skipped", 0)
     failed = summary.get("failed", 0)
-    total = summary.get("total_files", summary.get("total", success + failed))
+    total = summary.get("total_files", summary.get("total"))
+    if total is None:
+        total = success + skipped + failed
     elapsed = summary.get("elapsed_seconds", 0.0)
     errors = summary.get("errors", [])
 
@@ -140,10 +144,27 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
             fname = item.get("name", "Unknown")
             item_orig = item.get("orig_bytes", 0)
             item_comp = item.get("comp_bytes", 0)
+            item_skipped = item.get("skipped", False)
             item_success = item.get("success", True)
             item_err = item.get("error", "")
 
-            if not item_success:
+            if item_skipped:
+                reason_key = item.get("skip_reason_key")
+                reason_params = item.get("skip_reason_params") or {}
+                reason = t(reason_key, **reason_params) if reason_key else ""
+                skip_line = (
+                    f"[SKIP] {fname} - {reason}" if reason else f"[SKIP] {fname}"
+                )
+                raw_log_text_list.append(skip_line)
+                log_items.append(
+                    ft.Text(
+                        skip_line,
+                        size=11,
+                        color=get_color("warning"),
+                        font_family="monospace",
+                    )
+                )
+            elif not item_success:
                 err_line = f"[FAIL] {fname}: {item_err or t('msg_error')}"
                 raw_log_text_list.append(err_line)
                 log_items.append(
@@ -314,6 +335,24 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
                             size=16,
                             weight=ft.FontWeight.BOLD,
                             color=get_color("success"),
+                        ),
+                    ],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+                ft.Column(
+                    [
+                        ft.Text(
+                            t("log_summary_skipped"),
+                            size=11,
+                            color=get_color("subtext"),
+                        ),
+                        ft.Text(
+                            str(skipped),
+                            size=16,
+                            weight=ft.FontWeight.BOLD,
+                            color=get_color("warning")
+                            if skipped > 0
+                            else get_color("text"),
                         ),
                     ],
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,

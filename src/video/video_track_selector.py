@@ -8,6 +8,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from src.utils.binary_manager import get_ffmpeg_path
+from src.utils.file_result import FileResult
 from src.video.utils.video_ffmpeg_utils import (
     RESCUE_INPUT_ARGS,
     MediaTrack,
@@ -212,7 +213,7 @@ def remux_selected_tracks(
     cancel_event: threading.Event | None = None,
     progress_callback: Callable[[float, float, float], None] | None = None,
     ffmpeg_bin: Path | None = None,
-) -> bool:
+) -> FileResult:
     """Creates a lossless copy of `input_path` keeping only selected audio/subtitle tracks.
 
     Writes output atomically to a temporary file next to `output_path` and moves it into
@@ -229,7 +230,7 @@ def remux_selected_tracks(
         ffmpeg_bin: Optional explicit FFmpeg binary path.
 
     Returns:
-        bool: True if remuxing succeeded and produced a non-empty file, False otherwise.
+        FileResult: Outcome of the track remuxing operation.
 
     Raises:
         InterruptedError: If cancelled via `cancel_event`.
@@ -238,13 +239,13 @@ def remux_selected_tracks(
     try:
         if not input_path.exists() or not input_path.is_file():
             logger.error(f"Input video file does not exist: '{input_path}'")
-            return False
+            return FileResult.failed()
 
         if is_same_file(input_path, output_path):
             logger.error(
                 f"Refusing to overwrite source video file in-place: '{input_path}'"
             )
-            return False
+            return FileResult.failed()
 
         if cancel_event is not None and cancel_event.is_set():
             raise InterruptedError("CANCELLED_BY_USER")
@@ -299,10 +300,10 @@ def remux_selected_tracks(
         if used_strategy is None:
             if tmp_path.exists():
                 tmp_path.unlink(missing_ok=True)
-            return False
+            return FileResult.failed()
 
         os.replace(tmp_path, output_path)
-        return True
+        return FileResult.processed()
 
     except InterruptedError:
         if tmp_path and tmp_path.exists():
@@ -313,4 +314,4 @@ def remux_selected_tracks(
         logger.exception(f"Failed to remux tracks for '{input_path.name}'.")
         if tmp_path and tmp_path.exists():
             tmp_path.unlink(missing_ok=True)
-        return False
+        return FileResult.failed()

@@ -93,6 +93,7 @@ strings:
   msg_compressing_progress: "Compression : [{current}/{total}] - {filename}"
   msg_process_cancelled: "Traitement annulé. {count} fichier(s) généré(s) supprimé(s)."
   msg_success_summary: "{msg} | Réussis : {successful} / {total}"
+  msg_batch_summary: "{msg} | Réussis : {successful} | Ignorés : {skipped} | Échecs : {failed} | Total : {total}"
   msg_supported_formats_notice: "Formats pris en charge pour la compression : {formats}"
   msg_supported_formats_notice_conversion: "Formats pris en charge pour la conversion : {formats}"
 
@@ -108,6 +109,7 @@ strings:
   dialog_no_files_formats: "Formats pris en charge : {formats}"
   log_dialog_title: "Résultats du traitement"
   log_summary_success: "Réussis"
+  log_summary_skipped: "Ignorés"
   log_summary_failed: "Échecs"
   log_summary_total: "Total des fichiers"
   log_summary_time: "Temps écoulé"
@@ -118,6 +120,15 @@ strings:
   log_size_stat: "Taille : {orig} -> {comp}"
   log_reduction_stat: "Gain : -{pct:.1f}%"
   log_increase_stat: "Hausse : +{pct:.1f}%"
+  msg_kept_original: "Fichier conservé tel quel : aucune modification n'était nécessaire."
+  skip_uncompressible_format: "{fmt} ne peut pas être compressé en toute sécurité"
+  skip_animated_png: "le PNG animé perdrait ses images"
+  skip_not_smaller: "le résultat n'était pas plus petit à {quality}% de qualité"
+  skip_same_format: "déjà en .{fmt}, aucune conversion nécessaire"
+  skip_audio_not_reencoded: "{fmt} n'est pas réencodé lors de la compression audio"
+  skip_no_upscale: "déjà en {src_width}x{src_height} (inférieur ou égal à {target_height}p), non agrandi"
+  skip_no_audio_stream: "la vidéo ne contient aucune piste audio"
+  skip_unsupported_normalization_format: "{fmt} n'est pas pris en charge pour la normalisation du volume"
 
   # ============================================================================
   # Module: Image
@@ -176,7 +187,7 @@ strings:
   # --- Video: Track Selection ---
   video_hub_card_tracks_title: "Choisir Audio et Sous-titres"
   video_hub_card_tracks_desc: "Conservez les pistes audio et sous-titres sélectionnées dans un remux sans perte."
-  lbl_audio_tracks: "Pistas de audio"
+  lbl_audio_tracks: "Pistes audio"
   lbl_subtitle_tracks: "Pistes de sous-titres"
   msg_inspecting_tracks: "Inspection des pistes..."
   msg_no_audio_tracks: "Aucune piste audio trouvée."

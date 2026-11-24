@@ -1,4 +1,4 @@
-"""UI: testes PARAMETRIZADOS entre varios controllers (nao dividir)."""
+"""UI: parameterized tests across multiple controllers (do not split)."""
 
 import logging
 import sys
@@ -10,6 +10,8 @@ from unittest.mock import MagicMock, Mock
 import flet as ft
 import pytest
 
+from src.utils.file_result import FileResult
+from src.utils.progress import ProgressInfo
 from tests.ui.helpers import assert_idle_ui
 from ui import app_layout, theme
 from ui.i18n import t
@@ -24,6 +26,7 @@ def walk(control: ft.Control) -> Iterator[ft.Control]:
 
 BATCH_OK = {
     "success": 2,
+    "skipped": 0,
     "failed": 1,
     "total_files": 3,
     "elapsed_seconds": 1.0,
@@ -111,6 +114,9 @@ def test_single_file_success(ctx):
     assert payload["success"] == 1, (
         "[ui] Successful single-file summary payload must report success == 1."
     )
+    assert payload["skipped"] == 0, (
+        "[ui] Successful single-file summary payload must report skipped == 0."
+    )
     assert payload["failed"] == 0, (
         "[ui] Successful single-file summary payload must report failed == 0."
     )
@@ -126,6 +132,48 @@ def test_single_file_success(ctx):
     assert_idle_ui(ctx)
 
 
+def test_single_file_skipped(ctx):
+    """A skipped single-file run reports skipped == 1, logs [SKIP] and sets warning status."""
+    ctx.fake_file_engine(
+        result=FileResult.skipped("skip_not_smaller", quality=80)
+    )
+    ctx.run_single()
+
+    ctx.summary_dialog.assert_called_once()
+    payload = ctx.summary_payload()
+    assert payload["success"] == 0, (
+        "[ui] Skipped single-file summary payload must report success == 0."
+    )
+    assert payload["skipped"] == 1, (
+        "[ui] Skipped single-file summary payload must report skipped == 1."
+    )
+    assert payload["failed"] == 0, (
+        "[ui] Skipped single-file summary payload must report failed == 0."
+    )
+    assert payload["total_files"] == 1, (
+        "[ui] Skipped single-file summary payload must report total_files == 1."
+    )
+    assert payload["original_bytes"] == 0, (
+        "[ui] Skipped single-file summary payload must report original_bytes == 0."
+    )
+    assert "[SKIP]" in payload["terminal_log"], (
+        "[ui] Skipped single-file terminal log must contain a '[SKIP]' tag."
+    )
+    assert "[OK]" not in payload["terminal_log"], (
+        "[ui] Skipped single-file terminal log must not emit an '[OK]' tag."
+    )
+    assert "[FAIL]" not in payload["terminal_log"], (
+        "[ui] Skipped single-file terminal log must not emit a '[FAIL]' tag."
+    )
+    assert ctx.lbl_status.value == t("msg_kept_original"), (
+        "[ui] Status label must show translated 'msg_kept_original' when single-file is skipped."
+    )
+    assert ctx.lbl_status.color == get_color("warning"), (
+        "[ui] Status label must use warning color when single-file is skipped."
+    )
+    assert_idle_ui(ctx)
+
+
 def test_single_file_failure(ctx):
     """A failed single-file run reports one failure, logs [FAIL] and shows the error status."""
     ctx.fake_file_engine(ok=False)
@@ -134,6 +182,9 @@ def test_single_file_failure(ctx):
     payload = ctx.summary_payload()
     assert payload["success"] == 0, (
         "[ui] Failed single-file summary payload must report success == 0."
+    )
+    assert payload["skipped"] == 0, (
+        "[ui] Failed single-file summary payload must report skipped == 0."
     )
     assert payload["failed"] == 1, (
         "[ui] Failed single-file summary payload must report failed == 1."
@@ -180,7 +231,7 @@ def test_single_file_sets_stop_button_while_running(ctx):
         seen["session"] = ctx.page.session.set.call_args
         kwargs["output_path"].parent.mkdir(parents=True, exist_ok=True)
         kwargs["output_path"].write_bytes(b"out")
-        return True
+        return FileResult.processed()
 
     setattr(ctx.module, ctx.spec["file_engine"], fake)
     ctx.run_single()
@@ -212,11 +263,70 @@ def test_batch_success_shows_summary_and_restores_ui(ctx):
         "[ui] Progress bar must reach 1.0 (100%) upon batch completion."
     )
     assert ctx.lbl_status.value == t(
-        "msg_success_summary", msg=t("msg_success"), successful=2, total=3
-    ), "[ui] Status label must display the formatted 'X of Y' batch completion summary."
+        "msg_batch_summary",
+        msg=t("msg_success"),
+        successful=2,
+        skipped=0,
+        failed=1,
+        total=3,
+    ), "[ui] Status label must display the formatted batch completion summary."
     assert "terminal_log" in ctx.summary_payload(), (
         "[ui] Batch summary payload must include captured terminal_log output."
     )
+    assert_idle_ui(ctx)
+
+
+def test_batch_with_skipped_files_logs_and_reports_counts(ctx):
+    """Batch runs with skipped items emit [SKIP] log lines and report skipped count in status."""
+    sample_path = ctx.in_dir / ctx.spec["in_name"]
+
+    def fake_dir(**kwargs):
+        cb = kwargs.get("progress_callback")
+        if cb:
+            cb(
+                ProgressInfo(
+                    current=1,
+                    total=2,
+                    file_path=sample_path,
+                    start_time=0.0,
+                    success=True,
+                    skipped=True,
+                    skip_reason_key="skip_not_smaller",
+                    skip_reason_params={"quality": 80},
+                )
+            )
+        print(f"[SKIP] {sample_path.name}")
+        return {
+            "success": 1,
+            "skipped": 1,
+            "failed": 0,
+            "total_files": 2,
+            "elapsed_seconds": 1.0,
+            "original_bytes": 100,
+            "compressed_bytes": 50,
+            "cancelled": False,
+            "cleaned_files_count": 0,
+        }
+
+    setattr(ctx.module, ctx.spec["dir_engine"], fake_dir)
+    ctx.run_batch()
+
+    ctx.summary_dialog.assert_called_once()
+    payload = ctx.summary_payload()
+    assert payload["skipped"] == 1, (
+        "[ui] Batch summary payload must report skipped == 1."
+    )
+    assert "[SKIP]" in payload["terminal_log"], (
+        "[ui] Batch terminal log must contain '[SKIP]' for skipped items."
+    )
+    assert ctx.lbl_status.value == t(
+        "msg_batch_summary",
+        msg=t("msg_success"),
+        successful=1,
+        skipped=1,
+        failed=0,
+        total=2,
+    ), "[ui] Status label must include skipped count in msg_batch_summary."
     assert_idle_ui(ctx)
 
 

@@ -1,4 +1,4 @@
-"""Core (video): testes de conversion (engines de arquivo e de diretorio)."""
+"""Core (video): tests from converison"""
 
 import subprocess
 import threading
@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from src.image.image_file_conversion import file_converter
+from src.utils.file_result import FileResult
 from src.video import (
     video_directory_conversion as video_conversion,
 )
@@ -30,7 +31,7 @@ def test_video_batch_conversion_cleans_up_when_cancelled(tmp_workspace, monkeypa
             raise InterruptedError("CANCELLED_BY_USER")
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_bytes(input_path.read_bytes())
-        return True
+        return FileResult.processed()
 
     monkeypatch.setattr(video_conversion, "file_converter", fake_converter)
 
@@ -62,7 +63,7 @@ def test_video_batch_conversion_avoids_output_name_collisions(
     ):
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_bytes(input_path.read_bytes())
-        return True
+        return FileResult.processed()
 
     monkeypatch.setattr(video_conversion, "file_converter", fake_converter)
 
@@ -121,11 +122,22 @@ def test_video_conversion_all_formats(
     src_mp4 = create_sample_video(in_dir / "input.mp4", duration_sec=1)
 
     dst_file = out_dir / f"output.{target_format}"
-    success = video_converter(src_mp4, dst_file, target_format=target_format)
+    res = video_converter(src_mp4, dst_file, target_format=target_format)
 
-    assert success is True, (
-        f"[video] Video conversion from MP4 to '{target_format}' unexpectedly returned False."
-    )
+    if target_format == "mp4":
+        assert (
+            res
+            and res.is_skipped
+            and res.reason_key == "skip_same_format"
+            and res.reason_params.get("fmt") == "mp4"
+        ), (
+            f"[video] Same-format MP4->MP4 conversion must return skipped ('skip_same_format'), got {res}."
+        )
+    else:
+        assert res.is_processed, (
+            f"[video] Video conversion from MP4 to '{target_format}' unexpectedly failed or skipped: {res}."
+        )
+
     assert dst_file.exists(), (
         f"[video] Converted video file '{dst_file}' was not written to disk."
     )
@@ -147,15 +159,15 @@ def test_video_conversion_realtime_progress_callback(
     def progress_cb(dur: float, proc: float, fps: float, speed: float) -> None:
         progress_ticks.append((dur, proc, fps, speed))
 
-    success = video_converter(
+    res = video_converter(
         src_mp4,
         dst_file,
         target_format="mkv",
         file_progress_callback=progress_cb,
     )
 
-    assert success is True, (
-        "[video] Video conversion with an active progress callback returned False."
+    assert res.is_processed, (
+        f"[video] Video conversion with an active progress callback failed: {res}."
     )
     assert len(progress_ticks) > 0, (
         "[video] Expected FFmpeg `-progress pipe:1` to emit at least one progress tick."
@@ -183,17 +195,17 @@ def test_process_files_with_special_characters_and_spaces(
     out_video = out_dir / "converted_video_output.mkv"
     out_image = out_dir / "converted_image_output.jpg"
 
-    video_success = video_converter(special_video, out_video, target_format="mkv")
-    image_success = file_converter(special_image, out_image, target_format="JPEG")
+    video_res = video_converter(special_video, out_video, target_format="mkv")
+    image_res = file_converter(special_image, out_image, target_format="JPEG")
 
-    assert video_success is True, (
-        "[video] Video conversion failed on paths containing Unicode accents, spaces, and symbols."
+    assert video_res.is_processed, (
+        f"[video] Video conversion failed on paths containing Unicode accents, spaces, and symbols: {video_res}."
     )
     assert out_video.exists(), (
         "[video] Converted video was not created at Unicode destination path."
     )
-    assert image_success is True, (
-        "[video] Image conversion failed on paths containing Unicode accents, spaces, and symbols."
+    assert image_res.is_processed, (
+        f"[video] Image conversion failed on paths containing Unicode accents, spaces, and symbols: {image_res}."
     )
     assert out_image.exists(), (
         "[video] Converted image was not created at Unicode destination path."
@@ -201,14 +213,14 @@ def test_process_files_with_special_characters_and_spaces(
 
 
 def test_process_non_existent_file_handling(tmp_path):
-    """Verifies that non-existent input paths return False or handle errors gracefully."""
+    """Verifies that non-existent input paths return failed FileResult or handle errors gracefully."""
     fake_input = tmp_path / "ghost_file.mp4"
     fake_output = tmp_path / "output.mp4"
 
-    video_success = video_converter(fake_input, fake_output, target_format="mp4")
+    video_res = video_converter(fake_input, fake_output, target_format="mp4")
 
-    assert video_success is False, (
-        "[video] Converting a non-existent input file must return False without raising."
+    assert video_res.is_failed and not video_res, (
+        f"[video] Converting a non-existent input file must return failed FileResult without raising, got {video_res}."
     )
     assert not fake_output.exists(), (
         "[video] Failed conversion of a non-existent input must not create an output artifact."
@@ -222,10 +234,10 @@ def test_process_corrupted_media_file_handling(tmp_path):
 
     output_file = tmp_path / "failed_output.mp4"
 
-    video_success = video_converter(corrupted_file, output_file, target_format="mp4")
+    video_res = video_converter(corrupted_file, output_file, target_format="mp4")
 
-    assert video_success is False, (
-        "[video] Converting a corrupted media file must return False gracefully."
+    assert video_res.is_failed and not video_res, (
+        f"[video] Converting a corrupted media file must return failed FileResult gracefully, got {video_res}."
     )
     assert not output_file.exists(), (
         "[video] Corrupted input conversion must not leave behind a partial output file."
@@ -241,9 +253,11 @@ def test_video_conversion_atomic_write_on_failure(tmp_workspace):
     output_file = out_dir / "existing_output.mp4"
     output_file.write_bytes(b"original data")
 
-    success = video_converter(corrupted_file, output_file, target_format="mp4")
+    res = video_converter(corrupted_file, output_file, target_format="mp4")
 
-    assert success is False, "[video] Conversion of corrupted input must return False."
+    assert res.is_failed and not res, (
+        f"[video] Conversion of corrupted input must return failed FileResult, got {res}."
+    )
     assert output_file.exists(), (
         "[video] Failed video conversion must not delete a pre-existing destination file."
     )
@@ -269,10 +283,10 @@ def test_video_conversion_same_format_atomic_copy_on_failure(
 
     monkeypatch.setattr("src.utils.cleanup.shutil.copy2", failing_copy2)
 
-    success = video_converter(src_mp4, dst_mp4, target_format="mp4")
+    res = video_converter(src_mp4, dst_mp4, target_format="mp4")
 
-    assert success is False, (
-        "[video] Simulated I/O error during same-format atomic copy must return False."
+    assert res.is_failed and not res, (
+        f"[video] Simulated I/O error during same-format atomic copy must return failed FileResult, got {res}."
     )
     assert dst_mp4.exists(), (
         "[video] Failed same-format bypass copy must not delete pre-existing destination file."
@@ -352,6 +366,7 @@ def test_convert_10bit_hevc(tmp_path, container):
         timeout=30,
     )
     target = tmp_path / f"output.{container}"
-    assert conversion.file_converter(source, target, container)
+    res = conversion.file_converter(source, target, container)
+    assert res.is_processed
     output = probe_streams(ffmpeg, target)
     assert (output.video_codec, output.pix_fmt) == ("hevc", "yuv420p10le")

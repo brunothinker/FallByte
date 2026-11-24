@@ -13,6 +13,7 @@ from src.image.utils.image_remove_transparency import (
     has_transparency,
     remove_transparency,
 )
+from src.utils.file_result import FileResult
 
 # Register HEIC/HEIF opener at startup for Pillow integration
 if hasattr(pillow_heif, "register_heif_opener"):
@@ -133,7 +134,7 @@ def file_converter(
     output_path: Path,
     target_format: str,
     transparency_replacement_color: str = "#FFFFFF",
-) -> bool:
+) -> FileResult:
     """Converts any supported image file to the specified target format.
 
     Handles EXIF auto-rotation, transparency flattening for formats without
@@ -152,7 +153,7 @@ def file_converter(
             the Alpha channel if target format lacks alpha support. Defaults to "#FFFFFF".
 
     Returns:
-        bool: True if conversion succeeded, False otherwise.
+        FileResult: Outcome of the conversion operation.
     """
     tmp_path = None
     try:
@@ -160,7 +161,7 @@ def file_converter(
             logger.error(
                 f"Refusing to convert '{input_path.name}': output path is the source file."
             )
-            return False
+            return FileResult.failed()
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
         fmt = _normalize_format(target_format)
@@ -216,10 +217,10 @@ def file_converter(
         os.replace(tmp_path, output_path)
 
         logger.info(f"Successfully converted '{input_path.name}' to '{fmt}'.")
-        return True
+        return FileResult.processed()
 
     except Exception:
         logger.exception(f"Failed to convert '{input_path.name}'")
         if tmp_path and tmp_path.exists():
             tmp_path.unlink(missing_ok=True)
-        return False
+        return FileResult.failed()

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from src.utils.file_result import FileResult
 from src.video import video_directory_downscale, video_file_downscale
 from src.video.utils.video_ffmpeg_utils import StreamInfo
 from src.video.video_directory_downscale import directory_downscaler
@@ -12,6 +13,7 @@ from src.video.video_file_downscale import (
     build_downscale_filter,
     file_downscaler,
     resolve_target_height,
+    should_skip_downscale,
 )
 
 # --- Resolution & filter generation ---
@@ -73,16 +75,10 @@ def test_build_downscale_filter_preserves_10bit_for_hevc():
         (None, None, 720, False),  # Unknown dimensions: proceed safely
     ],
 )
-def should_skip_downscale(
-    info: StreamInfo,
-    target_height: int,
-) -> bool:
+def test_should_skip_downscale(width, height, target, expected):
     """Returns True if the video is already at or below `target_height`."""
-    if info.width is None or info.height is None:
-        return False
-    if info.width <= 0 or info.height <= 0:
-        return False
-    return min(info.width, info.height) <= target_height
+    info = StreamInfo(width=width, height=height)
+    assert should_skip_downscale(info, target) is expected
 
 
 # --- Single-file downscaling engine ---
@@ -113,14 +109,23 @@ def test_file_downscaler_skips_upscale_and_copies_atomically(tmp_path, monkeypat
     monkeypatch.setattr(video_file_downscale, "run_strategies", fail_if_called)
 
     progress_events: list[tuple[float, float, float, float]] = []
-    ok = file_downscaler(
+    res = file_downscaler(
         input_path=src,
         output_path=dst,
         resolution="1080p",
         file_progress_callback=lambda *vals: progress_events.append(vals),
     )
 
-    assert ok is True
+    assert (
+        res
+        and res.is_skipped
+        and res.reason_key == "skip_no_upscale"
+        and res.reason_params == {
+            "target_height": 1080,
+            "src_width": 1280,
+            "src_height": 720,
+        }
+    )
     assert dst.exists()
     assert dst.read_bytes() == b"original-video-bytes"
     assert src.read_bytes() == b"original-video-bytes"
@@ -158,14 +163,14 @@ def test_file_downscaler_scales_4k_video_and_preserves_original(tmp_path, monkey
     monkeypatch.setattr(video_file_downscale, "run_strategies", fake_run_strategies)
 
     progress_calls: list[tuple[float, float, float, float]] = []
-    ok = file_downscaler(
+    res = file_downscaler(
         input_path=src,
         output_path=dst,
         resolution="720p",
         file_progress_callback=lambda *vals: progress_calls.append(vals),
     )
 
-    assert ok is True
+    assert res.is_processed
     assert dst.exists()
     assert dst.read_bytes() == b"downscaled-720p-payload"
     assert src.read_bytes() == b"raw-4k-payload"
@@ -179,7 +184,8 @@ def test_file_downscaler_refuses_overwriting_source_file(tmp_path):
     src = tmp_path / "video.mp4"
     src.write_bytes(b"data")
 
-    assert file_downscaler(input_path=src, output_path=src, resolution="720p") is False
+    res = file_downscaler(input_path=src, output_path=src, resolution="720p")
+    assert res.is_failed and not res
     assert src.read_bytes() == b"data"
 
 
@@ -224,13 +230,13 @@ def test_directory_downscaler_processes_batch_successfully(tmp_path, monkeypatch
         resolution: str | int = "1080p",
         cancel_event=None,
         file_progress_callback=None,
-    ) -> bool:
+    ) -> FileResult:
         processed_pairs.append((input_path.name, output_path.name, resolution))
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_bytes(b"scaled")
         if file_progress_callback:
             file_progress_callback(10.0, 10.0, 30.0, 1.5)
-        return True
+        return FileResult.processed()
 
     monkeypatch.setattr(
         video_directory_downscale, "file_downscaler", fake_file_downscaler

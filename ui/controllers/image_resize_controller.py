@@ -5,6 +5,7 @@ from typing import Any
 
 from src.image.image_directory_resize import directory_resizer
 from src.image.image_file_resize import UNRESIZABLE_FORMATS, file_resizer
+from src.utils.file_result import FileResult
 from src.utils.output_naming import unique_resize_output_path
 from src.utils.progress import ProgressInfo
 from ui.controllers.base_controller import BaseController, ProgressCallback
@@ -59,7 +60,7 @@ class ImageResizeController(BaseController):
         output_path: Path,
         params: ResizeOptions,
         progress_cb: ProgressCallback,
-    ) -> bool:
+    ) -> FileResult:
         return file_resizer(
             input_path=input_path,
             output_path=output_path,

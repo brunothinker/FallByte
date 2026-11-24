@@ -17,6 +17,7 @@ from src.audio.utils.audio_ffmpeg_utils import (
 from src.formats import UNCOMPRESSIBLE_AUDIO_FORMATS
 from src.utils.binary_manager import get_ffmpeg_path
 from src.utils.cleanup import copy_original_file_atomically
+from src.utils.file_result import FileResult
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +62,7 @@ def file_compressor(
     quality: int = 80,
     cancel_event: threading.Event | None = None,
     file_progress_callback: Callable[[float, float, float, float], None] | None = None,
-) -> bool:
+) -> FileResult:
     """Compresses a single audio file while preserving its original container/format.
 
     Lossy formats (MP3, M4A, AAC, OGG, OPUS) are re-encoded using a bitrate mapped
@@ -78,13 +79,13 @@ def file_compressor(
             logger.error(
                 f"Refusing to compress '{input_path.name}': file does not exist or is empty."
             )
-            return False
+            return FileResult.failed()
 
         if is_same_file(input_path, output_path):
             logger.error(
                 f"Refusing to compress '{input_path.name}': output path is the source file."
             )
-            return False
+            return FileResult.failed()
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
         target_ext = output_path.suffix.lower().lstrip(".")
@@ -98,13 +99,14 @@ def file_compressor(
                 f"Failed to probe audio streams for '{input_path.name}': "
                 "no audio track found or file is corrupted."
             )
-            return False
+            return FileResult.failed()
 
         if fmt_upper in UNCOMPRESSIBLE_AUDIO_FORMATS:
             return copy_original_file_atomically(
                 input_path,
                 output_path,
-                f"{fmt_upper} is not re-encoded during audio compression",
+                "skip_audio_not_reencoded",
+                fmt=fmt_upper,
             )
 
         with tempfile.NamedTemporaryFile(
@@ -138,7 +140,7 @@ def file_compressor(
         if used is None:
             if tmp_path.exists():
                 tmp_path.unlink(missing_ok=True)
-            return False
+            return FileResult.failed()
 
         original_size = input_path.stat().st_size
         output_size = tmp_path.stat().st_size
@@ -147,7 +149,8 @@ def file_compressor(
             return copy_original_file_atomically(
                 input_path,
                 output_path,
-                f"compressed result was not smaller at {quality}% quality",
+                "skip_not_smaller",
+                quality=quality,
             )
 
         os.replace(tmp_path, output_path)
@@ -155,7 +158,7 @@ def file_compressor(
             f"Successfully compressed '{input_path.name}' "
             f"[Format: {fmt_upper} | Quality: {quality}%]."
         )
-        return True
+        return FileResult.processed()
 
     except InterruptedError:
         if tmp_path and tmp_path.exists():
@@ -166,4 +169,4 @@ def file_compressor(
         logger.exception(f"Failed to compress '{input_path.name}'")
         if tmp_path and tmp_path.exists():
             tmp_path.unlink(missing_ok=True)
-        return False
+        return FileResult.failed()

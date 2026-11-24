@@ -93,6 +93,7 @@ strings:
   msg_compressing_progress: "압축 중: [{current}/{total}] - {filename}"
   msg_process_cancelled: "처리가 취소되었습니다. 생성된 파일 {count}개가 삭제되었습니다."
   msg_success_summary: "{msg} | 성공: {successful} / {total}"
+  msg_batch_summary: "{msg} | 성공: {successful} | 건너뜀: {skipped} | 실패: {failed} | 전체: {total}"
   msg_supported_formats_notice: "압축 지원 형식: {formats}"
   msg_supported_formats_notice_conversion: "변환 지원 형식: {formats}"
 
@@ -108,6 +109,7 @@ strings:
   dialog_no_files_formats: "지원 형식: {formats}"
   log_dialog_title: "처리 결과"
   log_summary_success: "성공"
+  log_summary_skipped: "건너뜀"
   log_summary_failed: "실패"
   log_summary_total: "전체 파일"
   log_summary_time: "경과 시간"
@@ -118,6 +120,15 @@ strings:
   log_size_stat: "크기: {orig} -> {comp}"
   log_reduction_stat: "절감: -{pct:.1f}%"
   log_increase_stat: "증가: +{pct:.1f}%"
+  msg_kept_original: "원본 파일이 그대로 유지되었습니다: 변경할 필요가 없었습니다."
+  skip_uncompressible_format: "{fmt} 형식은 안전하게 압축할 수 없습니다"
+  skip_animated_png: "애니메이션 PNG는 프레임이 손실되므로 건너뛰었습니다"
+  skip_not_smaller: "{quality}% 품질에서 파일 크기가 줄어들지 않았습니다"
+  skip_same_format: "이미 .{fmt} 형식이므로 변환이 필요하지 않습니다"
+  skip_audio_not_reencoded: "{fmt} 형식은 오디오 압축 시 다시 인코딩되지 않습니다"
+  skip_no_upscale: "이미 {src_width}x{src_height}({target_height}p 이하)이므로 업스케일하지 않았습니다"
+  skip_no_audio_stream: "비디오에 오디오 트랙이 포함되어 있지 않습니다"
+  skip_unsupported_normalization_format: "{fmt} 형식은 음량 정규화를 지원하지 않습니다"
 
   # ============================================================================
   # Module: Image

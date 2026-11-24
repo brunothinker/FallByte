@@ -93,6 +93,7 @@ strings:
   msg_compressing_progress: "正在压缩: [{current}/{total}] - {filename}"
   msg_process_cancelled: "处理已取消。已删除 {count} 个生成的文件。"
   msg_success_summary: "{msg} | 成功: {successful} / {total}"
+  msg_batch_summary: "{msg} | 成功: {successful} | 已跳过: {skipped} | 失败: {failed} | 总计: {total}"
   msg_supported_formats_notice: "支持压缩的格式: {formats}"
   msg_supported_formats_notice_conversion: "支持转换的格式: {formats}"
 
@@ -108,6 +109,7 @@ strings:
   dialog_no_files_formats: "支持的格式: {formats}"
   log_dialog_title: "处理结果"
   log_summary_success: "成功"
+  log_summary_skipped: "已跳过"
   log_summary_failed: "失败"
   log_summary_total: "文件总数"
   log_summary_time: "耗时"
@@ -118,6 +120,15 @@ strings:
   log_size_stat: "大小: {orig} -> {comp}"
   log_reduction_stat: "节省: -{pct:.1f}%"
   log_increase_stat: "增加: +{pct:.1f}%"
+  msg_kept_original: "文件已按原样保留：无需进行任何更改。"
+  skip_uncompressible_format: "{fmt} 无法安全压缩"
+  skip_animated_png: "动态 PNG 压缩后会丢失动画帧"
+  skip_not_smaller: "在 {quality}% 质量下输出文件并未变小"
+  skip_same_format: "已是 .{fmt} 格式，无需转换"
+  skip_audio_not_reencoded: "{fmt} 在音频压缩期间不会重新编码"
+  skip_no_upscale: "分辨率已为 {src_width}x{src_height}（等于或低于 {target_height}p），未进行放大"
+  skip_no_audio_stream: "视频不包含音轨"
+  skip_unsupported_normalization_format: "{fmt} 不支持响度标准化"
 
   # ============================================================================
   # Module: Image

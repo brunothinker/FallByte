@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import flet as ft
 
+from src.utils.file_result import FileResult
 from src.video.utils.video_ffmpeg_utils import MediaTrack
 from tests.ui.helpers import make_job_ui
 from ui.controllers.video_tracks_controller import VideoTracksController
@@ -179,7 +180,7 @@ def test_video_tracks_execution_uses_unique_suffix_and_forwards_indices(
         captured["output_path"] = output_path
         captured["indices"] = selected_stream_indices
         output_path.write_bytes(b"remuxed video data")
-        return True
+        return FileResult.processed()
 
     monkeypatch.setattr(
         "ui.controllers.video_tracks_controller.remux_selected_tracks", fake_remux

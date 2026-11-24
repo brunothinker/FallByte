@@ -16,6 +16,7 @@ from src.audio.utils.audio_ffmpeg_utils import (
 )
 from src.utils.binary_manager import get_ffmpeg_path
 from src.utils.cleanup import copy_original_file_atomically
+from src.utils.file_result import FileResult
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +54,7 @@ def file_converter(
     target_format: str,
     cancel_event: threading.Event | None = None,
     file_progress_callback: Callable[[float, float, float, float], None] | None = None,
-) -> bool:
+) -> FileResult:
     """Converts a single audio file to the specified target format using FFmpeg.
 
     Isolates the primary audio stream (`-vn`) to avoid failures caused by
@@ -71,7 +72,7 @@ def file_converter(
             Callback receiving (duration_seconds, processed_seconds, fps, speed).
 
     Returns:
-        bool: True if conversion succeeded, False otherwise.
+        FileResult: Outcome of the conversion operation.
 
     Raises:
         InterruptedError: If cancellation was requested via cancel_event.
@@ -82,13 +83,13 @@ def file_converter(
             logger.error(
                 f"Refusing to convert '{input_path.name}': file does not exist or is empty."
             )
-            return False
+            return FileResult.failed()
 
         if is_same_file(input_path, output_path):
             logger.error(
                 f"Refusing to convert '{input_path.name}': output path is the source file."
             )
-            return False
+            return FileResult.failed()
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -103,13 +104,14 @@ def file_converter(
                 f"Failed to probe audio streams for '{input_path.name}': "
                 "no audio track found or file is corrupted."
             )
-            return False
+            return FileResult.failed()
 
         if input_ext == target_fmt:
             return copy_original_file_atomically(
                 input_path,
                 output_path,
-                f"already .{target_fmt}, skipping re-encoding",
+                "skip_same_format",
+                fmt=target_fmt,
             )
 
         with tempfile.NamedTemporaryFile(
@@ -141,12 +143,12 @@ def file_converter(
         if used is None:
             if tmp_path.exists():
                 tmp_path.unlink(missing_ok=True)
-            return False
+            return FileResult.failed()
 
         os.replace(tmp_path, output_path)
 
         logger.info(f"Successfully converted '{input_path.name}' to '{target_fmt}'.")
-        return True
+        return FileResult.processed()
 
     except InterruptedError:
         if tmp_path and tmp_path.exists():
@@ -157,4 +159,4 @@ def file_converter(
         logger.exception(f"Failed to convert '{input_path.name}'.")
         if tmp_path and tmp_path.exists():
             tmp_path.unlink(missing_ok=True)
-        return False
+        return FileResult.failed()

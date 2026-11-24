@@ -2,6 +2,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from src.utils.file_result import FileResult
 from src.utils.output_naming import unique_downscale_output_path
 from src.utils.progress import ProgressInfo
 from src.video.video_directory_downscale import directory_downscaler
@@ -47,7 +48,7 @@ class VideoDownscaleController(BaseController):
         output_path: Path,
         params: Any,
         progress_cb: ProgressCallback,
-    ) -> bool:
+    ) -> FileResult:
         return file_downscaler(
             input_path=input_path,
             output_path=output_path,

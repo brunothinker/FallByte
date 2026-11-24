@@ -8,6 +8,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from src.utils.file_result import FileResult
 from ui.controllers import base_controller
 from ui.controllers.base_controller import BaseController, JobUI
 from ui.controllers.image_compression_controller import CompressionOptions
@@ -194,14 +195,21 @@ class Ctx:
         """Runs the public `execute` entrypoint (worker threads run synchronously)."""
         self.controller.execute(self.ui, self.params)
 
-    def fake_file_engine(self, ok: bool = True, raises: Exception | None = None):
-        """Replaces the single-file engine with a fake.
+    def fake_file_engine(
+        self,
+        ok: bool = True,
+        raises: Exception | None = None,
+        result: FileResult | None = None,
+    ):
+        """Replaces the single-file engine with a fake returning `FileResult`.
 
         Args:
-            ok (bool, optional): Result the fake returns (an output file is
-                written only when True). Defaults to True.
+            ok (bool, optional): Result the fake returns when `result` is not given
+                (an output file is written only when True). Defaults to True.
             raises (Exception | None, optional): Exception the fake raises
                 instead of returning. Defaults to None.
+            result (FileResult | None, optional): Explicit `FileResult` to return
+                (e.g. `FileResult.skipped(...)`). Defaults to None.
         """
         if not self.spec.get("file_engine"):
             return
@@ -209,11 +217,17 @@ class Ctx:
         def fake(**kwargs):
             if raises:
                 raise raises
+            if result is not None:
+                if not result.is_failed:
+                    out = kwargs["output_path"]
+                    out.parent.mkdir(parents=True, exist_ok=True)
+                    out.write_bytes(b"out")
+                return result
             if ok:
                 out = kwargs["output_path"]
                 out.parent.mkdir(parents=True, exist_ok=True)
                 out.write_bytes(b"out")
-            return ok
+            return FileResult.processed() if ok else FileResult.failed()
 
         setattr(self.module, self.spec["file_engine"], fake)
 

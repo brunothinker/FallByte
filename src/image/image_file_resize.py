@@ -8,6 +8,8 @@ from typing import Any
 import pillow_heif
 from PIL import Image, ImageOps, ImageSequence
 
+from src.utils.file_result import FileResult
+
 # Register HEIC/HEIF opener at startup for Pillow integration
 if hasattr(pillow_heif, "register_heif_opener"):
     pillow_heif.register_heif_opener()
@@ -112,7 +114,7 @@ def file_resizer(
     max_width: int | None = 1920,
     max_height: int | None = 1080,
     percentage: int | None = 50,
-) -> bool:
+) -> FileResult:
     """Resizes a single image file while preserving aspect ratio and original format.
 
     Applies EXIF orientation before computing target dimensions, never upscales
@@ -133,7 +135,7 @@ def file_resizer(
             Defaults to 50.
 
     Returns:
-        bool: True if resizing succeeded, False otherwise.
+        FileResult: Outcome of the resize operation.
     """
     tmp_path: Path | None = None
     try:
@@ -141,13 +143,13 @@ def file_resizer(
             logger.error(
                 f"Refusing to resize '{input_path.name}': file does not exist or is empty."
             )
-            return False
+            return FileResult.failed()
 
         if input_path.resolve() == output_path.resolve():
             logger.error(
                 f"Refusing to resize '{input_path.name}': output path is the source file."
             )
-            return False
+            return FileResult.failed()
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -234,10 +236,10 @@ def file_resizer(
         logger.info(
             f"Successfully resized '{input_path.name}' to {target_size[0]}x{target_size[1]}."
         )
-        return True
+        return FileResult.processed()
 
     except Exception:
         logger.exception(f"Failed to resize '{input_path.name}'")
         if tmp_path and tmp_path.exists():
             tmp_path.unlink(missing_ok=True)
-        return False
+        return FileResult.failed()

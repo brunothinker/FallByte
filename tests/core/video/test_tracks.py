@@ -88,8 +88,8 @@ def test_remux_selected_tracks_refuses_in_place_overwrite(tmp_path):
         ffmpeg_bin=Path("ffmpeg"),
     )
 
-    assert result is False, (
-        "[video-tracks] remux_selected_tracks must refuse in-place overwrite of the source file."
+    assert result.is_failed and not result, (
+        f"[video-tracks] remux_selected_tracks must refuse in-place overwrite of the source file, got {result}."
     )
     assert video_file.read_bytes() == b"original video"
 
@@ -156,7 +156,7 @@ def test_remux_selected_tracks_builds_lossless_copy_commands_without_chapters(
     monkeypatch.setattr(video_track_selector, "run_strategies", fake_run_strategies)
 
     progress_ticks: list[tuple[float, float, float]] = []
-    ok = remux_selected_tracks(
+    res = remux_selected_tracks(
         input_path=src_file,
         output_path=out_file,
         selected_stream_indices=[1],
@@ -164,7 +164,7 @@ def test_remux_selected_tracks_builds_lossless_copy_commands_without_chapters(
         ffmpeg_bin=Path("ffmpeg"),
     )
 
-    assert ok is True
+    assert res.is_processed
     assert out_file.exists() and out_file.read_bytes() == b"remuxed mp4 bytes"
     assert _leftover_temp_files(out_file.parent, out_file.stem) == []
     assert progress_ticks == [(120.0, 0.0, 25.0)], (
@@ -224,14 +224,14 @@ def test_remux_selected_tracks_cleans_temp_file_and_preserves_existing_on_failur
 
     monkeypatch.setattr(video_track_selector, "run_strategies", fake_run_strategies)
 
-    ok = remux_selected_tracks(
+    res = remux_selected_tracks(
         input_path=src_file,
         output_path=out_file,
         selected_stream_indices=[1],
         ffmpeg_bin=Path("ffmpeg"),
     )
 
-    assert ok is False
+    assert res.is_failed and not res
     assert out_file.read_bytes() == b"intact existing output"
     assert _leftover_temp_files(tmp_path, out_file.stem) == []
 
@@ -314,14 +314,14 @@ def test_remux_selected_tracks_adds_mov_text_fallback_for_text_subtitles(
 
     monkeypatch.setattr(video_track_selector, "run_strategies", fake_run_strategies)
 
-    ok = remux_selected_tracks(
+    res = remux_selected_tracks(
         input_path=src_file,
         output_path=out_file,
         selected_stream_indices=[1, 2],
         ffmpeg_bin=Path("ffmpeg"),
     )
 
-    assert ok is True
+    assert res.is_processed
     assert out_file.exists()
 
     strategy_map = dict(captured_strategies)
@@ -375,14 +375,14 @@ def test_remux_selected_tracks_drops_bitmap_subtitles_in_mp4_with_warning(
     monkeypatch.setattr(video_track_selector, "run_strategies", fake_run_strategies)
 
     with caplog.at_level(logging.WARNING):
-        ok = remux_selected_tracks(
+        res = remux_selected_tracks(
             input_path=src_file,
             output_path=out_file,
             selected_stream_indices=[1, 2, 3],
             ffmpeg_bin=Path("ffmpeg"),
         )
 
-    assert ok is True
+    assert res.is_processed
     primary_cmd = captured_strategies[0][1]
     assert "0:1" in primary_cmd
     assert "0:2" not in primary_cmd

@@ -9,6 +9,7 @@ import pillow_heif
 from PIL import Image, ImageOps, ImageSequence
 
 from src.image.utils.image_metadata_utils import clear_metadata_keep_transparency
+from src.utils.file_result import FileResult
 
 # Register HEIC/HEIF opener at startup for Pillow integration
 if hasattr(pillow_heif, "register_heif_opener"):
@@ -43,7 +44,7 @@ def _strip_frame_pixels(frame: Image.Image) -> Image.Image:
     return clear_metadata_keep_transparency(frame.copy())
 
 
-def file_metadata_remover(input_path: Path, output_path: Path) -> bool:
+def file_metadata_remover(input_path: Path, output_path: Path) -> FileResult:
     """Strips EXIF, GPS, XMP, ICC, and embedded text/camera metadata from an image file.
 
     Applies EXIF orientation (`ImageOps.exif_transpose`) prior to removing tags so
@@ -58,7 +59,7 @@ def file_metadata_remover(input_path: Path, output_path: Path) -> bool:
         output_path (Path): Destination path where the sanitized image will be written.
 
     Returns:
-        bool: True if metadata removal succeeded, False otherwise.
+        FileResult: Outcome of the metadata removal operation.
     """
     tmp_path: Path | None = None
     try:
@@ -66,13 +67,13 @@ def file_metadata_remover(input_path: Path, output_path: Path) -> bool:
             logger.error(
                 f"Refusing to strip metadata from '{input_path.name}': file does not exist or is empty."
             )
-            return False
+            return FileResult.failed()
 
         if input_path.resolve() == output_path.resolve():
             logger.error(
                 f"Refusing to strip metadata from '{input_path.name}': output path is the source file."
             )
-            return False
+            return FileResult.failed()
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -135,10 +136,10 @@ def file_metadata_remover(input_path: Path, output_path: Path) -> bool:
         logger.info(
             f"Successfully removed metadata from '{input_path.name}' [Format: {save_fmt}]."
         )
-        return True
+        return FileResult.processed()
 
     except Exception:
         logger.exception(f"Failed to remove metadata from '{input_path.name}'")
         if tmp_path and tmp_path.exists():
             tmp_path.unlink(missing_ok=True)
-        return False
+        return FileResult.failed()

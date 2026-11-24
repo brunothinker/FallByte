@@ -93,6 +93,7 @@ strings:
   msg_compressing_progress: ""
   msg_process_cancelled: ""
   msg_success_summary: ""
+  msg_batch_summary: ""
   msg_supported_formats_notice: ""
   msg_supported_formats_notice_conversion: ""
 
@@ -108,6 +109,7 @@ strings:
   dialog_no_files_formats: ""
   log_dialog_title: ""
   log_summary_success: ""
+  log_summary_skipped: ""
   log_summary_failed: ""
   log_summary_total: ""
   log_summary_time: ""
@@ -118,6 +120,15 @@ strings:
   log_size_stat: ""
   log_reduction_stat: ""
   log_increase_stat: ""
+  msg_kept_original: ""
+  skip_uncompressible_format: ""
+  skip_animated_png: ""
+  skip_not_smaller: ""
+  skip_same_format: ""
+  skip_audio_not_reencoded: ""
+  skip_no_upscale: ""
+  skip_no_audio_stream: ""
+  skip_unsupported_normalization_format: ""
 
   # ============================================================================
   # Module: Image

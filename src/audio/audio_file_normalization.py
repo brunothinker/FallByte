@@ -16,6 +16,7 @@ from src.audio.utils.audio_ffmpeg_utils import (
     run_audio_strategies,
 )
 from src.utils.binary_manager import get_ffmpeg_path
+from src.utils.file_result import FileResult
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +129,7 @@ def file_normalizer(
     preset_key: str = DEFAULT_LOUDNESS_PRESET,
     cancel_event: threading.Event | None = None,
     file_progress_callback: Callable[[float, float, float, float], None] | None = None,
-) -> bool:
+) -> FileResult:
     """Normalizes perceived loudness of an audio file using FFmpeg's `loudnorm` filter.
 
     Preserves the source file's audio format and writes the normalized output
@@ -146,7 +147,7 @@ def file_normalizer(
             Defaults to None.
 
     Returns:
-        bool: True if normalization succeeded, False otherwise.
+        FileResult: Outcome of the normalization operation.
 
     Raises:
         InterruptedError: If cancellation was requested via cancel_event.
@@ -158,14 +159,14 @@ def file_normalizer(
                 f"Refusing to normalize '{input_path.name}': "
                 "file does not exist or is empty."
             )
-            return False
+            return FileResult.failed()
 
         if is_same_file(input_path, output_path):
             logger.error(
                 f"Refusing to normalize '{input_path.name}': "
                 "output path is the source file."
             )
-            return False
+            return FileResult.failed()
 
         target_fmt = input_path.suffix.lower().lstrip(".")
         if target_fmt not in NORMALIZABLE_AUDIO_FORMATS:
@@ -173,7 +174,10 @@ def file_normalizer(
                 f"Skipping '{input_path.name}': unsupported format '{target_fmt}' "
                 "for loudness normalization."
             )
-            return False
+            return FileResult.skipped(
+                "skip_unsupported_normalization_format",
+                fmt=target_fmt,
+            )
 
         preset = resolve_loudness_preset(preset_key)
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -185,7 +189,7 @@ def file_normalizer(
             logger.error(
                 f"Refusing to normalize '{input_path.name}': no playable audio stream found."
             )
-            return False
+            return FileResult.failed()
 
         with tempfile.NamedTemporaryFile(
             dir=output_path.parent,
@@ -219,7 +223,7 @@ def file_normalizer(
         if used is None:
             if tmp_path.exists():
                 tmp_path.unlink(missing_ok=True)
-            return False
+            return FileResult.failed()
 
         os.replace(tmp_path, output_path)
 
@@ -227,7 +231,7 @@ def file_normalizer(
             f"Successfully normalized '{input_path.name}' using preset "
             f"'{preset.key}' ({preset.integrated_lufs} LUFS)."
         )
-        return True
+        return FileResult.processed()
 
     except InterruptedError:
         if tmp_path and tmp_path.exists():
@@ -238,4 +242,4 @@ def file_normalizer(
         logger.exception(f"Failed to normalize audio file '{input_path.name}'.")
         if tmp_path and tmp_path.exists():
             tmp_path.unlink(missing_ok=True)
-        return False
+        return FileResult.failed()

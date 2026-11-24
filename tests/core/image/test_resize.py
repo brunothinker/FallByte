@@ -1,4 +1,4 @@
-"""Core (image): testes de resize (engines de arquivo e de diretorio)."""
+"""Core (image): tests from resize"""
 
 import threading
 
@@ -75,7 +75,7 @@ def test_image_resize_formats_by_dimension(
     create_sample_image(src_img, mode=mode, size=(800, 400), fmt=src_fmt)
 
     dst_img = out_dir / f"resized.{ext}"
-    success = file_resizer(
+    res = file_resizer(
         src_img,
         dst_img,
         mode="dimension",
@@ -83,8 +83,8 @@ def test_image_resize_formats_by_dimension(
         max_height=400,
     )
 
-    assert success is True, (
-        f"[image] Resizing {src_fmt} image by dimension unexpectedly returned False."
+    assert res.is_processed, (
+        f"[image] Resizing {src_fmt} image by dimension unexpectedly failed or skipped: {res}."
     )
     assert dst_img.exists(), (
         f"[image] Resized output file '{dst_img}' was not written to disk."
@@ -103,9 +103,9 @@ def test_image_resize_by_percentage(tmp_workspace, create_sample_image):
     create_sample_image(src_png, mode="RGBA", size=(600, 300), fmt="PNG")
 
     dst_png = out_dir / "resized_half.png"
-    success = file_resizer(src_png, dst_png, mode="percentage", percentage=50)
+    res = file_resizer(src_png, dst_png, mode="percentage", percentage=50)
 
-    assert success is True, "[image] Percentage resize returned False."
+    assert res.is_processed, f"[image] Percentage resize failed: {res}."
     with Image.open(dst_png) as img:
         assert img.size == (300, 150), (
             f"[image] Expected 50% scaled size (300, 150), got {img.size}."
@@ -119,7 +119,7 @@ def test_image_resize_never_upscales_smaller_images(tmp_workspace, create_sample
     create_sample_image(src_png, mode="RGB", size=(320, 240), fmt="PNG")
 
     dst_png = out_dir / "not_upscaled.png"
-    success = file_resizer(
+    res = file_resizer(
         src_png,
         dst_png,
         mode="dimension",
@@ -127,7 +127,7 @@ def test_image_resize_never_upscales_smaller_images(tmp_workspace, create_sample
         max_height=1080,
     )
 
-    assert success is True, "[image] Resize of smaller image returned False."
+    assert res.is_processed, f"[image] Resize of smaller image failed: {res}."
     with Image.open(dst_png) as img:
         assert img.size == (320, 240), (
             f"[image] Smaller image was unexpectedly upscaled to {img.size}."
@@ -146,7 +146,7 @@ def test_image_resize_applies_exif_orientation(tmp_workspace):
     img.save(src_jpg, format="JPEG", exif=exif.tobytes())
 
     dst_jpg = out_dir / "rotated_resized.jpg"
-    success = file_resizer(
+    res = file_resizer(
         src_jpg,
         dst_jpg,
         mode="dimension",
@@ -154,7 +154,7 @@ def test_image_resize_applies_exif_orientation(tmp_workspace):
         max_height=200,
     )
 
-    assert success is True, "[image] Resizing EXIF-oriented JPEG returned False."
+    assert res.is_processed, f"[image] Resizing EXIF-oriented JPEG failed: {res}."
     with Image.open(dst_jpg) as out_img:
         assert out_img.size == (100, 200), (
             f"[image] Expected portrait output (100, 200) after EXIF transpose, got {out_img.size}."
@@ -180,9 +180,9 @@ def test_image_resize_animated_gif_preserves_frames(tmp_workspace):
     )
 
     dst_gif = out_dir / "anim_resized.gif"
-    success = file_resizer(src_gif, dst_gif, mode="percentage", percentage=50)
+    res = file_resizer(src_gif, dst_gif, mode="percentage", percentage=50)
 
-    assert success is True, "[image] Animated GIF resize returned False."
+    assert res.is_processed, f"[image] Animated GIF resize failed: {res}."
     with Image.open(dst_gif) as out_gif:
         assert getattr(out_gif, "n_frames", 1) == 2, (
             "[image] Resized animated GIF lost animation frames."
@@ -203,9 +203,9 @@ def test_heic_image_resize_saves_as_png(tmp_workspace, create_sample_image):
     heif_file.save(src_heic)
 
     dst_png = out_dir / "resized_heic.png"
-    success = file_resizer(src_heic, dst_png, mode="percentage", percentage=50)
+    res = file_resizer(src_heic, dst_png, mode="percentage", percentage=50)
 
-    assert success is True, "[image] HEIC image resize returned False."
+    assert res.is_processed, f"[image] HEIC image resize failed: {res}."
     assert dst_png.exists(), "[image] Resized PNG output from HEIC source was not created."
     with Image.open(dst_png) as img:
         assert img.format == "PNG"
@@ -223,9 +223,11 @@ def test_image_resize_atomic_write_on_failure(tmp_workspace):
     dst_img = out_dir / "existing.png"
     dst_img.write_bytes(b"intact destination content")
 
-    success = file_resizer(src_corrupted, dst_img, mode="percentage", percentage=50)
+    res = file_resizer(src_corrupted, dst_img, mode="percentage", percentage=50)
 
-    assert success is False, "[image] Resizing corrupted bytes must return False."
+    assert res.is_failed and not res, (
+        f"[image] Resizing corrupted bytes must return failed FileResult, got {res}."
+    )
     assert dst_img.exists(), (
         "[image] Failed resize must not unlink pre-existing destination file."
     )

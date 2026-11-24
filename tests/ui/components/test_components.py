@@ -1,4 +1,4 @@
-"""UI: dialog_utils, pickers, path_label e demais componentes."""
+"""UI: tests for dialog_utils, pickers, path_label, and other components."""
 
 from unittest.mock import MagicMock
 
@@ -48,6 +48,14 @@ def test_get_log_line_color_tag_precedence():
     )
     assert get_log_line_color("[ERROR] file_success.jpg") == get_color("error"), (
         "[ui] Explicit [ERROR] tag must take precedence over 'success' in filename and return error color."
+    )
+
+    # Explicit [SKIP] tag takes precedence over file names containing "converted" or "compressed"
+    assert get_log_line_color("[SKIP] video_converted.mp4") == get_color("warning"), (
+        "[ui] Explicit [SKIP] tag must take precedence over 'converted' in filename and return warning color."
+    )
+    assert get_log_line_color("[SKIP] image_compressed.png") == get_color("warning"), (
+        "[ui] Explicit [SKIP] tag must resolve to warning theme color."
     )
 
     # Valid [OK] logs
@@ -204,6 +212,55 @@ def test_summary_dialog_per_file_line_never_doubles_minus(mock_page):
     )
     assert "--" not in log_lines[0], (
         "[ui] Per-file log line in summary dialog must not render a double minus '--' when file size increased."
+    )
+
+
+def test_summary_dialog_displays_skipped_count_and_skip_lines(mock_page):
+    """Summary dialog must render the skipped metric column and [SKIP] per-file log lines in warning color."""
+    from ui.components.dialog_utils import show_summary_dialog
+    from ui.i18n import t
+    from ui.theme import get_color
+
+    show_summary_dialog(
+        mock_page,
+        {
+            "total_files": 3,
+            "success": 1,
+            "skipped": 2,
+            "failed": 0,
+            "elapsed_seconds": 1.5,
+            "original_bytes": 0,
+            "compressed_bytes": 0,
+            "files": [
+                {
+                    "name": "same.mp4",
+                    "skipped": True,
+                    "skip_reason_key": "skip_same_format",
+                    "skip_reason_params": {"fmt": "mp4"},
+                }
+            ],
+        },
+    )
+    texts = _collect_texts(mock_page.dialog)
+
+    skipped_counts = [
+        txt for txt in texts if txt.value == "2" and txt.color == get_color("warning")
+    ]
+    assert len(skipped_counts) == 1, (
+        "[ui] Summary dialog must highlight a non-zero skipped count with warning color."
+    )
+
+    skip_lines = [
+        txt for txt in texts if txt.value and txt.value.startswith("[SKIP] same.mp4")
+    ]
+    assert len(skip_lines) == 1, (
+        "[ui] Summary dialog must render a [SKIP] per-file log line for skipped items."
+    )
+    assert t("skip_same_format", fmt="mp4") in skip_lines[0].value, (
+        "[ui] [SKIP] per-file log line must include the translated skip reason."
+    )
+    assert skip_lines[0].color == get_color("warning"), (
+        "[ui] [SKIP] per-file log line must use the warning theme color."
     )
 
 

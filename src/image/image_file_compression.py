@@ -11,6 +11,7 @@ from src.formats import UNCOMPRESSIBLE_FORMATS
 from src.image.utils.image_metadata_utils import clear_metadata_keep_transparency
 from src.image.utils.image_remove_transparency import has_transparency
 from src.utils.cleanup import copy_original_file_atomically
+from src.utils.file_result import FileResult
 
 # Register HEIC/HEIF opener at startup for Pillow integration
 if hasattr(pillow_heif, "register_heif_opener"):
@@ -64,7 +65,7 @@ def file_compressor(
     output_path: Path,
     quality: int = 80,
     strip_metadata: bool = False,
-) -> bool:
+) -> FileResult:
     """Compresses a single image file while strictly maintaining its original format.
 
     Uses format-specific optimizations: quality levels for JPEG/WEBP,
@@ -88,7 +89,7 @@ def file_compressor(
             embedded metadata chunks during compression. Defaults to False.
 
     Returns:
-        bool: True if compression succeeded, False otherwise.
+        FileResult: Outcome of the compression operation.
     """
     tmp_path = None
     try:
@@ -98,7 +99,7 @@ def file_compressor(
             logger.error(
                 f"Refusing to compress '{input_path.name}': output path is the source file."
             )
-            return False
+            return FileResult.failed()
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -117,12 +118,17 @@ def file_compressor(
             if fmt in UNCOMPRESSIBLE_FORMATS:
                 tmp_path.unlink(missing_ok=True)
                 return copy_original_file_atomically(
-                    input_path, output_path, f"{fmt} cannot be compressed safely"
+                    input_path,
+                    output_path,
+                    "skip_uncompressible_format",
+                    fmt=fmt,
                 )
             if fmt == "PNG" and n_frames > 1:
                 tmp_path.unlink(missing_ok=True)
                 return copy_original_file_atomically(
-                    input_path, output_path, "animated PNG would lose its frames"
+                    input_path,
+                    output_path,
+                    "skip_animated_png",
                 )
 
             icc = None if strip_metadata else img.info.get("icc_profile")
@@ -178,7 +184,8 @@ def file_compressor(
             return copy_original_file_atomically(
                 input_path,
                 output_path,
-                f"compressed result was not smaller at {quality}% quality",
+                "skip_not_smaller",
+                quality=quality,
             )
 
         os.replace(tmp_path, output_path)
@@ -187,10 +194,10 @@ def file_compressor(
             f"Successfully compressed '{input_path.name}' "
             f"[Format: {fmt} | Quality: {quality}% | StripMetadata: {strip_metadata}]."
         )
-        return True
+        return FileResult.processed()
 
     except Exception:
         logger.exception(f"Failed to compress '{input_path.name}'")
         if tmp_path and tmp_path.exists():
             tmp_path.unlink(missing_ok=True)
-        return False
+        return FileResult.failed()

@@ -42,10 +42,10 @@ def test_image_metadata_removal_formats_strip_exif_and_icc(
     img.save(src_img, format=src_fmt, **save_kwargs)
 
     dst_img = out_dir / f"clean.{ext}"
-    success = file_metadata_remover(src_img, dst_img)
+    res = file_metadata_remover(src_img, dst_img)
 
-    assert success is True, (
-        f"[image] Stripping metadata from {src_fmt} unexpectedly returned False."
+    assert res.is_processed, (
+        f"[image] Stripping metadata from {src_fmt} unexpectedly failed or skipped: {res}."
     )
     assert dst_img.exists(), (
         f"[image] Sanitized output file '{dst_img}' was not written to disk."
@@ -86,9 +86,9 @@ def test_image_metadata_removal_strips_png_text_chunks(tmp_workspace):
     img.save(src_png, format="PNG", pnginfo=pnginfo)
 
     dst_png = out_dir / "chunks_clean.png"
-    success = file_metadata_remover(src_png, dst_png)
+    res = file_metadata_remover(src_png, dst_png)
 
-    assert success is True, "[image] PNG metadata removal returned False."
+    assert res.is_processed, f"[image] PNG metadata removal failed: {res}."
     with Image.open(dst_png) as out_img:
         assert "Author" not in out_img.info, (
             "[image] PNG tEXt 'Author' chunk was not stripped."
@@ -114,9 +114,9 @@ def test_image_metadata_removal_preserves_exif_orientation(tmp_workspace):
     img.save(src_jpg, format="JPEG", exif=exif.tobytes())
 
     dst_jpg = out_dir / "portrait_clean.jpg"
-    success = file_metadata_remover(src_jpg, dst_jpg)
+    res = file_metadata_remover(src_jpg, dst_jpg)
 
-    assert success is True, "[image] Metadata removal on EXIF-rotated JPEG returned False."
+    assert res.is_processed, f"[image] Metadata removal on EXIF-rotated JPEG failed: {res}."
     with Image.open(dst_jpg) as out_img:
         assert out_img.size == (150, 300), (
             f"[image] Expected baked portrait dimensions (150, 300), got {out_img.size}."
@@ -148,9 +148,9 @@ def test_image_metadata_removal_animated_gif_preserves_frames_and_strips_comment
     )
 
     dst_gif = out_dir / "anim_clean.gif"
-    success = file_metadata_remover(src_gif, dst_gif)
+    res = file_metadata_remover(src_gif, dst_gif)
 
-    assert success is True, "[image] Animated GIF metadata removal returned False."
+    assert res.is_processed, f"[image] Animated GIF metadata removal failed: {res}."
     with Image.open(dst_gif) as out_gif:
         assert getattr(out_gif, "n_frames", 1) == 2, (
             "[image] Sanitized animated GIF lost animation frames."
@@ -175,9 +175,9 @@ def test_heic_image_metadata_removal_saves_clean_png(tmp_workspace, create_sampl
     heif_file.save(src_heic, exif=exif.tobytes())
 
     dst_png = out_dir / "photo_clean.png"
-    success = file_metadata_remover(src_heic, dst_png)
+    res = file_metadata_remover(src_heic, dst_png)
 
-    assert success is True, "[image] HEIC metadata removal returned False."
+    assert res.is_processed, f"[image] HEIC metadata removal failed: {res}."
     assert dst_png.exists(), "[image] Clean PNG output from HEIC source was not created."
     with Image.open(dst_png) as out_img:
         assert out_img.format == "PNG"
@@ -196,9 +196,11 @@ def test_image_metadata_removal_atomic_write_on_failure(tmp_workspace):
     dst_img = out_dir / "existing.jpg"
     dst_img.write_bytes(b"intact existing file")
 
-    success = file_metadata_remover(src_corrupted, dst_img)
+    res = file_metadata_remover(src_corrupted, dst_img)
 
-    assert success is False, "[image] Stripping corrupted bytes must return False."
+    assert res.is_failed and not res, (
+        f"[image] Stripping corrupted bytes must return failed FileResult, got {res}."
+    )
     assert dst_img.exists(), (
         "[image] Failed metadata removal must not unlink pre-existing destination file."
     )

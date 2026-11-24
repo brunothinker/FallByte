@@ -4,6 +4,7 @@ from typing import Any
 
 import flet as ft
 
+from src.utils.file_result import FileResult
 from src.utils.output_naming import unique_tracks_output_path
 from src.video.utils.video_ffmpeg_utils import MediaTrack
 from src.video.video_track_selector import (
@@ -136,7 +137,7 @@ class VideoTracksController(BaseController):
         output_path: Path,
         params: Any,
         progress_cb: ProgressCallback,
-    ) -> bool:
+    ) -> FileResult:
         def remux_progress(processed: float, fps: float, speed: float) -> None:
             # Remuxing has no known duration: the bar stays indeterminate.
             progress_cb(0.0, processed, fps, speed)

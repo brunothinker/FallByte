@@ -1,4 +1,4 @@
-"""Core (image): testes de conversion (engines de arquivo e de diretorio)."""
+"""Core (image): tests from conversion"""
 
 import pillow_heif
 import pytest
@@ -119,15 +119,15 @@ def test_image_conversion_matrix(
 
     dst_path = out_dir / f"converted_{source_mode}_to_{target_fmt.lower()}.{ext}"
 
-    success = file_converter(
+    res = file_converter(
         src_img,
         dst_path,
         target_format=target_fmt,
         transparency_replacement_color="#FFFFFF",
     )
 
-    assert success is True, (
-        f"[image] Conversion from {source_mode} to {target_fmt} unexpectedly returned False."
+    assert res.is_processed, (
+        f"[image] Conversion from {source_mode} to {target_fmt} unexpectedly failed or skipped: {res}."
     )
     assert dst_path.exists(), (
         f"[image] Converted output file '{dst_path}' was not created on disk."
@@ -149,15 +149,15 @@ def test_heic_image_conversion_to_target_formats(tmp_workspace, create_sample_im
     heif_file.save(src_heic)
 
     dst_jpeg = out_dir / "converted_heic.jpg"
-    success = file_converter(
+    res = file_converter(
         src_heic,
         dst_jpeg,
         target_format="JPEG",
         transparency_replacement_color="#FFFFFF",
     )
 
-    assert success is True, (
-        "[image] HEIC-to-JPEG conversion returned False; pillow-heif opener may not be active."
+    assert res.is_processed, (
+        f"[image] HEIC-to-JPEG conversion failed; pillow-heif opener may not be active: {res}."
     )
     assert dst_jpeg.exists(), (
         "[image] Converted JPEG file from HEIC source was not written to disk."
@@ -179,10 +179,10 @@ def test_ico_sizing_clamp(tmp_workspace, create_sample_image):
     create_sample_image(large_png, mode="RGBA", size=(500, 500), fmt="PNG")
 
     dst_ico = out_dir / "icon.ico"
-    success = file_converter(large_png, dst_ico, target_format="ICO")
+    res = file_converter(large_png, dst_ico, target_format="ICO")
 
-    assert success is True, (
-        "[image] ICO conversion of a 500x500 PNG unexpectedly returned False."
+    assert res.is_processed, (
+        f"[image] ICO conversion of a 500x500 PNG unexpectedly failed: {res}."
     )
     assert dst_ico.exists(), "[image] Converted ICO file was not written to disk."
 
@@ -204,10 +204,10 @@ def test_image_conversion_atomic_write_on_failure(tmp_workspace, monkeypatch):
     dst_img = out_dir / "output.jpg"
     dst_img.write_bytes(b"pre-existing target data")
 
-    success = file_converter(src_img, dst_img, target_format="JPEG")
+    res = file_converter(src_img, dst_img, target_format="JPEG")
 
-    assert success is False, (
-        "[image] Converting corrupted image bytes must return False."
+    assert res.is_failed and not res, (
+        f"[image] Converting corrupted image bytes must return failed FileResult, got {res}."
     )
     assert dst_img.exists(), (
         "[image] Failed conversion must not delete a pre-existing destination file."

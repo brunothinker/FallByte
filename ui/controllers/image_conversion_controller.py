@@ -5,6 +5,7 @@ from typing import Any
 
 from src.image.image_directory_conversion import directory_converter
 from src.image.image_file_conversion import file_converter
+from src.utils.file_result import FileResult
 from src.utils.output_naming import unique_conversion_output_path
 from src.utils.progress import ProgressInfo
 from ui.controllers.base_controller import BaseController, ProgressCallback
@@ -14,10 +15,10 @@ from ui.utils.format_utils import image_input_formats
 
 @dataclass(frozen=True)
 class ConversionOptions:
-    """User configuration for an image conversion run."""
+    """Validated user configuration for an image conversion execution."""
 
     target_format: str
-    color_key: str
+    color_key: str = "color_white"
 
 
 class ConversionController(BaseController):
@@ -43,7 +44,7 @@ class ConversionController(BaseController):
         output_path: Path,
         params: ConversionOptions,
         progress_cb: ProgressCallback,
-    ) -> bool:
+    ) -> FileResult:
         return file_converter(
             input_path=input_path,
             output_path=output_path,

@@ -11,6 +11,7 @@ from src.audio.audio_file_normalization import (
 )
 from src.audio.utils.audio_scanner import scan_audio_files
 from src.utils.batch_runner import run_batch
+from src.utils.file_result import FileResult
 from src.utils.output_naming import unique_batch_output_path
 from src.utils.progress import BatchProgressBridge, ProgressInfo
 
@@ -58,7 +59,7 @@ def directory_normalizer(
     """
     bridge = BatchProgressBridge(progress_callback)
 
-    def process_file(src: Path, dst: Path) -> bool:
+    def process_file(src: Path, dst: Path) -> FileResult:
         return file_normalizer(
             input_path=src,
             output_path=dst,

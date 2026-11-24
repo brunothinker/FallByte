@@ -4,6 +4,7 @@ from typing import Any
 
 from src.audio.audio_directory_extraction import directory_extractor
 from src.audio.audio_file_extraction import file_extractor
+from src.utils.file_result import FileResult
 from src.utils.output_naming import unique_extraction_output_path
 from src.utils.progress import ProgressInfo
 from ui.controllers.base_controller import BaseController, ProgressCallback
@@ -32,7 +33,7 @@ class AudioExtractionController(BaseController):
         output_path: Path,
         params: Any,
         progress_cb: ProgressCallback,
-    ) -> bool:
+    ) -> FileResult:
         return file_extractor(
             input_path=input_path,
             output_path=output_path,

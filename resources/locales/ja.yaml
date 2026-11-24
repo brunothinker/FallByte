@@ -93,6 +93,7 @@ strings:
   msg_compressing_progress: "圧縮中: [{current}/{total}] - {filename}"
   msg_process_cancelled: "処理をキャンセルしました。生成された {count} 件のファイルを削除しました。"
   msg_success_summary: "{msg} | 成功: {successful} / {total}"
+  msg_batch_summary: "{msg} | 成功: {successful} | スキップ: {skipped} | 失敗: {failed} | 合計: {total}"
   msg_supported_formats_notice: "圧縮対応フォーマット: {formats}"
   msg_supported_formats_notice_conversion: "変換対応フォーマット: {formats}"
 
@@ -108,6 +109,7 @@ strings:
   dialog_no_files_formats: "対応フォーマット: {formats}"
   log_dialog_title: "処理結果"
   log_summary_success: "成功"
+  log_summary_skipped: "スキップ"
   log_summary_failed: "失敗"
   log_summary_total: "合計ファイル数"
   log_summary_time: "経過時間"
@@ -118,6 +120,15 @@ strings:
   log_size_stat: "サイズ: {orig} -> {comp}"
   log_reduction_stat: "削減率: -{pct:.1f}%"
   log_increase_stat: "増加率: +{pct:.1f}%"
+  msg_kept_original: "ファイルはそのまま保持されました: 変更の必要はありませんでした。"
+  skip_uncompressible_format: "{fmt} は安全に圧縮できません"
+  skip_animated_png: "アニメーションPNGはフレームが失われるためスキップされました"
+  skip_not_smaller: "品質 {quality}% ではファイルサイズが小さくなりませんでした"
+  skip_same_format: "すでに .{fmt} のため変換は不要です"
+  skip_audio_not_reencoded: "{fmt} は音声圧縮時に再エンコードされません"
+  skip_no_upscale: "すでに {src_width}x{src_height}（{target_height}p以下）のためアップスケールしませんでした"
+  skip_no_audio_stream: "動画に音声トラックが含まれていません"
+  skip_unsupported_normalization_format: "{fmt} はラウドネス正規化に対応していません"
 
   # ============================================================================
   # Module: Image

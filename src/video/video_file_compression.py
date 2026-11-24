@@ -7,6 +7,7 @@ from pathlib import Path
 
 from src.utils.binary_manager import get_ffmpeg_path
 from src.utils.cleanup import copy_original_file_atomically
+from src.utils.file_result import FileResult
 from src.video.utils.video_ffmpeg_utils import (
     HEVC_COMPRESSION_CONTAINERS,
     RESCUE_INPUT_ARGS,
@@ -128,7 +129,7 @@ def file_compressor(
     quality: int = 80,
     cancel_event: threading.Event | None = None,
     file_progress_callback: Callable[[float, float, float, float], None] | None = None,
-) -> bool:
+) -> FileResult:
     """Compresses a single video file while strictly maintaining its original format.
 
     Maps the percentage quality scale (1-100) to the encoder's quality
@@ -151,7 +152,7 @@ def file_compressor(
           Callback receiving (duration_seconds, processed_seconds, fps, speed).
 
     Returns:
-        bool: True if compression succeeded, False otherwise.
+        FileResult: Outcome of the compression operation.
 
     Raises:
         InterruptedError: If cancellation was requested via cancel_event.
@@ -164,7 +165,7 @@ def file_compressor(
             logger.error(
                 f"Refusing to compress '{input_path.name}': output path is the source file."
             )
-            return False
+            return FileResult.failed()
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
         target_ext = output_path.suffix.lower().lstrip(".")
@@ -210,7 +211,7 @@ def file_compressor(
         if used is None:
             if tmp_path.exists():
                 tmp_path.unlink(missing_ok=True)
-            return False
+            return FileResult.failed()
 
         original_size = input_path.stat().st_size
         output_size = tmp_path.stat().st_size
@@ -219,15 +220,16 @@ def file_compressor(
             return copy_original_file_atomically(
                 input_path,
                 output_path,
-                f"could not be made smaller at {quality}% quality",
+                "skip_not_smaller",
+                quality=quality,
             )
-        else:
-            os.replace(tmp_path, output_path)
-            logger.info(
-                f"Successfully compressed '{input_path.name}' "
-                f"[Format: {input_path.suffix.upper()} | Quality: {quality}%]."
-            )
-        return True
+
+        os.replace(tmp_path, output_path)
+        logger.info(
+            f"Successfully compressed '{input_path.name}' "
+            f"[Format: {input_path.suffix.upper()} | Quality: {quality}%]."
+        )
+        return FileResult.processed()
 
     except InterruptedError:
         if tmp_path and tmp_path.exists():
@@ -238,4 +240,4 @@ def file_compressor(
         logger.exception(f"Failed to compress '{input_path.name}'")
         if tmp_path and tmp_path.exists():
             tmp_path.unlink(missing_ok=True)
-        return False
+        return FileResult.failed()

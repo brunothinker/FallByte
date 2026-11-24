@@ -1,4 +1,4 @@
-"""UI (video): testes de compression (controller + page da funcionalidade)."""
+"""UI (video): testes from compression (controller and feature page)."""
 
 from unittest.mock import MagicMock, patch
 
@@ -47,8 +47,8 @@ def test_single_file_compression_cancellation_preserves_preexisting_file(
     )
 
 
-def test_video_compression_preflight_empty_supported_files(tmp_workspace, mock_page):
-    """Verifies that preflight stops early when no supported video files exist in the batch directory."""
+def test_video_compression_batch_empty_supported_files(tmp_workspace, mock_page):
+    """Verifies that batch job shows the no-supported-files dialog when no supported video files exist."""
     in_dir, out_dir = tmp_workspace
     (in_dir / "document.pdf").write_bytes(b"pdf data")
 
@@ -58,16 +58,21 @@ def test_video_compression_preflight_empty_supported_files(tmp_workspace, mock_p
 
     ui = make_job_ui(mock_page)
 
-    proceed = MagicMock()
-
-    with patch(
-        "ui.controllers.base_controller.show_no_supported_files_dialog"
-    ) as mock_no_files:
-        controller.preflight_batch(ui, 80, proceed)
+    with (
+        patch(
+            "ui.controllers.video_compression_controller.directory_compressor",
+            return_value={"no_files": True},
+        ),
+        patch(
+            "ui.controllers.base_controller.show_no_supported_files_dialog"
+        ) as mock_no_files,
+        patch("ui.controllers.base_controller.show_summary_dialog") as mock_summary,
+    ):
+        controller._run_batch_directory_job(ui, 80)
 
         mock_no_files.assert_called_once()
         formats = mock_no_files.call_args.args[1]
         assert "MP4" in formats and "PDF" not in formats, (
-            "[ui] Video preflight unsupported-files dialog must list supported video formats ('MP4') and exclude 'PDF'."
+            "[ui] Video batch no-files dialog must list supported video formats ('MP4') and exclude 'PDF'."
         )
-        proceed.assert_not_called()
+        mock_summary.assert_not_called()

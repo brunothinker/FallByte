@@ -1,9 +1,10 @@
-"""UI (image): testes de compression (controller + page da funcionalidade)."""
+"""UI (image): compression tests (controller and feature page)."""
 
 from unittest.mock import MagicMock, patch
 
 import flet as ft
 
+from src.utils.file_result import FileResult
 from tests.ui.helpers import make_job_ui
 from ui.controllers.image_compression_controller import (
     CompressionController,
@@ -84,11 +85,14 @@ def test_single_file_compression_does_not_overwrite_preexisting_file(
     monkeypatch.setattr(
         "ui.controllers.base_controller.show_summary_dialog", MagicMock()
     )
+
+    def fake_compressor(input_path, output_path, quality, strip_metadata=False):
+        output_path.write_bytes(b"compressed data")
+        return FileResult.processed()
+
     monkeypatch.setattr(
         "ui.controllers.image_compression_controller.file_compressor",
-        lambda input_path, output_path, quality, strip_metadata=False: (
-            output_path.write_bytes(b"compressed data") or True
-        ),
+        fake_compressor,
     )
 
     controller._run_single_file_job(ui, CompressionOptions(quality=80))
@@ -124,7 +128,7 @@ def test_single_file_compression_forwards_strip_metadata_flag(
     def fake_compressor(input_path, output_path, quality, strip_metadata=False):
         captured_kwargs["strip_metadata"] = strip_metadata
         output_path.write_bytes(b"clean compressed")
-        return True
+        return FileResult.processed()
 
     monkeypatch.setattr(
         "ui.controllers.base_controller.show_summary_dialog", MagicMock()

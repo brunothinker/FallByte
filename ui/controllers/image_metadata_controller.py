@@ -7,6 +7,7 @@ from src.image.image_file_metadata import (
     UNWRITABLE_METADATA_FORMATS,
     file_metadata_remover,
 )
+from src.utils.file_result import FileResult
 from src.utils.output_naming import unique_metadata_output_path
 from src.utils.progress import ProgressInfo
 from ui.controllers.base_controller import BaseController, ProgressCallback
@@ -35,7 +36,7 @@ class ImageMetadataController(BaseController):
         output_path: Path,
         params: Any,
         progress_cb: ProgressCallback,
-    ) -> bool:
+    ) -> FileResult:
         return file_metadata_remover(input_path=input_path, output_path=output_path)
 
     def run_batch_engine(

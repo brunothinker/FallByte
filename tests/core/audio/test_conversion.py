@@ -1,4 +1,4 @@
-"""Core (audio): testes de conversion (engines de arquivo e de diretorio)."""
+"""Core (audio): tests from conversion"""
 
 import subprocess
 import threading
@@ -54,6 +54,9 @@ def test_directory_converter_preserves_hierarchy_and_handles_name_collisions(
     )
     assert stats["success"] == 3, (
         f"[audio] Expected 3 successful conversions, got {stats['success']} (stats={stats})."
+    )
+    assert stats["skipped"] == 0, (
+        f"[audio] Expected 0 skipped conversions, got {stats['skipped']} (stats={stats})."
     )
     assert stats["failed"] == 1, (
         f"[audio] Expected 1 failed conversion for corrupted file, got {stats['failed']}."
@@ -135,16 +138,24 @@ def test_file_converter_converts_wav_to_all_target_formats(
     dst = tmp_path / "converted" / f"source.{target_fmt}"
     progress_calls: list[tuple[float, float, float, float]] = []
 
-    ok = audio_file_conversion.file_converter(
+    res = audio_file_conversion.file_converter(
         input_path=src,
         output_path=dst,
         target_format=target_fmt,
         file_progress_callback=lambda d, p, f, s: progress_calls.append((d, p, f, s)),
     )
 
-    assert ok is True, (
-        f"[audio] Conversion from WAV to '{target_fmt}' unexpectedly returned False."
+    assert res, (
+        f"[audio] Conversion from WAV to '{target_fmt}' unexpectedly failed: {res}."
     )
+    if target_fmt == "wav":
+        assert res.is_skipped and res.reason_key == "skip_same_format", (
+            f"[audio] Expected WAV -> WAV to return skipped ('skip_same_format'), got {res}."
+        )
+    else:
+        assert res.is_processed, (
+            f"[audio] Expected WAV -> '{target_fmt}' to return processed, got {res}."
+        )
     assert dst.exists() and dst.stat().st_size > 0, (
         f"[audio] Converted file '{dst}' was not created or is empty."
     )
@@ -172,15 +183,23 @@ def test_file_converter_full_format_matrix(
     src = sample_audio_factory(f"matrix_src_{source_fmt}.{source_fmt}", duration=0.6)
     dst = tmp_path / "matrix" / f"{source_fmt}_to_{target_fmt}.{target_fmt}"
 
-    ok = audio_file_conversion.file_converter(
+    res = audio_file_conversion.file_converter(
         input_path=src,
         output_path=dst,
         target_format=target_fmt,
     )
 
-    assert ok is True, (
-        f"[audio] Matrix conversion '{source_fmt}' -> '{target_fmt}' unexpectedly returned False."
+    assert res, (
+        f"[audio] Matrix conversion '{source_fmt}' -> '{target_fmt}' unexpectedly failed: {res}."
     )
+    if source_fmt == target_fmt:
+        assert res.is_skipped and res.reason_key == "skip_same_format", (
+            f"[audio] Same-format matrix conversion '{source_fmt}' -> '{target_fmt}' should skip, got {res}."
+        )
+    else:
+        assert res.is_processed, (
+            f"[audio] Cross-format matrix conversion '{source_fmt}' -> '{target_fmt}' should process, got {res}."
+        )
     assert dst.exists() and dst.stat().st_size > 0, (
         f"[audio] Matrix conversion '{source_fmt}' -> '{target_fmt}' produced missing or empty output at '{dst}'."
     )
@@ -197,7 +216,7 @@ def test_file_converter_full_format_matrix(
 def test_file_converter_bypasses_reencoding_when_extensions_match(
     sample_audio_factory, tmp_path: Path, monkeypatch
 ):
-    """When input extension equals target format, `file_converter` must copy atomically without transcoding."""
+    """When input extension equals target format, `file_converter` must copy atomically and return skipped."""
     src = sample_audio_factory("already.mp3", duration=1.0, bitrate="128k")
     dst = tmp_path / "out" / "already.mp3"
 
@@ -210,13 +229,15 @@ def test_file_converter_bypasses_reencoding_when_extensions_match(
         audio_file_conversion, "run_audio_strategies", _forbid_strategies
     )
 
-    ok = audio_file_conversion.file_converter(
+    res = audio_file_conversion.file_converter(
         input_path=src,
         output_path=dst,
         target_format="mp3",
     )
 
-    assert ok is True, "[audio] Same-format bypass conversion returned False."
+    assert res and res.is_skipped and res.reason_key == "skip_same_format", (
+        f"[audio] Same-format bypass conversion should return skipped ('skip_same_format'), got {res}."
+    )
     assert dst.read_bytes() == src.read_bytes(), (
         "[audio] Same-format bypass must preserve exact source bytes via atomic copy."
     )
@@ -231,14 +252,14 @@ def test_file_converter_strips_cover_art_and_converts_audio(
     src = sample_audio_factory("with_cover.mp3", duration=1.0, with_cover_art=True)
     dst = tmp_path / "out" / "clean.ogg"
 
-    ok = audio_file_conversion.file_converter(
+    res = audio_file_conversion.file_converter(
         input_path=src,
         output_path=dst,
         target_format="ogg",
     )
 
-    assert ok is True, (
-        "[audio] Conversion of MP3 containing embedded cover art failed; `-vn` mapping should isolate audio."
+    assert res.is_processed, (
+        f"[audio] Conversion of MP3 containing embedded cover art failed; `-vn` mapping should isolate audio: {res}."
     )
     assert dst.exists() and dst.stat().st_size > 0, (
         "[audio] Output OGG file from cover-art MP3 is missing or empty."
@@ -248,30 +269,36 @@ def test_file_converter_strips_cover_art_and_converts_audio(
 def test_file_converter_rejects_invalid_inputs_safely(
     sample_audio_factory, tmp_path: Path
 ):
-    """`file_converter` must return False on missing, empty, same-path, or corrupted files."""
+    """`file_converter` must return failed FileResult on missing, empty, same-path, or corrupted files."""
     missing = tmp_path / "missing.wav"
-    assert (
-        audio_file_conversion.file_converter(missing, tmp_path / "o.mp3", "mp3")
-        is False
-    ), "[audio] Missing source file must return False without raising."
+    res_missing = audio_file_conversion.file_converter(
+        missing, tmp_path / "o.mp3", "mp3"
+    )
+    assert res_missing.is_failed and not res_missing, (
+        "[audio] Missing source file must return failed FileResult without raising."
+    )
 
     empty = tmp_path / "empty.wav"
     empty.write_bytes(b"")
-    assert (
-        audio_file_conversion.file_converter(empty, tmp_path / "o.mp3", "mp3") is False
-    ), "[audio] Zero-byte source file must return False."
+    res_empty = audio_file_conversion.file_converter(empty, tmp_path / "o.mp3", "mp3")
+    assert res_empty.is_failed and not res_empty, (
+        "[audio] Zero-byte source file must return failed FileResult."
+    )
 
     valid = sample_audio_factory("valid.wav", duration=0.5)
-    assert audio_file_conversion.file_converter(valid, valid, "mp3") is False, (
+    res_same = audio_file_conversion.file_converter(valid, valid, "mp3")
+    assert res_same.is_failed and not res_same, (
         "[audio] Converter must refuse to overwrite the source file when input_path == output_path."
     )
 
     corrupt = tmp_path / "corrupt.mp3"
     corrupt.write_bytes(b"not-a-valid-audio-stream-at-all")
-    assert (
-        audio_file_conversion.file_converter(corrupt, tmp_path / "o.ogg", "ogg")
-        is False
-    ), "[audio] Corrupted file without probeable audio streams must return False."
+    res_corrupt = audio_file_conversion.file_converter(
+        corrupt, tmp_path / "o.ogg", "ogg"
+    )
+    assert res_corrupt.is_failed and not res_corrupt, (
+        "[audio] Corrupted file without probeable audio streams must return failed FileResult."
+    )
 
 
 def test_file_converter_cleans_temp_file_on_cancellation(
@@ -330,14 +357,14 @@ def test_file_converter_handles_non_standard_sample_rates(
     )
 
     dst = tmp_path / f"converted_{sample_rate}.opus"
-    ok = audio_file_conversion.file_converter(
+    res = audio_file_conversion.file_converter(
         input_path=src,
         output_path=dst,
         target_format="opus",
     )
 
-    assert ok is True, (
-        f"[audio] Conversion from {sample_rate} Hz WAV to Opus unexpectedly failed."
+    assert res.is_processed, (
+        f"[audio] Conversion from {sample_rate} Hz WAV to Opus unexpectedly failed: {res}."
     )
     probed = audio_ffmpeg_utils.probe_audio_streams(ffmpeg_bin, dst)
     assert probed.primary_codec == "opus" and probed.sample_rate == 48000, (
@@ -383,17 +410,17 @@ def test_file_converter_and_compressor_trigger_rescue_stereo_fallback(
         audio_file_compression, "run_audio_strategies", _fail_first_strategy
     )
 
-    assert (
-        audio_file_conversion.file_converter(src, conv_dst, target_format="ogg") is True
-    ), (
-        "[audio] file_converter did not recover using the rescue stereo transcode strategy."
+    conv_res = audio_file_conversion.file_converter(src, conv_dst, target_format="ogg")
+    assert conv_res.is_processed, (
+        f"[audio] file_converter did not recover using the rescue stereo transcode strategy: {conv_res}."
     )
     assert conv_dst.exists() and conv_dst.stat().st_size > 0, (
         "[audio] Rescue conversion did not produce a non-empty output file."
     )
 
-    assert audio_file_compression.file_compressor(src, comp_dst, quality=30) is True, (
-        "[audio] file_compressor did not recover using the rescue stereo compression strategy."
+    comp_res = audio_file_compression.file_compressor(src, comp_dst, quality=30)
+    assert comp_res.is_processed, (
+        f"[audio] file_compressor did not recover using the rescue stereo compression strategy: {comp_res}."
     )
     assert comp_dst.exists() and comp_dst.stat().st_size > 0, (
         "[audio] Rescue compression did not produce a non-empty output file."

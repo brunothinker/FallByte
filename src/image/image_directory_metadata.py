@@ -10,6 +10,7 @@ from src.image.image_file_metadata import (
 )
 from src.image.utils.image_scanner import scan_image_files
 from src.utils.batch_runner import run_batch
+from src.utils.file_result import FileResult
 from src.utils.output_naming import unique_batch_output_path
 from src.utils.progress import ProgressInfo
 
@@ -41,7 +42,7 @@ def directory_metadata_remover(
         dict[str, Any]: Summary dictionary containing execution metrics.
     """
 
-    def process_file(src: Path, dst: Path) -> bool:
+    def process_file(src: Path, dst: Path) -> FileResult:
         return file_metadata_remover(input_path=src, output_path=dst)
 
     reserved_paths: set[str] = set()

@@ -2,12 +2,12 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from src.formats import SUPPORTED_VIDEO_EXTENSIONS
+from src.utils.file_result import FileResult
 from src.utils.output_naming import unique_compression_output_path
 from src.utils.progress import ProgressInfo
 from src.video.video_directory_compression import directory_compressor
 from src.video.video_file_compression import file_compressor
-from ui.controllers.base_controller import BaseController, JobUI, ProgressCallback
+from ui.controllers.base_controller import BaseController, ProgressCallback
 from ui.utils.format_utils import video_input_formats
 
 
@@ -21,13 +21,6 @@ class VideoCompressionController(BaseController):
     def supported_formats(self) -> list[str]:
         return video_input_formats()
 
-    def preflight_batch(
-        self, ui: JobUI, params: Any, proceed: Callable[[], None]
-    ) -> None:
-        self._preflight_by_support(
-            ui, proceed, lambda f: f.suffix.lower() in SUPPORTED_VIDEO_EXTENSIONS
-        )
-
     def build_output_path(self, input_path: Path, output_dir: Path, params: Any) -> Path:
         return unique_compression_output_path(
             input_path=input_path, output_dir=output_dir
@@ -39,7 +32,7 @@ class VideoCompressionController(BaseController):
         output_path: Path,
         params: Any,
         progress_cb: ProgressCallback,
-    ) -> bool:
+    ) -> FileResult:
         return file_compressor(
             input_path=input_path,
             output_path=output_path,

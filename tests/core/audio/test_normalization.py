@@ -66,15 +66,15 @@ def test_file_normalizer_normalizes_all_supported_formats_and_preserves_format(
     dst = tmp_path / "normalized" / f"track.{ext}"
     progress_calls: list[tuple[float, float, float, float]] = []
 
-    ok = audio_file_normalization.file_normalizer(
+    res = audio_file_normalization.file_normalizer(
         input_path=src,
         output_path=dst,
         preset_key="music",
         file_progress_callback=lambda d, p, f, s: progress_calls.append((d, p, f, s)),
     )
 
-    assert ok is True, (
-        f"[audio] Normalization of '{src.name}' unexpectedly returned False."
+    assert res.is_processed, (
+        f"[audio] Normalization of '{src.name}' unexpectedly failed or skipped: {res}."
     )
     assert dst.exists() and dst.stat().st_size > 0, (
         f"[audio] Normalized output '{dst}' was not created or is empty."
@@ -108,56 +108,66 @@ def test_file_normalizer_succeeds_for_all_presets(
     src = sample_audio_factory(f"voice_{preset_key}.mp3", duration=1.2, bitrate="192k")
     dst = tmp_path / "out" / f"voice_{preset_key}.mp3"
 
-    ok = audio_file_normalization.file_normalizer(
+    res = audio_file_normalization.file_normalizer(
         input_path=src,
         output_path=dst,
         preset_key=preset_key,
     )
 
-    assert ok is True, (
-        f"[audio] Normalization with preset '{preset_key}' unexpectedly returned False."
+    assert res.is_processed, (
+        f"[audio] Normalization with preset '{preset_key}' unexpectedly failed or skipped: {res}."
     )
     assert dst.exists() and dst.stat().st_size > 0, (
         f"[audio] Output file for preset '{preset_key}' is missing or empty."
     )
 
 
-def test_file_normalizer_rejects_invalid_inputs_and_cleans_temp_on_cancel(
+def test_file_normalizer_rejects_invalid_inputs_skips_unsupported_and_cleans_temp_on_cancel(
     sample_audio_factory, tmp_path: Path
 ):
-    """`file_normalizer` must reject missing, empty, same-path, unsupported, or corrupt files and clean temp files on cancel."""
-    assert (
-        audio_file_normalization.file_normalizer(
-            tmp_path / "missing.mp3", tmp_path / "out.mp3"
-        )
-        is False
-    ), "[audio] Missing source file must return False without raising."
+    """`file_normalizer` must fail on missing/empty/same-path/corrupt, skip unsupported formats, and clean temp on cancel."""
+    res_missing = audio_file_normalization.file_normalizer(
+        tmp_path / "missing.mp3", tmp_path / "out.mp3"
+    )
+    assert res_missing.is_failed and not res_missing, (
+        "[audio] Missing source file must return failed FileResult without raising."
+    )
 
     empty = tmp_path / "empty.mp3"
     empty.write_bytes(b"")
-    assert (
-        audio_file_normalization.file_normalizer(empty, tmp_path / "out.mp3") is False
-    ), "[audio] Zero-byte source file must return False."
+    res_empty = audio_file_normalization.file_normalizer(empty, tmp_path / "out.mp3")
+    assert res_empty.is_failed and not res_empty, (
+        "[audio] Zero-byte source file must return failed FileResult."
+    )
 
     valid = sample_audio_factory("valid.wav", duration=0.8)
-    assert audio_file_normalization.file_normalizer(valid, valid) is False, (
+    res_same = audio_file_normalization.file_normalizer(valid, valid)
+    assert res_same.is_failed and not res_same, (
         "[audio] Normalizer must refuse overwriting source file when input_path == output_path."
     )
 
     aiff_file = sample_audio_factory("unsupported.aiff", duration=0.6)
+    aiff_out = tmp_path / "out.aiff"
+    res_aiff = audio_file_normalization.file_normalizer(aiff_file, aiff_out)
     assert (
-        audio_file_normalization.file_normalizer(
-            aiff_file, tmp_path / "out.aiff"
-        )
-        is False
-    ), "[audio] Unsupported container format '.aiff' must return False cleanly."
+        res_aiff.is_skipped
+        and res_aiff.reason_key == "skip_unsupported_normalization_format"
+        and res_aiff.reason_params.get("fmt") == "aiff"
+    ), (
+        f"[audio] Unsupported container format '.aiff' must return skipped ('skip_unsupported_normalization_format'), got {res_aiff}."
+    )
+    assert not aiff_out.exists(), (
+        "[audio] Unsupported format normalization must not create an output file."
+    )
 
     corrupt = tmp_path / "corrupt.mp3"
     corrupt.write_bytes(b"not-a-valid-audio-stream")
-    assert (
-        audio_file_normalization.file_normalizer(corrupt, tmp_path / "out.mp3")
-        is False
-    ), "[audio] Corrupted audio file without streams must return False."
+    res_corrupt = audio_file_normalization.file_normalizer(
+        corrupt, tmp_path / "out.mp3"
+    )
+    assert res_corrupt.is_failed and not res_corrupt, (
+        "[audio] Corrupted audio file without streams must return failed FileResult."
+    )
 
     cancel = threading.Event()
     cancel.set()
@@ -211,10 +221,10 @@ def test_file_normalizer_triggers_rescue_stereo_fallback(
         audio_file_normalization, "run_audio_strategies", _fail_first_strategy
     )
 
-    assert (
-        audio_file_normalization.file_normalizer(src, dst, preset_key="podcast")
-        is True
-    ), "[audio] file_normalizer did not recover using the rescue stereo strategy."
+    res = audio_file_normalization.file_normalizer(src, dst, preset_key="podcast")
+    assert res.is_processed, (
+        f"[audio] file_normalizer did not recover using the rescue stereo strategy: {res}."
+    )
     assert dst.exists() and dst.stat().st_size > 0, (
         "[audio] Rescue loudness normalization did not produce a non-empty output file."
     )
@@ -266,6 +276,9 @@ def test_directory_normalizer_preserves_hierarchy_and_isolates_failures(
     )
     assert stats["success"] == 2, (
         f"[audio] Expected 2 successful normalizations, got {stats['success']} (stats={stats})."
+    )
+    assert stats["skipped"] == 0, (
+        f"[audio] Expected 0 skipped normalizations, got {stats['skipped']} (stats={stats})."
     )
     assert stats["failed"] == 1, (
         f"[audio] Expected 1 failed normalization for corrupted file, got {stats['failed']}."

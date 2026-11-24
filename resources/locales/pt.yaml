@@ -93,6 +93,7 @@ strings:
   msg_compressing_progress: "Comprimindo: [{current}/{total}] - {filename}"
   msg_process_cancelled: "Processamento cancelado. {count} arquivo(s) gerado(s) apagado(s)."
   msg_success_summary: "{msg} | Sucesso: {successful} / {total}"
+  msg_batch_summary: "{msg} | Sucesso: {successful} | Ignorados: {skipped} | Falhas: {failed} | Total: {total}"
   msg_supported_formats_notice: "Formatos suportados para compressão: {formats}"
   msg_supported_formats_notice_conversion: "Formatos suportados para conversão: {formats}"
 
@@ -108,6 +109,7 @@ strings:
   dialog_no_files_formats: "Formatos suportados: {formats}"
   log_dialog_title: "Resultado do Processamento"
   log_summary_success: "Sucesso"
+  log_summary_skipped: "Ignorados"
   log_summary_failed: "Falhas"
   log_summary_total: "Total de Arquivos"
   log_summary_time: "Tempo Decorrido"
@@ -118,6 +120,15 @@ strings:
   log_size_stat: "Tamanho: {orig} -> {comp}"
   log_reduction_stat: "Redução: -{pct:.1f}%"
   log_increase_stat: "Aumento: +{pct:.1f}%"
+  msg_kept_original: "Arquivo mantido como está: nada precisou ser alterado."
+  skip_uncompressible_format: "{fmt} não pode ser comprimido com segurança"
+  skip_animated_png: "PNG animado perderia seus quadros"
+  skip_not_smaller: "o resultado não ficou menor com {quality}% de qualidade"
+  skip_same_format: "já está em .{fmt}, nenhuma conversão necessária"
+  skip_audio_not_reencoded: "{fmt} não é recodificado durante a compressão de áudio"
+  skip_no_upscale: "já possui {src_width}x{src_height} (igual ou inferior a {target_height}p), não ampliado"
+  skip_no_audio_stream: "o vídeo não contém faixa de áudio"
+  skip_unsupported_normalization_format: "{fmt} não é suportado para normalização de volume"
 
   # ============================================================================
   # Module: Image
@@ -163,6 +174,16 @@ strings:
   # --- Video: Compression ---
   video_hub_card_compression_title: "Compressão de Vídeo"
   video_hub_card_compression_desc: "Reduza o tamanho de vídeos preservando a qualidade."
+  # --- Video: Downscale ---
+  video_hub_card_downscale_title: "Reduzir Resolução de Vídeo"
+  video_hub_card_downscale_desc: "Reduza vídeos para resoluções padrão mantendo a proporção."
+  lbl_target_resolution: "Resolução de Destino"
+  preset_resolution_1080p: "1080p Full HD"
+  preset_resolution_720p: "720p HD"
+  preset_resolution_480p: "480p SD"
+  tooltip_skip_upscale: "Vídeos já na resolução escolhida ou menor são copiados sem ampliação."
+  msg_downscaling_progress: "Reduzindo resolução: [{current}/{total}] - {filename}"
+  msg_supported_formats_notice_downscale: "Formatos suportados para redução de resolução: {formats}"
   # --- Video: Track Selection ---
   video_hub_card_tracks_title: "Selecionar Áudio e Legendas"
   video_hub_card_tracks_desc: "Mantenha as faixas de áudio e legendas desejadas em remux sem perdas."
@@ -174,16 +195,6 @@ strings:
   msg_single_video_required: "Selecione um único arquivo de vídeo."
   msg_remuxing_progress: "Remuxando faixas: {filename}"
   msg_supported_formats_notice_tracks: "Formatos de vídeo suportados: {formats}"
-  # --- Video: Downscale ---
-  video_hub_card_downscale_title: "Reduzir Resolução de Vídeo"
-  video_hub_card_downscale_desc: "Reduza vídeos para resoluções padrão mantendo a proporção."
-  lbl_target_resolution: "Resolução de Destino"
-  preset_resolution_1080p: "1080p Full HD"
-  preset_resolution_720p: "720p HD"
-  preset_resolution_480p: "480p SD"
-  tooltip_skip_upscale: "Vídeos já na resolução escolhida ou menor são copiados sem ampliação."
-  msg_downscaling_progress: "Reduzindo resolução: [{current}/{total}] - {filename}"
-  msg_supported_formats_notice_downscale: "Formatos suportados para redução de resolução: {formats}"
 
   # ============================================================================
   # Module: Audio

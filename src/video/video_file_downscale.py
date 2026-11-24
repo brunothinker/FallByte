@@ -8,6 +8,7 @@ from typing import Literal
 
 from src.utils.binary_manager import get_ffmpeg_path
 from src.utils.cleanup import copy_original_file_atomically
+from src.utils.file_result import FileResult
 from src.video.utils.video_ffmpeg_utils import (
     HEVC_COMPRESSION_CONTAINERS,
     RESCUE_INPUT_ARGS,
@@ -182,7 +183,7 @@ def file_downscaler(
     resolution: str | int = "1080p",
     cancel_event: threading.Event | None = None,
     file_progress_callback: Callable[[float, float, float, float], None] | None = None,
-) -> bool:
+) -> FileResult:
     """Downscales a video file to the specified target resolution using FFmpeg.
 
     Preserves aspect ratio for both landscape and portrait videos, keeps dimensions
@@ -199,13 +200,13 @@ def file_downscaler(
             logger.error(
                 f"Refusing to downscale '{input_path.name}': file does not exist or is empty."
             )
-            return False
+            return FileResult.failed()
 
         if is_same_file(input_path, output_path):
             logger.error(
                 f"Refusing to downscale '{input_path.name}': output path is the source file."
             )
-            return False
+            return FileResult.failed()
 
         target_height = resolve_target_height(resolution)
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -217,13 +218,16 @@ def file_downscaler(
             logger.error(
                 f"Failed to probe video stream for '{input_path.name}': corrupted or unsupported file."
             )
-            return False
+            return FileResult.failed()
 
         if should_skip_downscale(info, target_height):
             copied = copy_original_file_atomically(
                 input_path,
                 output_path,
-                f"already <= {target_height}p ({info.width}x{info.height}), skipping upscale",
+                "skip_no_upscale",
+                target_height=target_height,
+                src_width=info.width,
+                src_height=info.height,
             )
             if copied and file_progress_callback and info.duration_seconds > 0.0:
                 file_progress_callback(
@@ -273,14 +277,14 @@ def file_downscaler(
         if used is None:
             if tmp_path.exists():
                 tmp_path.unlink(missing_ok=True)
-            return False
+            return FileResult.failed()
 
         os.replace(tmp_path, output_path)
 
         logger.info(
             f"Successfully downscaled '{input_path.name}' to {target_height}p."
         )
-        return True
+        return FileResult.processed()
 
     except InterruptedError:
         if tmp_path and tmp_path.exists():
@@ -291,4 +295,4 @@ def file_downscaler(
         logger.exception(f"Failed to downscale '{input_path.name}'.")
         if tmp_path and tmp_path.exists():
             tmp_path.unlink(missing_ok=True)
-        return False
+        return FileResult.failed()

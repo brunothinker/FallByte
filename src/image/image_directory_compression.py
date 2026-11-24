@@ -7,6 +7,7 @@ from typing import Any
 from src.image.image_file_compression import file_compressor
 from src.image.utils.image_scanner import scan_image_files
 from src.utils.batch_runner import run_batch
+from src.utils.file_result import FileResult
 from src.utils.output_naming import unique_batch_output_path
 from src.utils.progress import ProgressInfo
 
@@ -45,7 +46,7 @@ def directory_compressor(
         dict[str, Any]: Summary dictionary containing compression metrics.
     """
 
-    def process_file(src: Path, dst: Path) -> bool:
+    def process_file(src: Path, dst: Path) -> FileResult:
         return file_compressor(
             input_path=src,
             output_path=dst,

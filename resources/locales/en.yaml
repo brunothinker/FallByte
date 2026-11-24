@@ -93,6 +93,7 @@ strings:
   msg_compressing_progress: "Compressing: [{current}/{total}] - {filename}"
   msg_process_cancelled: "Processing cancelled. {count} generated file(s) deleted."
   msg_success_summary: "{msg} | Success: {successful} / {total}"
+  msg_batch_summary: "{msg} | Success: {successful} | Skipped: {skipped} | Failed: {failed} | Total: {total}"
   msg_supported_formats_notice: "Supported formats for compression: {formats}"
   msg_supported_formats_notice_conversion: "Supported formats for conversion: {formats}"
 
@@ -108,6 +109,7 @@ strings:
   dialog_no_files_formats: "Supported formats: {formats}"
   log_dialog_title: "Processing Results"
   log_summary_success: "Success"
+  log_summary_skipped: "Skipped"
   log_summary_failed: "Failed"
   log_summary_total: "Total Files"
   log_summary_time: "Elapsed Time"
@@ -118,6 +120,15 @@ strings:
   log_size_stat: "Size: {orig} -> {comp}"
   log_reduction_stat: "Saved: -{pct:.1f}%"
   log_increase_stat: "Size increase: +{pct:.1f}%"
+  msg_kept_original: "File kept as-is: nothing needed to be changed."
+  skip_uncompressible_format: "{fmt} cannot be compressed safely"
+  skip_animated_png: "animated PNG would lose its frames"
+  skip_not_smaller: "result was not smaller at {quality}% quality"
+  skip_same_format: "already .{fmt}, no conversion needed"
+  skip_audio_not_reencoded: "{fmt} is not re-encoded during audio compression"
+  skip_no_upscale: "already {src_width}x{src_height} (at or below {target_height}p), not upscaled"
+  skip_no_audio_stream: "video contains no audio stream"
+  skip_unsupported_normalization_format: "{fmt} is not supported for loudness normalization"
 
   # ============================================================================
   # Module: Image

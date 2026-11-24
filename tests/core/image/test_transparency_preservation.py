@@ -85,7 +85,7 @@ def test_metadata_remover_preserves_transparency(
     maker(src)
     assert _alpha_of_left_half(src) == 0
 
-    assert file_metadata_remover(src, dst) is True
+    assert file_metadata_remover(src, dst).is_processed
 
     assert _alpha_of_left_half(dst) == 0
     assert _alpha_of_right_half(dst) == 255
@@ -101,7 +101,7 @@ def test_compressor_strip_preserves_transparency(
     src, dst = tmp_path / name, tmp_path / f"out_{name}"
     maker(src)
 
-    assert file_compressor(src, dst, quality=quality, strip_metadata=True) is True
+    assert file_compressor(src, dst, quality=quality, strip_metadata=True).is_processed
 
     assert _alpha_of_left_half(dst) == 0
     assert _alpha_of_right_half(dst) == 255
@@ -110,7 +110,7 @@ def test_compressor_strip_preserves_transparency(
 def test_png_quantization_keeps_transparency_after_strip(tmp_path: Path) -> None:
     src, dst = tmp_path / "p.png", tmp_path / "out.png"
     _make_p_png(src)
-    assert file_compressor(src, dst, quality=50, strip_metadata=True)
+    assert file_compressor(src, dst, quality=50, strip_metadata=True).is_processed
     with Image.open(dst) as out:
         assert has_transparency(out)
 
@@ -124,11 +124,15 @@ def test_animated_gif_keeps_per_frame_transparency(tmp_path: Path) -> None:
         f.paste(color, (8, 0, 16, 16))
         frames.append(f)
     frames[0].save(
-        src, save_all=True, append_images=frames[1:], duration=[50, 80], loop=0,
+        src,
+        save_all=True,
+        append_images=frames[1:],
+        duration=[50, 80],
+        loop=0,
         transparency=0,
     )
 
-    assert file_metadata_remover(src, dst) is True
+    assert file_metadata_remover(src, dst).is_processed
 
     with Image.open(dst) as out:
         n_frames = getattr(out, "n_frames", 1)

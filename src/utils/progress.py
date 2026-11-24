@@ -2,8 +2,9 @@
 
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 
 @dataclass
@@ -15,7 +16,8 @@ class ProgressInfo:
         total (int): Total count of files in the batch operation.
         start_time (float): Reference timestamp (`time.perf_counter()`) marking task start.
         file_path (Path | None, optional): Path to the active file being processed. Defaults to None.
-        success (bool, optional): Indicates whether current item execution succeeded. Defaults to True.
+        success (bool, optional): Indicates whether current item did not fail. A skipped
+            item has ``success=True`` and ``skipped=True``. Defaults to True.
         orig_bytes (int, optional): Source file size in bytes. Defaults to 0.
         comp_bytes (int, optional): Resulting output file size in bytes. Defaults to 0.
         duration_seconds (float, optional): Total duration of the active media file in seconds. Defaults to 0.0.
@@ -23,6 +25,10 @@ class ProgressInfo:
         fps (float, optional): Current encoding framerate from FFmpeg. Defaults to 0.0.
         speed (float, optional): Encoding speed multiplier relative to realtime (e.g. 1.5x). Defaults to 0.0.
         is_completed (bool, optional): Indicates whether the current item has finished processing. Defaults to False.
+        skipped (bool, optional): True when the item was skipped (original kept or
+            nothing generated). Defaults to False.
+        skip_reason_key (str | None, optional): Locale key explaining the skip. Defaults to None.
+        skip_reason_params (dict[str, Any], optional): Format parameters for the reason key.
     """
 
     current: int
@@ -37,6 +43,9 @@ class ProgressInfo:
     fps: float = 0.0
     speed: float = 0.0
     is_completed: bool = False
+    skipped: bool = False
+    skip_reason_key: str | None = None
+    skip_reason_params: dict[str, Any] = field(default_factory=dict)
 
     @property
     def item_percentage(self) -> float:

@@ -7,6 +7,7 @@ from typing import Any
 from src.image.image_file_conversion import file_converter
 from src.image.utils.image_scanner import scan_image_files
 from src.utils.batch_runner import run_batch
+from src.utils.file_result import FileResult
 from src.utils.output_naming import unique_batch_output_path
 from src.utils.progress import ProgressInfo
 
@@ -46,7 +47,7 @@ def directory_converter(
     target_fmt = target_format.lower().lstrip(".")
     reserved_paths: set[str] = set()
 
-    def process_file(src: Path, dst: Path) -> bool:
+    def process_file(src: Path, dst: Path) -> FileResult:
         return file_converter(
             input_path=src,
             output_path=dst,
