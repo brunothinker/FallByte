@@ -15,7 +15,7 @@ def test_safe_cleanup_preserves_user_files(tmp_workspace):
     session_file.parent.mkdir(parents=True, exist_ok=True)
     session_file.write_text("temporary image data")
 
-    cleaned_count = safe_cleanup_session_files([session_file], root_output_dir=out_dir)
+    cleaned_count = safe_cleanup_session_files([session_file], session_out_dir=out_dir)
 
     assert cleaned_count == 1, (
         "[batch] safe_cleanup_session_files must report 1 removed session file."
@@ -24,7 +24,7 @@ def test_safe_cleanup_preserves_user_files(tmp_workspace):
         "[batch] Tracked session output file must be deleted during cleanup."
     )
     assert user_file.exists(), (
-        "[batch] Untracked user files in root_output_dir must never be deleted during cleanup."
+        "[batch] Untracked user files in session_out_dir must never be deleted during cleanup."
     )
     assert user_file.read_text() == "user data", (
         "[batch] Untracked user file contents must remain completely unmodified."
@@ -40,7 +40,7 @@ def test_safe_cleanup_preserves_pre_existing_files(tmp_workspace):
 
     cleaned_count = safe_cleanup_session_files(
         created_files=[existing_file],
-        root_output_dir=out_dir,
+        session_out_dir=out_dir,
         pre_existing_files=[existing_file],
     )
 

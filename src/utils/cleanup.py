@@ -57,7 +57,6 @@ def copy_original_file_atomically(
 
 def safe_cleanup_session_files(
     created_files: Iterable[Path | str],
-    root_output_dir: Path | str | None = None,
     session_out_dir: Path | str | None = None,
     remove_empty_session_dir: bool = False,
     pre_existing_files: Iterable[Path | str] | None = None,
@@ -70,7 +69,6 @@ def safe_cleanup_session_files(
 
     Args:
         created_files (Iterable[Path | str]): File paths generated in the active session.
-        root_output_dir (Path | str | None, optional): Base output directory (legacy arg).
         session_out_dir (Path | str | None, optional): Output directory path reserved for the session.
         remove_empty_session_dir (bool, optional): Whether to delete target folder
             if no files remain inside it. Defaults to False.
@@ -81,8 +79,7 @@ def safe_cleanup_session_files(
         int: Total number of files successfully deleted during cleanup.
     """
     cleaned_count = 0
-    target_dir = session_out_dir if session_out_dir is not None else root_output_dir
-    base_path = Path(target_dir) if target_dir is not None else None
+    base_path = Path(session_out_dir) if session_out_dir is not None else None
     affected_dirs = set()
 
     pre_existing_set = (
