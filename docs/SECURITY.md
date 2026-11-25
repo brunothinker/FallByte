@@ -20,4 +20,4 @@ You can expect an initial response within a few days. Once a fix is released, we
 
 ## Scope
 
-FallByte runs entirely locally and does not send data over the network. Reports of interest include, for example, crashes or code execution triggered by crafted media files, unsafe file handling (overwriting or deleting files outside the chosen output folder), and issues in the bundled binaries. Vulnerabilities in third-party components (FFmpeg, Pillow, Flet, ...) should also be reported upstream; see [THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md).
+FallByte runs entirely locally and does not send data over the network. Reports of interest include, for example, crashes or code execution triggered by crafted media files, unsafe file handling (overwriting or deleting files outside the chosen output folder), and issues in the bundled binaries. Vulnerabilities in third-party components (FFmpeg, Pillow, Flet, ...) should also be reported upstream; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

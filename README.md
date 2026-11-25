@@ -99,7 +99,7 @@ Application logs are saved to `~/.config/fallbyte/fallbyte.log` on Linux and `%A
 <summary><strong>Run from source & test suite</strong></summary>
 
 ```bash
-git clone [https://github.com/brunothinker/FallByte.git](https://github.com/brunothinker/FallByte.git)
+git clone https://github.com/brunothinker/FallByte.git
 cd FallByte
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
@@ -119,6 +119,6 @@ Want to contribute? Read [CONTRIBUTING.md](docs/CONTRIBUTING.md) and [ARCHITECTU
 
 ## Security & License
 
-- **Security:** Found a vulnerability? Please follow [SECURITY.md](SECURITY.md) instead of opening a public issue.
+- **Security:** Found a vulnerability? Please follow [SECURITY.md](docs/SECURITY.md) instead of opening a public issue.
 - **License:** Distributed under the **[GNU General Public License v3.0](LICENSE)** (GPLv3).
 - **Third-Party Notices:** Bundles static FFmpeg binaries and depends on Flet, Pillow, `pillow-heif`, and PyYAML. See [THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md) for licensing terms and build configurations.
