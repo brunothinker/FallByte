@@ -92,6 +92,7 @@ strings:
   msg_converting_progress: "Конвертация: [{current}/{total}] - {filename}"
   msg_compressing_progress: "Сжатие: [{current}/{total}] - {filename}"
   msg_process_cancelled: "Обработка отменена. Удалено созданных файлов: {count}."
+  msg_cancelled_by_user: "Отменено пользователем."
   msg_success_summary: "{msg} | Успешно: {successful} / {total}"
   msg_batch_summary: "{msg} | Успешно: {successful} | Пропущено: {skipped} | Ошибок: {failed} | Всего: {total}"
   msg_supported_formats_notice: "Поддерживаемые форматы для сжатия: {formats}"

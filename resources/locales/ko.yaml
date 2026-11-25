@@ -92,6 +92,7 @@ strings:
   msg_converting_progress: "변환 중: [{current}/{total}] - {filename}"
   msg_compressing_progress: "압축 중: [{current}/{total}] - {filename}"
   msg_process_cancelled: "처리가 취소되었습니다. 생성된 파일 {count}개가 삭제되었습니다."
+  msg_cancelled_by_user: "사용자가 취소했습니다."
   msg_success_summary: "{msg} | 성공: {successful} / {total}"
   msg_batch_summary: "{msg} | 성공: {successful} | 건너뜀: {skipped} | 실패: {failed} | 전체: {total}"
   msg_supported_formats_notice: "압축 지원 형식: {formats}"

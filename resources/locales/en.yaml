@@ -92,6 +92,7 @@ strings:
   msg_converting_progress: "Converting: [{current}/{total}] - {filename}"
   msg_compressing_progress: "Compressing: [{current}/{total}] - {filename}"
   msg_process_cancelled: "Processing cancelled. {count} generated file(s) deleted."
+  msg_cancelled_by_user: "Cancelled by user."
   msg_success_summary: "{msg} | Success: {successful} / {total}"
   msg_batch_summary: "{msg} | Success: {successful} | Skipped: {skipped} | Failed: {failed} | Total: {total}"
   msg_supported_formats_notice: "Supported formats for compression: {formats}"

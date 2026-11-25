@@ -92,6 +92,7 @@ strings:
   msg_converting_progress: "Convertendo: [{current}/{total}] - {filename}"
   msg_compressing_progress: "Comprimindo: [{current}/{total}] - {filename}"
   msg_process_cancelled: "Processamento cancelado. {count} arquivo(s) gerado(s) apagado(s)."
+  msg_cancelled_by_user: "Cancelado pelo usuário."
   msg_success_summary: "{msg} | Sucesso: {successful} / {total}"
   msg_batch_summary: "{msg} | Sucesso: {successful} | Ignorados: {skipped} | Falhas: {failed} | Total: {total}"
   msg_supported_formats_notice: "Formatos suportados para compressão: {formats}"

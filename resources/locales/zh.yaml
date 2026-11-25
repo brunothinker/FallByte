@@ -92,6 +92,7 @@ strings:
   msg_converting_progress: "正在转换: [{current}/{total}] - {filename}"
   msg_compressing_progress: "正在压缩: [{current}/{total}] - {filename}"
   msg_process_cancelled: "处理已取消。已删除 {count} 个生成的文件。"
+  msg_cancelled_by_user: "已被用户取消。"
   msg_success_summary: "{msg} | 成功: {successful} / {total}"
   msg_batch_summary: "{msg} | 成功: {successful} | 已跳过: {skipped} | 失败: {failed} | 总计: {total}"
   msg_supported_formats_notice: "支持压缩的格式: {formats}"

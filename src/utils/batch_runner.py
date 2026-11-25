@@ -133,7 +133,7 @@ def run_batch(
 
         for index, src_file in enumerate(discovered_files, start=1):
             if cancel_event and cancel_event.is_set():
-                raise InterruptedError("Processamento cancelado pelo usuário.")
+                raise InterruptedError("CANCELLED_BY_USER")
 
             result = FileResult.failed()
             orig_size = 0

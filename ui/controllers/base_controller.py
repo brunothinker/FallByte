@@ -653,9 +653,9 @@ class BaseController:
                 summary["terminal_log"] = redirector.get_logs()
                 show_summary_dialog(ui.page, summary)
 
-        except InterruptedError as err:
+        except InterruptedError:
             self.abort_requested = True
-            print(f"[FAIL] {err}")
+            print(f"[CANCELLED] {t('msg_cancelled_by_user')}")
 
         except Exception as err:
             logger.exception("Batch processing failed unexpectedly")

@@ -92,6 +92,7 @@ strings:
   msg_converting_progress: ""
   msg_compressing_progress: ""
   msg_process_cancelled: ""
+  msg_cancelled_by_user: ""
   msg_success_summary: ""
   msg_batch_summary: ""
   msg_supported_formats_notice: ""
