@@ -1,6 +1,7 @@
 import logging
 import webbrowser
 from pathlib import Path
+from typing import Any
 
 import flet as ft
 
@@ -13,6 +14,13 @@ from ui.router import build_page_view
 from ui.theme import get_color
 
 logger = logging.getLogger(__name__)
+
+
+def _page_state(page: ft.Page) -> dict[str, Any]:
+    """Returns a mutable per-page dictionary for UI state (processing lock, back bar)."""
+    if not isinstance(getattr(page, "data", None), dict):
+        page.data = {}
+    return page.data
 
 
 def remove_stale_filepickers(page: ft.Page) -> None:
@@ -37,7 +45,7 @@ def _extract_submodules(module_def: object) -> list[dict]:
             route = str(item.get("route_key") or item.get("route") or "")
             title_key = str(item.get("title_key") or "")
             icon = item.get("icon") or item.get(
-                "sidebar_icon", ft.icons.SUBDIRECTORY_ARROW_RIGHT
+                "sidebar_icon", ft.Icons.SUBDIRECTORY_ARROW_RIGHT
             )
         else:
             route = str(
@@ -45,7 +53,7 @@ def _extract_submodules(module_def: object) -> list[dict]:
             )
             title_key = str(getattr(item, "title_key", "") or "")
             icon = getattr(item, "icon", None) or getattr(
-                item, "sidebar_icon", ft.icons.SUBDIRECTORY_ARROW_RIGHT
+                item, "sidebar_icon", ft.Icons.SUBDIRECTORY_ARROW_RIGHT
             )
         if route and title_key:
             submodules.append({"route": route, "title_key": title_key, "icon": icon})
@@ -58,30 +66,34 @@ def create_app_layout(
     """Creates main application frame with sidebar, scrollable view, pinned back bar, and Esc."""
     current_route: str = "home"
     expanded_modules: set[str] = set()
+    state = _page_state(page)
 
     content_area = ft.Container(
         expand=True,
-        padding=ft.padding.only(left=28, right=28, top=20, bottom=8),
-        alignment=ft.alignment.center,
+        padding=ft.Padding.only(left=28, right=28, top=20, bottom=8),
+        alignment=ft.Alignment.CENTER,
         bgcolor=get_color("background"),
     )
 
     modal_overlay = ft.Container(
         expand=True,
         visible=False,
-        bgcolor=ft.colors.with_opacity(0.55, ft.colors.BLACK),
-        alignment=ft.alignment.center,
+        bgcolor=ft.Colors.with_opacity(0.55, ft.Colors.BLACK),
+        alignment=ft.Alignment.CENTER,
         padding=20,
         on_click=lambda _: close_modal(),
     )
 
     def close_modal() -> None:
-        if page.session.get("is_processing"):
+        if state.get("is_processing"):
             return
         modal_overlay.visible = False
         modal_overlay.content = None
-        if modal_overlay.page:
-            modal_overlay.update()
+        try:
+            if modal_overlay.page:
+                modal_overlay.update()
+        except RuntimeError:
+            pass
 
     def on_preferences_applied() -> None:
         modal_overlay.visible = False
@@ -92,9 +104,7 @@ def create_app_layout(
         update_view()
 
     def cleanup_page_overlays() -> None:
-        if isinstance(page.dialog, ft.AlertDialog):
-            page.dialog.open = False
-        page.dialog = None
+        page.pop_dialog()
         page.overlay.clear()
         modal_overlay.visible = False
         modal_overlay.content = None
@@ -108,7 +118,7 @@ def create_app_layout(
 
     def navigate_to(target_route: str) -> None:
         nonlocal current_route
-        if page.session.get("is_processing"):
+        if state.get("is_processing"):
             return
         current_route = target_route
         _sync_expanded_for_route(current_route)
@@ -118,7 +128,7 @@ def create_app_layout(
 
     def go_back() -> None:
         """Navigates deterministically one level up in the route hierarchy."""
-        if page.session.get("is_processing"):
+        if state.get("is_processing"):
             return
         parent_route = resolve_parent_route(current_route)
         if parent_route:
@@ -128,7 +138,7 @@ def create_app_layout(
         """Handles Escape to close active modal or navigate up one hierarchy level."""
         if e.key != "Escape":
             return
-        if page.session.get("is_processing"):
+        if state.get("is_processing"):
             return
         if modal_overlay.visible:
             close_modal()
@@ -138,9 +148,9 @@ def create_app_layout(
     page.on_keyboard_event = on_keyboard_event
 
     # Fixed bottom back bar outside the scrollable content_area
-    btn_back = ft.ElevatedButton(
-        text=t("header_back_tooltip"),
-        icon=ft.icons.ARROW_BACK,
+    btn_back = ft.Button(
+        content=t("header_back_tooltip"),
+        icon=ft.Icons.ARROW_BACK,
         bgcolor=get_color("card_bg"),
         color=get_color("text"),
         icon_color=get_color("primary"),
@@ -148,8 +158,8 @@ def create_app_layout(
     )
     bottom_back_bar = ft.Container(
         content=btn_back,
-        padding=ft.padding.only(top=8, bottom=18),
-        alignment=ft.alignment.center,
+        padding=ft.Padding.only(top=8, bottom=18),
+        alignment=ft.Alignment.CENTER,
         bgcolor=get_color("background"),
         visible=False,
     )
@@ -157,15 +167,15 @@ def create_app_layout(
     def _sync_back_button_state() -> None:
         parent_route = resolve_parent_route(current_route)
         can_go_back = parent_route is not None and not bool(
-            page.session.get("is_processing")
+            state.get("is_processing")
         )
-        btn_back.text = t("header_back_tooltip")
+        btn_back.content = t("header_back_tooltip")
         btn_back.bgcolor = get_color("card_bg")
         btn_back.color = get_color("text")
         btn_back.icon_color = get_color("primary")
         bottom_back_bar.bgcolor = get_color("background")
         bottom_back_bar.visible = can_go_back
-        page.session.set("back_row", bottom_back_bar if can_go_back else None)
+        state["back_row"] = bottom_back_bar if can_go_back else None
 
     def update_view() -> None:
         remove_stale_filepickers(page)
@@ -192,7 +202,7 @@ def create_app_layout(
         page.update()
 
     def open_theme_dialog() -> None:
-        if page.session.get("is_processing"):
+        if state.get("is_processing"):
             return
         modal_overlay.content = build_theme_modal(
             page=page, on_close=close_modal, on_applied=on_preferences_applied
@@ -201,7 +211,7 @@ def create_app_layout(
         page.update()
 
     def open_language_dialog() -> None:
-        if page.session.get("is_processing"):
+        if state.get("is_processing"):
             return
         modal_overlay.content = build_language_modal(
             page=page, on_close=close_modal, on_applied=on_preferences_applied
@@ -214,7 +224,7 @@ def create_app_layout(
             value="FallByte",
             size=20,
         ),
-        padding=ft.padding.symmetric(vertical=20),
+        padding=ft.Padding.symmetric(vertical=20),
     )
 
     nav_items_data = [
@@ -222,7 +232,7 @@ def create_app_layout(
             "id": "home",
             "route": "home",
             "title_key": "nav_home",
-            "icon": ft.icons.HOME_OUTLINED,
+            "icon": ft.Icons.HOME_OUTLINED,
             "submodules": [],
         }
     ] + [
@@ -263,12 +273,12 @@ def create_app_layout(
             expand=True,
         )
 
-        def on_sub_hover(e: ft.ControlEvent) -> None:
+        def on_sub_hover(e: Any) -> None:
             active_now = current_route == sub_route
             e.control.bgcolor = (
                 get_color("card_hover")
                 if e.data == "true" or active_now
-                else ft.colors.TRANSPARENT
+                else ft.Colors.TRANSPARENT
             )
             e.control.update()
 
@@ -278,9 +288,9 @@ def create_app_layout(
                 spacing=8,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
             ),
-            padding=ft.padding.only(left=34, right=12, top=7, bottom=7),
+            padding=ft.Padding.only(left=34, right=12, top=7, bottom=7),
             border_radius=8,
-            bgcolor=get_color("card_hover") if is_active else ft.colors.TRANSPARENT,
+            bgcolor=get_color("card_hover") if is_active else ft.Colors.TRANSPARENT,
             ink=True,
             tooltip=None,
             on_click=lambda _, r=sub_route: navigate_to(r),
@@ -297,7 +307,7 @@ def create_app_layout(
         return btn
 
     def toggle_module_expand(module_id: str, module_route: str) -> None:
-        if page.session.get("is_processing"):
+        if state.get("is_processing"):
             return
         if current_route == module_route and module_id in expanded_modules:
             expanded_modules.remove(module_id)
@@ -328,22 +338,22 @@ def create_app_layout(
             expand=True,
         )
         chevron_control = ft.Icon(
-            ft.icons.EXPAND_MORE if is_expanded else ft.icons.CHEVRON_RIGHT,
+            ft.Icons.EXPAND_MORE if is_expanded else ft.Icons.CHEVRON_RIGHT,
             size=16,
             color=get_color("subtext"),
             visible=has_submodules,
         )
 
-        def on_mod_hover(e: ft.ControlEvent) -> None:
+        def on_mod_hover(e: Any) -> None:
             active_now = is_module_selected(module_id, route)
             e.control.bgcolor = (
                 get_color("card_hover")
                 if e.data == "true" or active_now
-                else ft.colors.TRANSPARENT
+                else ft.Colors.TRANSPARENT
             )
             e.control.update()
 
-        def on_mod_click(_: ft.ControlEvent) -> None:
+        def on_mod_click(_: Any) -> None:
             if has_submodules:
                 toggle_module_expand(module_id, route)
             else:
@@ -355,9 +365,9 @@ def create_app_layout(
                 spacing=10,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
             ),
-            padding=ft.padding.symmetric(vertical=10, horizontal=12),
+            padding=ft.Padding.symmetric(vertical=10, horizontal=12),
             border_radius=8,
-            bgcolor=get_color("card_hover") if is_active else ft.colors.TRANSPARENT,
+            bgcolor=get_color("card_hover") if is_active else ft.Colors.TRANSPARENT,
             ink=True,
             tooltip=None,
             on_click=on_mod_click,
@@ -403,9 +413,9 @@ def create_app_layout(
                     get_color("card_hover")
                     if is_direct_route
                     else (
-                        ft.colors.with_opacity(0.45, get_color("card_hover"))
+                        ft.Colors.with_opacity(0.45, get_color("card_hover"))
                         if is_active
-                        else ft.colors.TRANSPARENT
+                        else ft.Colors.TRANSPARENT
                     )
                 )
 
@@ -425,27 +435,36 @@ def create_app_layout(
                         ft.FontWeight.W_600 if is_active else ft.FontWeight.NORMAL
                     )
                 if isinstance(chevron_ctrl, ft.Icon) and btn.data["has_submodules"]:
-                    chevron_ctrl.name = (
-                        ft.icons.EXPAND_MORE if is_expanded else ft.icons.CHEVRON_RIGHT
+                    chevron_ctrl.icon = (
+                        ft.Icons.EXPAND_MORE if is_expanded else ft.Icons.CHEVRON_RIGHT
                     )
                     chevron_ctrl.color = (
                         get_color("primary") if is_active else get_color("subtext")
                     )
 
-                if btn.page:
-                    btn.update()
+                try:
+                    try:
+                        if btn.page:
+                            btn.update()
+                    except RuntimeError:
+                        pass
+                except RuntimeError:
+                    pass
 
                 sub_col = submodule_containers.get(module_id)
                 if sub_col is not None:
                     sub_col.visible = btn.data["has_submodules"] and is_expanded
-                    if sub_col.page:
-                        sub_col.update()
+                    try:
+                        if sub_col.page:
+                            sub_col.update()
+                    except RuntimeError:
+                        pass
 
         for sub_btn in submodule_buttons:
             if isinstance(sub_btn.data, dict):
                 is_sub_active = current_route == sub_btn.data["route"]
                 sub_btn.bgcolor = (
-                    get_color("card_hover") if is_sub_active else ft.colors.TRANSPARENT
+                    get_color("card_hover") if is_sub_active else ft.Colors.TRANSPARENT
                 )
 
                 sub_icon = sub_btn.data["icon_control"]
@@ -463,8 +482,11 @@ def create_app_layout(
                         ft.FontWeight.W_600 if is_sub_active else ft.FontWeight.NORMAL
                     )
 
-                if sub_btn.page:
-                    sub_btn.update()
+                try:
+                    if sub_btn.page:
+                        sub_btn.update()
+                except RuntimeError:
+                    pass
 
     def update_sidebar_labels() -> None:
         brand_container.content = build_neon_brand_title(
@@ -477,16 +499,25 @@ def create_app_layout(
                 text_ctrl = btn.data["text_control"]
                 if isinstance(text_ctrl, ft.Text):
                     text_ctrl.value = t(btn.data["title_key"])
-                if btn.page:
-                    btn.update()
+                try:
+                    try:
+                        if btn.page:
+                            btn.update()
+                    except RuntimeError:
+                        pass
+                except RuntimeError:
+                    pass
 
         for sub_btn in submodule_buttons:
             if isinstance(sub_btn.data, dict):
                 text_ctrl = sub_btn.data["text_control"]
-                if isinstance(sub_btn.data["text_control"], ft.Text):
+                if isinstance(text_ctrl, ft.Text):
                     text_ctrl.value = t(sub_btn.data["title_key"])
-                if sub_btn.page:
-                    sub_btn.update()
+                try:
+                    if sub_btn.page:
+                        sub_btn.update()
+                except RuntimeError:
+                    pass
 
         sidebar.bgcolor = get_color("sidebar_bg")
         lbl_version.color = get_color("subtext")
@@ -501,16 +532,19 @@ def create_app_layout(
         icon_lang.color = get_color("primary")
         icon_github.color = get_color("subtext")
 
-        if sidebar.page:
-            sidebar.update()
+        try:
+            if sidebar.page:
+                sidebar.update()
+        except RuntimeError:
+            pass
 
     lbl_theme_text = ft.Text(t("lbl_theme"), size=12, color=get_color("subtext"))
     lbl_lang_text = ft.Text(t("lbl_language"), size=12, color=get_color("subtext"))
     lbl_github_text = ft.Text(t("lbl_github_repo"), size=12, color=get_color("subtext"))
 
-    icon_theme = ft.Icon(ft.icons.PALETTE_OUTLINED, size=18, color=get_color("primary"))
-    icon_lang = ft.Icon(ft.icons.LANGUAGE, size=18, color=get_color("primary"))
-    icon_github = ft.Icon(ft.icons.CODE, size=18, color=get_color("subtext"))
+    icon_theme = ft.Icon(ft.Icons.PALETTE_OUTLINED, size=18, color=get_color("primary"))
+    icon_lang = ft.Icon(ft.Icons.LANGUAGE, size=18, color=get_color("primary"))
+    icon_github = ft.Icon(ft.Icons.CODE, size=18, color=get_color("subtext"))
 
     def attach_footer_hover(container: ft.Container) -> ft.Container:
         container.on_hover = lambda e: (
@@ -519,7 +553,7 @@ def create_app_layout(
                 "bgcolor",
                 get_color("card_hover")
                 if e.data == "true"
-                else ft.colors.TRANSPARENT,
+                else ft.Colors.TRANSPARENT,
             )
             or e.control.update()
         )
@@ -528,7 +562,7 @@ def create_app_layout(
     btn_theme_menu = attach_footer_hover(
         ft.Container(
             content=ft.Row([icon_theme, lbl_theme_text], spacing=10),
-            padding=ft.padding.symmetric(vertical=8, horizontal=12),
+            padding=ft.Padding.symmetric(vertical=8, horizontal=12),
             border_radius=8,
             ink=True,
             tooltip=None,
@@ -538,7 +572,7 @@ def create_app_layout(
     btn_language_menu = attach_footer_hover(
         ft.Container(
             content=ft.Row([icon_lang, lbl_lang_text], spacing=10),
-            padding=ft.padding.symmetric(vertical=8, horizontal=12),
+            padding=ft.Padding.symmetric(vertical=8, horizontal=12),
             border_radius=8,
             ink=True,
             tooltip=None,
@@ -548,7 +582,7 @@ def create_app_layout(
     btn_github_link = attach_footer_hover(
         ft.Container(
             content=ft.Row([icon_github, lbl_github_text], spacing=10),
-            padding=ft.padding.symmetric(vertical=8, horizontal=12),
+            padding=ft.Padding.symmetric(vertical=8, horizontal=12),
             border_radius=8,
             ink=True,
             tooltip=None,
@@ -561,12 +595,12 @@ def create_app_layout(
             [btn_theme_menu, btn_language_menu, btn_github_link],
             spacing=2,
         ),
-        padding=ft.padding.only(bottom=15),
+        padding=ft.Padding.only(bottom=15),
     )
 
     sidebar_controls: list[ft.Control] = [
         brand_container,
-        ft.Divider(height=1, color=ft.colors.OUTLINE_VARIANT),
+        ft.Divider(height=1, color=ft.Colors.OUTLINE_VARIANT),
         ft.Container(height=8),
         ft.Column(
             sidebar_groups,
@@ -574,14 +608,14 @@ def create_app_layout(
             expand=True,
             scroll=ft.ScrollMode.AUTO,
         ),
-        ft.Divider(height=1, color=ft.colors.OUTLINE_VARIANT),
+        ft.Divider(height=1, color=ft.Colors.OUTLINE_VARIANT),
         footer_container,
     ]
 
     sidebar = ft.Container(
         width=255,
         bgcolor=get_color("sidebar_bg"),
-        padding=ft.padding.symmetric(horizontal=10),
+        padding=ft.Padding.symmetric(horizontal=10),
         content=ft.Column(controls=sidebar_controls, expand=True),
     )
 

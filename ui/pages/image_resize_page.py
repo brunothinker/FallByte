@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import flet as ft
 
@@ -43,14 +44,14 @@ def create_image_resize_page(
         label=t("lbl_max_width"),
         value="1920",
         width=185,
-        suffix_text="px",
+        suffix="px",
         keyboard_type=ft.KeyboardType.NUMBER,
     )
     txt_max_height = ft.TextField(
         label=t("lbl_max_height"),
         value="1080",
         width=185,
-        suffix_text="px",
+        suffix="px",
         keyboard_type=ft.KeyboardType.NUMBER,
     )
     dimension_row = ft.Row(
@@ -63,18 +64,18 @@ def create_image_resize_page(
         label=t("lbl_scale_percentage"),
         value="50",
         width=385,
-        suffix_text="%",
+        suffix="%",
         keyboard_type=ft.KeyboardType.NUMBER,
         visible=False,
     )
 
-    def on_mode_change(_: ft.ControlEvent) -> None:
+    def on_mode_change(_: Any) -> None:
         is_dimension = (dd_mode.value or "dimension") == "dimension"
         dimension_row.visible = is_dimension
         txt_percentage.visible = not is_dimension
         page.update()
 
-    dd_mode.on_change = on_mode_change
+    dd_mode.on_select = on_mode_change
 
     def collect_options() -> ResizeOptions:
         mode = dd_mode.value or "dimension"

@@ -31,7 +31,7 @@ def build_neon_brand_title(
             ft.BoxShadow(
                 spread_radius=0,
                 blur_radius=size * 0.95,
-                color=ft.colors.with_opacity(glow_intensity, primary),
+                color=ft.Colors.with_opacity(glow_intensity, primary),
                 offset=ft.Offset(0, 2),
             ),
         ],
@@ -54,15 +54,15 @@ def build_neon_brand_title(
                     width=box_width,
                     height=box_height,
                     content=glow_halo,
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                 ),
                 ft.Container(
                     width=box_width,
                     height=box_height,
                     content=label,
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                 ),
             ],
         ),
-        alignment=ft.alignment.center,
+        alignment=ft.Alignment.CENTER,
     )

@@ -1,3 +1,4 @@
+import inspect
 import logging
 import threading
 import time
@@ -25,6 +26,21 @@ logger = logging.getLogger(__name__)
 ProgressCallback = Callable[[float, float, float, float], None]
 
 
+def _schedule_on_page(page: ft.Page, fn: Callable[[], None]) -> None:
+    """Runs a UI mutation safely on the page event loop (with test-mock fallback)."""
+    run_task = getattr(page, "run_task", None)
+    if callable(run_task):
+        async def _runner() -> None:
+            fn()
+
+        res = run_task(_runner)
+        # If page is a MagicMock in unit tests, run_task returns a MagicMock instead of a Future.
+        if not hasattr(res, "done") and not inspect.isawaitable(res):
+            fn()
+        return
+    fn()
+
+
 @dataclass(frozen=True)
 class JobUI:
     """UI handles a controller needs to report progress for one tool page."""
@@ -32,7 +48,7 @@ class JobUI:
     page: ft.Page
     lbl_status: ft.Text
     progress_bar: ft.ProgressBar
-    btn_action: ft.ElevatedButton
+    btn_action: ft.Button
 
 
 class BaseController:
@@ -107,28 +123,86 @@ class BaseController:
         allow_directory: bool = False,
         is_output: bool = False,
         allowed_extensions: list[str] | None = None,
+        page: ft.Page | None = None,
+        on_result: Callable[[ft.FilePickerResultEvent], None] | None = None,
     ) -> None:
-        """Opens file or directory picker preventing concurrent window spawns and non-existent paths.
+        """Opens file or directory picker preventing concurrent window spawns and non-existent paths."""
+        if self.picker_active:
+            return
 
-        Args:
-            picker: The Flet FilePicker component instance.
-            allow_directory: Flag indicating whether to pick directories instead of files.
-            is_output: Flag indicating whether this picker handles destination directory selection.
-            allowed_extensions: Optional list of allowed file extension strings without leading dot.
-        """
-        if not self.picker_active:
-            self.picker_active = True
-            target_path = self.selected_output_dir if is_output else self.selected_input
-            safe_dir = get_safe_initial_directory(target_path)
+        self.picker_active = True
+        target_path = self.selected_output_dir if is_output else self.selected_input
+        safe_dir = get_safe_initial_directory(target_path)
+        active_page = page or getattr(picker, "page", None)
+        result_cb = on_result or getattr(picker, "on_result", None)
 
+        async def _pick_async() -> None:
+            try:
+                if allow_directory:
+                    selected_dir = await picker.get_directory_path(
+                        initial_directory=safe_dir
+                    )
+                    files = (
+                        [
+                            ft.FilePickerFile(
+                                id=0,
+                                name=Path(selected_dir).name or selected_dir,
+                                size=0,
+                                path=selected_dir,
+                            )
+                        ]
+                        if selected_dir
+                        else []
+                    )
+                    if callable(result_cb):
+                        result_cb(
+                            ft.FilePickerResultEvent(
+                                name="result",
+                                control=picker,
+                                files=files,
+                            )
+                        )
+                else:
+                    picked_files = await picker.pick_files(
+                        allow_multiple=False,
+                        initial_directory=safe_dir,
+                        allowed_extensions=allowed_extensions,
+                    )
+                    if callable(result_cb):
+                        result_cb(
+                            ft.FilePickerResultEvent(
+                                name="result",
+                                control=picker,
+                                files=picked_files or [],
+                            )
+                        )
+            finally:
+                self.picker_active = False
+
+        is_async_picker = inspect.iscoroutinefunction(
+            getattr(picker, "get_directory_path" if allow_directory else "pick_files", None)
+        )
+        if is_async_picker and active_page is not None and callable(getattr(active_page, "run_task", None)):
+            active_page.run_task(_pick_async)
+        else:
+            # Fallback for unit tests calling open_picker with a mocked picker directly.
             if allow_directory:
-                picker.get_directory_path(initial_directory=safe_dir)
+                res = picker.get_directory_path(initial_directory=safe_dir)
             else:
-                picker.pick_files(
+                res = picker.pick_files(
                     allow_multiple=False,
                     initial_directory=safe_dir,
                     allowed_extensions=allowed_extensions,
                 )
+            if inspect.iscoroutine(res):
+                res.close()
+
+    @staticmethod
+    def _extract_picked_path(e: ft.FilePickerResultEvent) -> str | None:
+        files = getattr(e, "files", None)
+        if files and len(files) > 0 and getattr(files[0], "path", None):
+            return files[0].path
+        return getattr(e, "path", None)
 
     def handle_input_result(
         self,
@@ -138,10 +212,9 @@ class BaseController:
     ) -> None:
         """Handles selection result from input file or directory picker."""
         self.picker_active = False
-        if e.files and len(e.files) > 0:
-            self.selected_input = Path(e.files[0].path)
-        elif e.path:
-            self.selected_input = Path(e.path)
+        picked = self._extract_picked_path(e)
+        if picked:
+            self.selected_input = Path(picked)
 
         if self.selected_input:
             lbl_path.value = self.selected_input.name or str(self.selected_input)
@@ -160,8 +233,9 @@ class BaseController:
     ) -> None:
         """Handles selection result from output directory picker."""
         self.picker_active = False
-        if e.path:
-            self.selected_output_dir = Path(e.path)
+        picked = self._extract_picked_path(e)
+        if picked:
+            self.selected_output_dir = Path(picked)
             lbl_path.value = self.selected_output_dir.name or str(
                 self.selected_output_dir
             )
@@ -180,8 +254,10 @@ class BaseController:
         """Keep the navigation lock and the layout's Back row in sync."""
         self.is_processing = processing
         self.abort_requested = False
-        page.session.set("is_processing", processing)
-        back_row = page.session.get("back_row")
+        if not isinstance(getattr(page, "data", None), dict):
+            page.data = {}
+        page.data["is_processing"] = processing
+        back_row = page.data.get("back_row")
         if back_row is not None:
             back_row.visible = not processing
             back_row.update()
@@ -190,17 +266,17 @@ class BaseController:
         self,
         page: ft.Page,
         progress_bar: ft.ProgressBar,
-        btn_action: ft.ElevatedButton,
+        btn_action: ft.Button,
     ) -> None:
-        """Transitions UI controls and session flags to active processing state."""
+        """Transitions UI controls and page state flags to active processing state."""
         self._set_processing_state(page, True)
 
         progress_bar.value = None
         progress_bar.visible = True
         progress_bar.update()
 
-        btn_action.text = t("btn_stop_process")
-        btn_action.icon = ft.icons.STOP
+        btn_action.content = t("btn_stop_process")
+        btn_action.icon = ft.Icons.STOP
         btn_action.bgcolor = get_color("danger")
         btn_action.color = "#FFFFFF"
         btn_action.update()
@@ -209,16 +285,16 @@ class BaseController:
         self,
         page: ft.Page,
         progress_bar: ft.ProgressBar,
-        btn_action: ft.ElevatedButton,
+        btn_action: ft.Button,
     ) -> None:
-        """Restores UI controls and session flags back to idle ready state."""
+        """Restores UI controls and page state flags back to idle ready state."""
         self._set_processing_state(page, False)
 
         progress_bar.visible = False
         progress_bar.update()
 
-        btn_action.text = t("btn_process")
-        btn_action.icon = ft.icons.PLAY_ARROW
+        btn_action.content = t("btn_process")
+        btn_action.icon = ft.Icons.PLAY_ARROW
         btn_action.bgcolor = get_color("primary")
         btn_action.color = get_color("text")
         btn_action.update()
@@ -235,6 +311,7 @@ class BaseController:
         """Closes and unmounts active processing cancellation dialog."""
         if self.cancel_dialog:
             self.cancel_dialog.open = False
+            page.pop_dialog()
             page.update()
             self.cancel_dialog = None
 
@@ -247,14 +324,14 @@ class BaseController:
         page: ft.Page,
         lbl_status: ft.Text,
         progress_bar: ft.ProgressBar,
-        btn_action: ft.ElevatedButton,
+        btn_action: ft.Button,
     ) -> None:
         """Displays modal dialog asking user confirmation to abort running operation."""
 
-        def on_keep_running(_: ft.ControlEvent) -> None:
+        def on_keep_running(_: Any) -> None:
             self._close_cancel_dialog(page)
 
-        def on_stop_confirmed(_: ft.ControlEvent) -> None:
+        def on_stop_confirmed(_: Any) -> None:
             self.abort_requested = True
             self._on_cancel_confirmed()
             self._close_cancel_dialog(page)
@@ -267,21 +344,19 @@ class BaseController:
             modal=True,
             title=ft.Text(t("dialog_cancel_title")),
             content=ft.Text(t("dialog_cancel_body")),
-            actions=[
-                ft.TextButton(t("btn_keep_running"), on_click=on_keep_running),
-                ft.ElevatedButton(
-                    t("btn_stop_and_delete"),
+            actions=list[ft.Control]([
+                ft.TextButton(content=t("btn_keep_running"), on_click=on_keep_running),
+                ft.Button(
+                    content=t("btn_stop_and_delete"),
                     bgcolor=get_color("danger"),
                     color="#FFFFFF",
                     on_click=on_stop_confirmed,
                 ),
-            ],
+            ]),
             actions_alignment=ft.MainAxisAlignment.END,
         )
 
-        page.dialog = self.cancel_dialog
-        self.cancel_dialog.open = True
-        page.update()
+        page.show_dialog(self.cancel_dialog)
 
     # ------------------------------------------------------------------
     # Hooks implemented by concrete controllers
@@ -464,12 +539,18 @@ class BaseController:
         out_file = self.build_output_path(input_path, output_dir, params)
         pre_existed = out_file.exists()
 
-        self._set_processing_ui(ui.page, ui.progress_bar, ui.btn_action)
+        _schedule_on_page(
+            ui.page,
+            lambda: self._set_processing_ui(ui.page, ui.progress_bar, ui.btn_action),
+        )
         self.cancel_event.clear()
 
         try:
-            self._set_status(
-                ui.lbl_status, self._progress_text(1, 1, filename), "text"
+            _schedule_on_page(
+                ui.page,
+                lambda: self._set_status(
+                    ui.lbl_status, self._progress_text(1, 1, filename), "text"
+                ),
             )
 
             orig_bytes = input_path.stat().st_size
@@ -484,11 +565,15 @@ class BaseController:
             ) -> None:
                 if self.abort_requested:
                     return
-                if duration > 0.0:
-                    ui.progress_bar.value = min(1.0, max(0.0, processed / duration))
-                    ui.progress_bar.update()
-                ui.lbl_status.value = self._progress_text(1, 1, filename, speed, fps)
-                ui.lbl_status.update()
+
+                def _apply_progress() -> None:
+                    if duration > 0.0:
+                        ui.progress_bar.value = min(1.0, max(0.0, processed / duration))
+                        ui.progress_bar.update()
+                    ui.lbl_status.value = self._progress_text(1, 1, filename, speed, fps)
+                    ui.lbl_status.update()
+
+                _schedule_on_page(ui.page, _apply_progress)
 
             try:
                 result = as_file_result(
@@ -515,7 +600,7 @@ class BaseController:
                 else 0
             )
 
-            self._close_cancel_dialog(ui.page)
+            _schedule_on_page(ui.page, lambda: self._close_cancel_dialog(ui.page))
 
             if not self.abort_requested:
                 if result.is_processed:
@@ -528,35 +613,43 @@ class BaseController:
                     status_key = "msg_error"
                     status_color = "error"
 
-                self._set_status(ui.lbl_status, t(status_key), status_color)
-                show_summary_dialog(
-                    ui.page,
-                    {
-                        "total_files": 1,
-                        "success": 1 if result.is_processed else 0,
-                        "skipped": 1 if result.is_skipped else 0,
-                        "failed": 1 if result.is_failed else 0,
-                        "elapsed_seconds": round(elapsed, 2),
-                        "original_bytes": orig_bytes if result.is_processed else 0,
-                        "compressed_bytes": comp_bytes,
-                        "terminal_log": redirector.get_logs(),
-                        "log_entries": redirector.get_entries(),
-                        "errors": [{"file": filename, "error": t("msg_error")}]
-                        if result.is_failed
-                        else [],
-                    },
-                )
+                summary_payload = {
+                    "total_files": 1,
+                    "success": 1 if result.is_processed else 0,
+                    "skipped": 1 if result.is_skipped else 0,
+                    "failed": 1 if result.is_failed else 0,
+                    "elapsed_seconds": round(elapsed, 2),
+                    "original_bytes": orig_bytes if result.is_processed else 0,
+                    "compressed_bytes": comp_bytes,
+                    "terminal_log": redirector.get_logs(),
+                    "log_entries": redirector.get_entries(),
+                    "errors": [{"file": filename, "error": t("msg_error")}]
+                    if result.is_failed
+                    else [],
+                }
+
+                def _finish_single_ui() -> None:
+                    self._set_status(ui.lbl_status, t(status_key), status_color)
+                    show_summary_dialog(ui.page, summary_payload)
+
+                _schedule_on_page(ui.page, _finish_single_ui)
             else:
                 if not pre_existed and out_file.exists():
                     try:
                         out_file.unlink()
                     except OSError:
                         pass
-                self._set_status(
-                    ui.lbl_status, t("msg_process_cancelled", count=1), "error"
+                _schedule_on_page(
+                    ui.page,
+                    lambda: self._set_status(
+                        ui.lbl_status, t("msg_process_cancelled", count=1), "error"
+                    ),
                 )
         finally:
-            self._restore_idle_ui(ui.page, ui.progress_bar, ui.btn_action)
+            _schedule_on_page(
+                ui.page,
+                lambda: self._restore_idle_ui(ui.page, ui.progress_bar, ui.btn_action),
+            )
 
     def _run_batch_directory_job(self, ui: JobUI, params: Any) -> None:
         """Template for a folder job: progress, cancellation, error/no_files handling, summary dialog."""
@@ -565,10 +658,13 @@ class BaseController:
         if not input_dir or not output_dir:
             return
 
-        self._set_processing_ui(ui.page, ui.progress_bar, ui.btn_action)
+        def _init_batch_ui() -> None:
+            self._set_processing_ui(ui.page, ui.progress_bar, ui.btn_action)
+            ui.progress_bar.value = 0
+            ui.progress_bar.update()
+
+        _schedule_on_page(ui.page, _init_batch_ui)
         self.cancel_event.clear()
-        ui.progress_bar.value = 0
-        ui.progress_bar.update()
 
         redirector = TextRedirector()
 
@@ -577,7 +673,6 @@ class BaseController:
                 raise InterruptedError("CANCELLED_BY_USER")
 
             if info.total > 0:
-                ui.progress_bar.value = info.percentage / 100.0
                 file_name = info.file_path.name if info.file_path else ""
 
                 if info.is_completed:
@@ -594,15 +689,22 @@ class BaseController:
                     level, line = self._format_result_entry(file_name, file_res)
                     redirector.log(level, line)
 
-                ui.lbl_status.value = self._progress_text(
+                pct_val = info.percentage / 100.0
+                status_text = self._progress_text(
                     info.current,
                     info.total,
                     file_name,
                     getattr(info, "speed", 0.0),
                     getattr(info, "fps", 0.0),
                 )
-                ui.progress_bar.update()
-                ui.lbl_status.update()
+
+                def _apply_batch_progress() -> None:
+                    ui.progress_bar.value = pct_val
+                    ui.lbl_status.value = status_text
+                    ui.progress_bar.update()
+                    ui.lbl_status.update()
+
+                _schedule_on_page(ui.page, _apply_batch_progress)
 
         redirector.start()
 
@@ -613,45 +715,51 @@ class BaseController:
             if summary.get("cancelled", False):
                 self.abort_requested = True
 
-            self._close_cancel_dialog(ui.page)
+            _schedule_on_page(ui.page, lambda: self._close_cancel_dialog(ui.page))
 
             if not self.abort_requested:
                 if summary.get("error"):
-                    # Batch-level failure reported by the engine: show it as an
-                    # error, never as success. The finally block restores the UI.
                     logger.error(
                         f"Batch processing returned an error: {summary['error']}"
                     )
-                    self._set_status(ui.lbl_status, t("msg_error"), "error")
+                    _schedule_on_page(
+                        ui.page,
+                        lambda: self._set_status(ui.lbl_status, t("msg_error"), "error"),
+                    )
                     return
 
                 if summary.get("no_files", False):
-                    self._set_status(ui.lbl_status, "")
-                    show_no_supported_files_dialog(ui.page, self.supported_formats())
-                    return
+                    def _show_no_files() -> None:
+                        self._set_status(ui.lbl_status, "")
+                        show_no_supported_files_dialog(ui.page, self.supported_formats())
 
-                ui.progress_bar.value = 1.0
-                ui.progress_bar.update()
+                    _schedule_on_page(ui.page, _show_no_files)
+                    return
 
                 success_cnt, skipped_cnt, failed_cnt, total_cnt = self._summary_counts(
                     summary
                 )
-                self._set_status(
-                    ui.lbl_status,
-                    t(
-                        "msg_batch_summary",
-                        msg=t("msg_success"),
-                        successful=success_cnt,
-                        skipped=skipped_cnt,
-                        failed=failed_cnt,
-                        total=total_cnt,
-                    ),
-                    "success",
-                )
-
                 summary["terminal_log"] = redirector.get_logs()
                 summary["log_entries"] = redirector.get_entries()
-                show_summary_dialog(ui.page, summary)
+
+                def _finish_batch_ui() -> None:
+                    ui.progress_bar.value = 1.0
+                    ui.progress_bar.update()
+                    self._set_status(
+                        ui.lbl_status,
+                        t(
+                            "msg_batch_summary",
+                            msg=t("msg_success"),
+                            successful=success_cnt,
+                            skipped=skipped_cnt,
+                            failed=failed_cnt,
+                            total=total_cnt,
+                        ),
+                        "success",
+                    )
+                    show_summary_dialog(ui.page, summary)
+
+                _schedule_on_page(ui.page, _finish_batch_ui)
 
         except InterruptedError:
             self.abort_requested = True
@@ -660,18 +768,23 @@ class BaseController:
         except Exception as err:
             logger.exception("Batch processing failed unexpectedly")
             redirector.log(LogLevel.ERROR, f"[ERROR] {err}")
-            self._set_status(ui.lbl_status, t("msg_error"), "error")
+            _schedule_on_page(
+                ui.page,
+                lambda: self._set_status(ui.lbl_status, t("msg_error"), "error"),
+            )
 
         finally:
             redirector.stop()
-            self._close_cancel_dialog(ui.page)
 
-            if self.abort_requested:
-                cleaned_count = summary.get("cleaned_files_count", 0)
-                self._set_status(
-                    ui.lbl_status,
-                    t("msg_process_cancelled", count=cleaned_count),
-                    "error",
-                )
+            def _finalize_batch_ui() -> None:
+                self._close_cancel_dialog(ui.page)
+                if self.abort_requested:
+                    cleaned_count = summary.get("cleaned_files_count", 0)
+                    self._set_status(
+                        ui.lbl_status,
+                        t("msg_process_cancelled", count=cleaned_count),
+                        "error",
+                    )
+                self._restore_idle_ui(ui.page, ui.progress_bar, ui.btn_action)
 
-            self._restore_idle_ui(ui.page, ui.progress_bar, ui.btn_action)
+            _schedule_on_page(ui.page, _finalize_batch_ui)

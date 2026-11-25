@@ -1,7 +1,6 @@
 """Scoped modal component for selecting the active Dark or Light application theme."""
 
-import threading
-import time
+import asyncio
 from collections.abc import Callable
 
 import flet as ft
@@ -34,8 +33,8 @@ def build_theme_modal(
         progress_container.visible = True
         card.update()
 
-        def process_theme_change() -> None:
-            time.sleep(0.35)
+        async def process_theme_change() -> None:
+            await asyncio.sleep(0.35)
             set_active_theme(key)
             set_config_value("theme", key)
 
@@ -46,7 +45,7 @@ def build_theme_modal(
             )
             on_applied()
 
-        threading.Thread(target=process_theme_change, daemon=True).start()
+        page.run_task(process_theme_change)
 
     def build_theme_tile(key: str) -> ft.Container:
         preset = THEME_PRESETS[key]
@@ -61,9 +60,9 @@ def build_theme_modal(
             bgcolor=(
                 get_color("card_hover") if is_selected else get_color("background")
             ),
-            border=ft.border.all(
+            border=ft.Border.all(
                 1.5 if is_selected else 1,
-                swatch_primary if is_selected else ft.colors.OUTLINE_VARIANT,
+                swatch_primary if is_selected else ft.Colors.OUTLINE_VARIANT,
             ),
             ink=True,
             on_click=lambda _, k=key: select_theme(k),
@@ -77,7 +76,7 @@ def build_theme_modal(
                     ),
                     ft.Container(
                         expand=True,
-                        padding=ft.padding.symmetric(horizontal=10),
+                        padding=ft.Padding.symmetric(horizontal=10),
                         content=ft.Row(
                             [
                                 ft.Text(
@@ -92,7 +91,7 @@ def build_theme_modal(
                                     no_wrap=True,
                                 ),
                                 ft.Icon(
-                                    ft.icons.CHECK_CIRCLE,
+                                    ft.Icons.CHECK_CIRCLE,
                                     size=15,
                                     color=swatch_primary,
                                     visible=is_selected,
@@ -116,7 +115,7 @@ def build_theme_modal(
             ft.Row(
                 [
                     ft.Icon(
-                        ft.icons.DARK_MODE_OUTLINED,
+                        ft.Icons.DARK_MODE_OUTLINED,
                         size=14,
                         color=get_color("subtext"),
                     ),
@@ -140,7 +139,7 @@ def build_theme_modal(
             ft.Row(
                 [
                     ft.Icon(
-                        ft.icons.LIGHT_MODE_OUTLINED,
+                        ft.Icons.LIGHT_MODE_OUTLINED,
                         size=14,
                         color=get_color("subtext"),
                     ),
@@ -165,7 +164,7 @@ def build_theme_modal(
             ft.Container(
                 width=1,
                 height=225,
-                bgcolor=ft.colors.OUTLINE_VARIANT,
+                bgcolor=ft.Colors.OUTLINE_VARIANT,
             ),
             light_column,
         ],
@@ -185,14 +184,14 @@ def build_theme_modal(
         t("msg_processing"), size=13, color=get_color("subtext")
     )
     btn_close = ft.IconButton(
-        icon=ft.icons.CLOSE,
+        icon=ft.Icons.CLOSE,
         icon_size=18,
         icon_color=get_color("subtext"),
         on_click=lambda _: on_close(),
     )
 
     progress_container = ft.Container(
-        padding=ft.padding.symmetric(vertical=24),
+        padding=ft.Padding.symmetric(vertical=24),
         visible=False,
         content=ft.Column(
             [
@@ -209,12 +208,12 @@ def build_theme_modal(
         width=376,
         bgcolor=get_color("card_bg"),
         border_radius=12,
-        border=ft.border.all(1, ft.colors.OUTLINE_VARIANT),
+        border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
         padding=20,
         shadow=ft.BoxShadow(
             spread_radius=1,
             blur_radius=24,
-            color=ft.colors.with_opacity(0.45, ft.colors.BLACK),
+            color=ft.Colors.with_opacity(0.45, ft.Colors.BLACK),
             offset=ft.Offset(0, 8),
         ),
         on_click=lambda _: None,
@@ -225,7 +224,7 @@ def build_theme_modal(
                         ft.Row(
                             [
                                 ft.Icon(
-                                    ft.icons.PALETTE_OUTLINED,
+                                    ft.Icons.PALETTE_OUTLINED,
                                     size=20,
                                     color=get_color("primary"),
                                 ),

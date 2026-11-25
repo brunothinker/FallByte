@@ -1,15 +1,16 @@
 """Theme management module providing dynamic palette lookup and active preset configurations."""
 
 import inspect
+from typing import Any
 
 import flet as ft
 
 # Color palette presets divided between Dark and Light mode variations
-THEME_PRESETS: dict[str, dict[str, str]] = {
+THEME_PRESETS: dict[str, dict[str, Any]] = {
     # --- DARK THEMES ---
     "blue_dark": {
-        "primary": ft.colors.BLUE_600,
-        "icon": ft.colors.BLUE_400,
+        "primary": ft.Colors.BLUE_600,
+        "icon": ft.Colors.BLUE_400,
         "background": "#12141C",
         "sidebar_bg": "#181B26",
         "card_bg": "#1E222D",
@@ -18,8 +19,8 @@ THEME_PRESETS: dict[str, dict[str, str]] = {
         "subtext": "#8C93A8",
     },
     "purple_dark": {
-        "primary": ft.colors.PURPLE_600,
-        "icon": ft.colors.PURPLE_300,
+        "primary": ft.Colors.PURPLE_600,
+        "icon": ft.Colors.PURPLE_300,
         "background": "#120E1A",
         "sidebar_bg": "#171221",
         "card_bg": "#1D162B",
@@ -28,8 +29,8 @@ THEME_PRESETS: dict[str, dict[str, str]] = {
         "subtext": "#9B8EB3",
     },
     "emerald_dark": {
-        "primary": ft.colors.TEAL_600,
-        "icon": ft.colors.TEAL_400,
+        "primary": ft.Colors.TEAL_600,
+        "icon": ft.Colors.TEAL_400,
         "background": "#0D1815",
         "sidebar_bg": "#111F1C",
         "card_bg": "#152622",
@@ -38,8 +39,8 @@ THEME_PRESETS: dict[str, dict[str, str]] = {
         "subtext": "#85A39B",
     },
     "red_dark": {
-        "primary": ft.colors.RED_600,
-        "icon": ft.colors.RED_400,
+        "primary": ft.Colors.RED_600,
+        "icon": ft.Colors.RED_400,
         "background": "#1A0E0E",
         "sidebar_bg": "#221212",
         "card_bg": "#2B1616",
@@ -48,8 +49,8 @@ THEME_PRESETS: dict[str, dict[str, str]] = {
         "subtext": "#B38E8E",
     },
     "amber_dark": {
-        "primary": ft.colors.AMBER_600,
-        "icon": ft.colors.AMBER_400,
+        "primary": ft.Colors.AMBER_600,
+        "icon": ft.Colors.AMBER_400,
         "background": "#1A160E",
         "sidebar_bg": "#221D12",
         "card_bg": "#2B2416",
@@ -59,8 +60,8 @@ THEME_PRESETS: dict[str, dict[str, str]] = {
     },
     # --- LIGHT THEMES (Vibrant sidebar and high contrast background) ---
     "blue_light": {
-        "primary": ft.colors.BLUE_700,
-        "icon": ft.colors.BLUE_700,
+        "primary": ft.Colors.BLUE_700,
+        "icon": ft.Colors.BLUE_700,
         "background": "#EBF2FA",  # Crisp pastel ice-blue background
         "sidebar_bg": "#D0E1F9",  # Accentuated blue navigation sidebar
         "card_bg": "#FFFFFF",  # Pure white elevated card background
@@ -69,8 +70,8 @@ THEME_PRESETS: dict[str, dict[str, str]] = {
         "subtext": "#334155",
     },
     "purple_light": {
-        "primary": ft.colors.PURPLE_700,
-        "icon": ft.colors.PURPLE_700,
+        "primary": ft.Colors.PURPLE_700,
+        "icon": ft.Colors.PURPLE_700,
         "background": "#F4EBFB",  # Pastel light lilac background
         "sidebar_bg": "#E2CBF7",  # Distinct purple navigation sidebar
         "card_bg": "#FFFFFF",
@@ -79,8 +80,8 @@ THEME_PRESETS: dict[str, dict[str, str]] = {
         "subtext": "#4C3860",
     },
     "emerald_light": {
-        "primary": ft.colors.TEAL_800,
-        "icon": ft.colors.TEAL_800,
+        "primary": ft.Colors.TEAL_800,
+        "icon": ft.Colors.TEAL_800,
         "background": "#E6F4F1",  # Pastel teal background
         "sidebar_bg": "#BCE3DA",  # Prominent emerald/teal sidebar
         "card_bg": "#FFFFFF",
@@ -89,8 +90,8 @@ THEME_PRESETS: dict[str, dict[str, str]] = {
         "subtext": "#2D4A43",
     },
     "red_light": {
-        "primary": ft.colors.RED_700,
-        "icon": ft.colors.RED_700,
+        "primary": ft.Colors.RED_700,
+        "icon": ft.Colors.RED_700,
         "background": "#FCEAEA",  # Light coral/rose background
         "sidebar_bg": "#F7C5C5",  # Highly noticeable red/crimson sidebar
         "card_bg": "#FFFFFF",
@@ -99,8 +100,8 @@ THEME_PRESETS: dict[str, dict[str, str]] = {
         "subtext": "#543030",
     },
     "amber_light": {
-        "primary": ft.colors.AMBER_900,
-        "icon": ft.colors.AMBER_900,
+        "primary": ft.Colors.AMBER_900,
+        "icon": ft.Colors.AMBER_900,
         "background": "#FAF0DC",  # Warm beige background
         "sidebar_bg": "#F3D8A5",  # Strong golden/amber sidebar
         "card_bg": "#FFFFFF",
@@ -149,12 +150,12 @@ def get_color(color_key: str) -> str:
 
     # Static invariant status and control color mappings
     static_colors = {
-        "success": ft.colors.GREEN_600,
-        "error": ft.colors.RED_600,
-        "danger": ft.colors.RED_600,
-        "warning": ft.colors.AMBER_600,
-        "button_stop": ft.colors.RED_600,
-        "button_stop_hover": ft.colors.RED_700,
+        "success": ft.Colors.GREEN_600,
+        "error": ft.Colors.RED_600,
+        "danger": ft.Colors.RED_600,
+        "warning": ft.Colors.AMBER_600,
+        "button_stop": ft.Colors.RED_600,
+        "button_stop_hover": ft.Colors.RED_700,
     }
     return static_colors.get(color_key, "#FFFFFF")
 

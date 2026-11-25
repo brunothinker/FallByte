@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import flet as ft
 
@@ -23,7 +24,7 @@ def create_video_compression_page(
         color=get_color("text"),
     )
 
-    def on_slider_change(e: ft.ControlEvent) -> None:
+    def on_slider_change(e: Any) -> None:
         """Updates quality display label upon slider changes."""
         raw_val = e.control.value if e.control.value is not None else 80
         lbl_quality_val.value = t("lbl_quality_percentage", value=int(raw_val))
@@ -63,7 +64,7 @@ def create_video_compression_page(
         controller=VideoCompressionController(),
         title_key="video_hub_card_compression_title",
         formats=video_input_formats(),
-        file_icon=ft.icons.VIDEO_FILE,
+        file_icon=ft.Icons.VIDEO_FILE,
         extra_controls=[ft.Container(height=5), quality_container],
         get_params=lambda: int(
             slider_quality.value if slider_quality.value is not None else 80

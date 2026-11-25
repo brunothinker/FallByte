@@ -80,19 +80,7 @@ def parse_cli_args() -> argparse.Namespace:
 
 
 def setup_logging(debug: bool = False) -> Path:
-    """Configures root logging once at startup.
-
-    Adds a rotating file handler (1 MB, 3 backups) writing to ``LOG_FILE``
-    in the configuration directory, plus a console handler when stderr is
-    available (desktop/exe launches may not have one). Calling it again
-    does not duplicate handlers; only the level is updated.
-
-    Args:
-        debug: When True the root level is DEBUG, otherwise INFO.
-
-    Returns:
-        Path: The log file path.
-    """
+    """Configures root logging once at startup."""
     root = logging.getLogger()
     root.setLevel(logging.DEBUG if debug else logging.INFO)
 
@@ -119,26 +107,13 @@ def setup_logging(debug: bool = False) -> Path:
 
 
 def resolve_icon_path() -> Path:
-    """Locates the .ico file both in dev mode and inside a PyInstaller bundle.
-
-    Returns:
-        Path: Absolute path where the icon is expected to live.
-    """
+    """Locates the .ico file both in dev mode and inside a PyInstaller bundle."""
     base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
     return base / ICON_RELATIVE_PATH
 
 
 def apply_window_icon(title: str) -> None:
-    """Sets the title-bar/taskbar icon of the Flet client window (Windows only).
-
-    The visible window belongs to the bundled Flet client (flet.exe), not to
-    this Python process, so the icon of the packaged app is not used for it.
-    The icon is replaced with WM_SETICON once the window exists. The work runs
-    in a daemon thread that polls for the window by its title.
-
-    Args:
-        title: Exact window title used to find the Flet client window.
-    """
+    """Sets the title-bar/taskbar icon of the Flet client window (Windows only)."""
     if sys.platform != "win32":
         return
 
@@ -201,97 +176,65 @@ def apply_window_icon(title: str) -> None:
 
 
 def configure_window(page: ft.Page) -> None:
-    """Applies window size/minimum size and registers the close handler.
+    """Applies window size/minimum size and registers the close handler."""
 
-    Args:
-        page (ft.Page): Root Flet page window instance.
-    """
-
-    def _on_window_event(e: ft.ControlEvent) -> None:
-        if e.data == "close":
+    def _on_window_event(e: ft.WindowEvent) -> None:
+        if e.type == ft.WindowEventType.CLOSE:
             shutdown_active_processes()
 
-    page.on_window_event = _on_window_event
+    page.window.on_event = _on_window_event
 
-    def _apply_geometry() -> None:
-        page.window_width = WINDOW_WIDTH
-        page.window_height = WINDOW_HEIGHT
-        page.window_min_width = WINDOW_MIN_WIDTH
-        page.window_min_height = WINDOW_MIN_HEIGHT
-        page.update()
+    async def _setup_and_show() -> None:
+        try:
+            page.window.resizable = True
+            page.window.width = WINDOW_WIDTH
+            page.window.height = WINDOW_HEIGHT
+            page.window.min_width = WINDOW_MIN_WIDTH
+            page.window.min_height = WINDOW_MIN_HEIGHT
+            await page.window.center()
+        except Exception as err:  # noqa: BLE001 - geometry is best-effort only
+            logger.debug("Could not apply window geometry: %s", err)
+        finally:
+            page.window.visible = True
+            page.update()
 
-    try:
-        # Set size, position and resizability in ONE update while the window
-        # is still hidden, so the window manager sees a single, consistent
-        # geometry change instead of several racing ones.
-        page.window_resizable = True
-        _apply_geometry()
-        page.window_center()
-        page.update()
-    except Exception as err:  # noqa: BLE001 - geometry is best-effort only
-        logger.debug("Could not apply window geometry: %s", err)
-    finally:
-        # The window starts hidden (see FLET_HIDE_WINDOW_ON_START below);
-        # always make it visible, even if applying the geometry failed.
-        page.window_visible = True
-        page.update()
+    page.run_task(_setup_and_show)
 
 
 def main(page: ft.Page) -> None:
-    """Initializes configuration, themes, i18n, and root UI layout.
-
-    Args:
-        page (ft.Page): Root Flet page window instance.
-    """
+    """Initializes configuration, themes, i18n, and root UI layout."""
     user_config = load_config()
     saved_lang = user_config.get("language")
     saved_theme = user_config.get("theme", "blue_dark")
 
-    # Configure active language setting: use saved choice or detect locale
     if saved_lang in AVAILABLE_LANGUAGES:
         set_language(saved_lang)
     else:
         set_language(detect_system_language())
 
-    # Apply saved theme configuration from persistent storage
     set_active_theme(saved_theme)
 
     page.title = t("app_title")
     page.theme_mode = (
         ft.ThemeMode.LIGHT if saved_theme.endswith("_light") else ft.ThemeMode.DARK
     )
-
-    # Set native page background color to match active theme
     page.bgcolor = get_color("background")
 
-    # Flet-drawn controls follow the active preset across light and dark modes
     page.theme = build_flet_theme()
     page.dark_theme = build_flet_theme()
 
-    # Standard desktop window dimensions with window controls preserved
     configure_window(page)
-
-    # Replace the default Flet icon of the window and taskbar with ours
     apply_window_icon(page.title)
 
     page.on_disconnect = lambda _: shutdown_active_processes()
 
-    # Context dictionary holding global file paths across views
     selected_paths: dict[str, Path] = {}
-
-    # Assemble and mount primary layout frame to root page
     page.add(create_app_layout(page, selected_paths, app_version=APP_VERSION))
     page.update()
 
 
 def prefer_x11_on_wayland() -> None:
-    """Forces the GTK client to run through XWayland on Wayland sessions.
-
-    Wayland compositors (GNOME/Mutter on Ubuntu) ignore client-requested
-    window sizes and positions. Running the Flet desktop client under X11
-    (XWayland) can make them work, but it may also break the maximized
-    state. Opt-in only: set ``FALLBYTE_FORCE_X11=1`` to enable it.
-    """
+    """Forces the GTK client to run through XWayland on Wayland sessions."""
     if not sys.platform.startswith("linux"):
         return
     if os.environ.get("FALLBYTE_FORCE_X11") != "1":
@@ -311,7 +254,5 @@ if __name__ == "__main__":
         sys.exit(0 if success else 1)
 
     prefer_x11_on_wayland()
-    # Start the desktop window hidden; configure_window() shows it once the
-    # size is applied, which avoids the random "default size" window.
     os.environ.setdefault("FLET_HIDE_WINDOW_ON_START", "true")
-    ft.app(target=main)
+    ft.run(main)

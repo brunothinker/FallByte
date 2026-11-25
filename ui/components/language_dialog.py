@@ -1,7 +1,6 @@
 """Scoped modal component for selecting the active application language."""
 
-import threading
-import time
+import asyncio
 from collections.abc import Callable
 
 import flet as ft
@@ -32,27 +31,27 @@ def build_language_modal(
         progress_container.visible = True
         card.update()
 
-        def process_change() -> None:
-            time.sleep(0.35)
+        async def process_change() -> None:
+            await asyncio.sleep(0.35)
             set_language(code)
             set_config_value("language", code)
             page.title = t("app_title")
             on_applied()
 
-        threading.Thread(target=process_change, daemon=True).start()
+        page.run_task(process_change)
 
     def build_lang_tile(code: str, label: str) -> ft.Container:
         is_selected = code == i18n.CURRENT_LANG
         return ft.Container(
             width=160,
-            padding=ft.padding.symmetric(vertical=8, horizontal=12),
+            padding=ft.Padding.symmetric(vertical=8, horizontal=12),
             border_radius=8,
             bgcolor=(
                 get_color("card_hover") if is_selected else get_color("background")
             ),
-            border=ft.border.all(
+            border=ft.Border.all(
                 1.5 if is_selected else 1,
-                get_color("primary") if is_selected else ft.colors.OUTLINE_VARIANT,
+                get_color("primary") if is_selected else ft.Colors.OUTLINE_VARIANT,
             ),
             ink=True,
             on_click=lambda _, c=code: select_language(c),
@@ -86,7 +85,7 @@ def build_language_modal(
                         expand=True,
                     ),
                     ft.Icon(
-                        ft.icons.CHECK_CIRCLE,
+                        ft.Icons.CHECK_CIRCLE,
                         size=16,
                         color=get_color("primary"),
                         visible=is_selected,
@@ -123,14 +122,14 @@ def build_language_modal(
         t("msg_processing"), size=13, color=get_color("subtext")
     )
     btn_close = ft.IconButton(
-        icon=ft.icons.CLOSE,
+        icon=ft.Icons.CLOSE,
         icon_size=18,
         icon_color=get_color("subtext"),
         on_click=lambda _: on_close(),
     )
 
     progress_container = ft.Container(
-        padding=ft.padding.symmetric(vertical=24),
+        padding=ft.Padding.symmetric(vertical=24),
         visible=False,
         content=ft.Column(
             [
@@ -147,12 +146,12 @@ def build_language_modal(
         width=372,
         bgcolor=get_color("card_bg"),
         border_radius=12,
-        border=ft.border.all(1, ft.colors.OUTLINE_VARIANT),
+        border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
         padding=20,
         shadow=ft.BoxShadow(
             spread_radius=1,
             blur_radius=24,
-            color=ft.colors.with_opacity(0.45, ft.colors.BLACK),
+            color=ft.Colors.with_opacity(0.45, ft.Colors.BLACK),
             offset=ft.Offset(0, 8),
         ),
         on_click=lambda _: None,
@@ -163,7 +162,7 @@ def build_language_modal(
                         ft.Row(
                             [
                                 ft.Icon(
-                                    ft.icons.LANGUAGE,
+                                    ft.Icons.LANGUAGE,
                                     size=20,
                                     color=get_color("primary"),
                                 ),

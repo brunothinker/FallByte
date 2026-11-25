@@ -29,7 +29,7 @@ def create_audio_conversion_page(
         title_key="audio_hub_card_conversion_title",
         formats=audio_input_formats(),
         notice_key="msg_supported_formats_notice_conversion",
-        file_icon=ft.icons.AUDIO_FILE,
+        file_icon=ft.Icons.AUDIO_FILE,
         extra_controls=[dd_format],
         get_params=lambda: dd_format.value or output_formats[0],
     )

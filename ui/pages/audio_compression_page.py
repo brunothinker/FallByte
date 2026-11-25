@@ -25,7 +25,7 @@ def create_audio_compression_page(
         controller=AudioCompressionController(),
         title_key="audio_hub_card_compression_title",
         formats=audio_compression_formats(),
-        file_icon=ft.icons.AUDIO_FILE,
+        file_icon=ft.Icons.AUDIO_FILE,
         extra_controls=[quality_selector],
         get_params=quality_selector.get_value,
     )

@@ -1,6 +1,8 @@
+
 """Shared horizontal navigation card used by the Home dashboard and the media hubs."""
 
 from collections.abc import Callable
+from typing import Any
 
 import flet as ft
 
@@ -13,7 +15,7 @@ NAV_ROW_CARD_WIDTH = 580
 def build_nav_row_card(
     title_key: str,
     description_key: str,
-    icon: str,
+    icon: ft.IconData,
     route_key: str,
     on_navigate: Callable[[str], None],
     width: int = NAV_ROW_CARD_WIDTH,
@@ -32,22 +34,22 @@ def build_nav_row_card(
         ft.Container: Configured navigation card.
     """
 
-    def on_hover(e: ft.ControlEvent) -> None:
+    def on_hover(e: Any) -> None:
         is_hovered = e.data == "true"
         e.control.bgcolor = (
             get_color("card_hover") if is_hovered else get_color("card_bg")
         )
-        e.control.border = ft.border.all(
+        e.control.border = ft.Border.all(
             1,
-            get_color("primary") if is_hovered else ft.colors.OUTLINE_VARIANT,
+            get_color("primary") if is_hovered else ft.Colors.OUTLINE_VARIANT,
         )
         e.control.update()
 
     return ft.Container(
         width=width,
-        padding=ft.padding.symmetric(horizontal=20, vertical=15),
+        padding=ft.Padding.symmetric(horizontal=20, vertical=15),
         bgcolor=get_color("card_bg"),
-        border=ft.border.all(1, ft.colors.OUTLINE_VARIANT),
+        border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
         border_radius=12,
         ink=True,
         on_click=lambda _: on_navigate(route_key),
@@ -58,7 +60,7 @@ def build_nav_row_card(
                     content=ft.Icon(icon, size=24, color=get_color("primary")),
                     padding=11,
                     border_radius=10,
-                    bgcolor=ft.colors.with_opacity(0.12, get_color("primary")),
+                    bgcolor=ft.Colors.with_opacity(0.12, get_color("primary")),
                 ),
                 ft.Column(
                     controls=[
@@ -82,7 +84,7 @@ def build_nav_row_card(
                     expand=True,
                 ),
                 ft.Icon(
-                    ft.icons.CHEVRON_RIGHT,
+                    ft.Icons.CHEVRON_RIGHT,
                     size=20,
                     color=get_color("subtext"),
                 ),

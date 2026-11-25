@@ -1,8 +1,11 @@
+
 """Headless Flet page double and basic Flet control interaction tests."""
 
 from unittest.mock import MagicMock
 
 import flet as ft
+
+from tests.ui.helpers import trigger_click
 
 
 def test_mock_page_initialization(mock_page):
@@ -20,7 +23,7 @@ def test_mock_page_initialization(mock_page):
 
 def test_add_control_to_mock_page(mock_page):
     """Tests adding UI controls to the mocked page without triggering protocol exceptions."""
-    button = ft.ElevatedButton(text="Click Here")
+    button = ft.Button(content="Click Here")
     mock_page.add(button)
 
     mock_page.add.assert_called_once_with(button)
@@ -70,10 +73,10 @@ def test_button_click_event_handler():
         nonlocal handler_called
         handler_called = True
 
-    button = ft.ElevatedButton(text="Process", on_click=on_click)
+    button = ft.Button(content="Process", on_click=on_click)
 
     if callable(button.on_click):
-        button.on_click(MagicMock())
+        trigger_click(button.on_click)
 
     assert handler_called is True, (
         "[ui] Invoking ElevatedButton.on_click must execute the bound click callback."

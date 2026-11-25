@@ -128,8 +128,8 @@ def test_image_resize_page_renders_and_register_pickers(mock_page):
     assert isinstance(resize_view, ft.Container), (
         "[ui] create_image_resize_page() must return an ft.Container root view."
     )
-    assert len(mock_page.overlay) == 3, (
-        "[ui] Image resize page must register 3 FilePicker controls (file, folder, output) in page.overlay."
+    assert len(mock_page.overlay) == 0, (
+        "[ui] Image resize page must not pollute page.overlay in Flet 0.8+."
     )
 
     resize_controls = resize_view.content.content.controls  # type: ignore[union-attr]

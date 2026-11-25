@@ -12,12 +12,12 @@ from ui.utils.format_utils import video_input_formats
 TRACKS_BOX_WIDTH = 385
 
 
-def _build_track_box(icon: str, title_key: str, list_col: ft.Column) -> ft.Container:
+def _build_track_box(icon: ft.IconData, title_key: str, list_col: ft.Column) -> ft.Container:
     """Bordered box holding a titled checklist of tracks."""
     return ft.Container(
         width=TRACKS_BOX_WIDTH,
         padding=10,
-        border=ft.border.all(1, ft.colors.OUTLINE_VARIANT),
+        border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
         border_radius=10,
         content=ft.Column(
             [
@@ -53,9 +53,9 @@ def create_video_tracks_page(
 
     tracks_container = ft.Column(
         [
-            _build_track_box(ft.icons.AUDIOTRACK, "lbl_audio_tracks", audio_list_col),
+            _build_track_box(ft.Icons.AUDIOTRACK, "lbl_audio_tracks", audio_list_col),
             _build_track_box(
-                ft.icons.SUBTITLES, "lbl_subtitle_tracks", subtitle_list_col
+                ft.Icons.SUBTITLES, "lbl_subtitle_tracks", subtitle_list_col
             ),
         ],
         visible=False,
@@ -80,7 +80,7 @@ def create_video_tracks_page(
         formats=video_input_formats(),
         notice_key="msg_supported_formats_notice_tracks",
         source_mode="file",
-        file_icon=ft.icons.VIDEO_FILE,
+        file_icon=ft.Icons.VIDEO_FILE,
         extra_controls=[tracks_container],
         get_params=controller.get_selected_stream_indices,
         on_input_selected=on_input_selected,

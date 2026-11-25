@@ -1,3 +1,5 @@
+from typing import Any
+
 import flet as ft
 
 from ui.i18n import t
@@ -35,8 +37,8 @@ class QualitySelector(ft.Column):
             width=75,
             height=40,
             text_align=ft.TextAlign.CENTER,
-            content_padding=ft.padding.symmetric(vertical=0, horizontal=5),
-            suffix_text="%",
+            content_padding=ft.Padding.symmetric(vertical=0, horizontal=5),
+            suffix="%",
             keyboard_type=ft.KeyboardType.NUMBER,
         )
 
@@ -73,7 +75,7 @@ class QualitySelector(ft.Column):
         )
         return validate_quality_value(slider_val, default=80)
 
-    def _sync_from_slider(self, e: ft.ControlEvent) -> None:
+    def _sync_from_slider(self, e: Any) -> None:
         """Synchronizes text input field when slider control value changes.
 
         Args:
@@ -84,7 +86,7 @@ class QualitySelector(ft.Column):
             self.txt_quality.value = str(q)
             self.txt_quality.update()
 
-    def _sync_from_text(self, e: ft.ControlEvent) -> None:
+    def _sync_from_text(self, e: Any) -> None:
         """Synchronizes slider control when text input field content changes.
 
         Args:
@@ -101,7 +103,7 @@ class QualitySelector(ft.Column):
         except ValueError:
             pass
 
-    def _validate_text_blur(self, e: ft.ControlEvent) -> None:
+    def _validate_text_blur(self, e: Any) -> None:
         """Validates quality input value and resets boundaries when text field loses focus.
 
         Args:

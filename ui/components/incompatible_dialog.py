@@ -1,7 +1,9 @@
+
 """Confirmation dialog shown when a batch folder mixes supported and unsupported files."""
 
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import flet as ft
 
@@ -26,12 +28,14 @@ def show_incompatible_files_dialog(
     ext_set = sorted({f.suffix.upper() for f in unsupported_files if f.suffix})
     sample_exts = ", ".join(ext_set[:4]) if ext_set else t("lbl_no_extension")
 
-    def close_dialog(_: ft.ControlEvent) -> None:
+    def close_dialog(_: Any) -> None:
         dialog.open = False
+        page.pop_dialog()
         page.update()
 
-    def confirm_and_run(_: ft.ControlEvent) -> None:
+    def confirm_and_run(_: Any) -> None:
         dialog.open = False
+        page.pop_dialog()
         page.update()
         on_confirm()
 
@@ -47,18 +51,16 @@ def show_incompatible_files_dialog(
             ),
             size=13,
         ),
-        actions=[
-            ft.TextButton(t("btn_cancel"), on_click=close_dialog),
-            ft.ElevatedButton(
-                t("btn_continue"),
+        actions=list[ft.Control]([
+            ft.TextButton(content=t("btn_cancel"), on_click=close_dialog),
+            ft.Button(
+                content=t("btn_continue"),
                 bgcolor=get_color("primary"),
                 color=get_color("text"),
                 on_click=confirm_and_run,
             ),
-        ],
+        ]),
         actions_alignment=ft.MainAxisAlignment.END,
     )
 
-    page.dialog = dialog
-    dialog.open = True
-    page.update()
+    page.show_dialog(dialog)

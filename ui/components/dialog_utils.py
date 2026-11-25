@@ -204,43 +204,38 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
 
     full_plain_log = "\n".join(raw_log_text_list)
 
-    def copy_log_to_clipboard(_: ft.ControlEvent) -> None:
-        """Copies the accumulated console output to system clipboard.
-
-        Args:
-            _: The trigger control event instance.
-        """
-        if full_plain_log:
-            page.set_clipboard(full_plain_log)
-            page.snack_bar = ft.SnackBar(
+    async def _copy_and_notify() -> None:
+        await ft.Clipboard().set(full_plain_log)
+        page.show_dialog(
+            ft.SnackBar(
                 content=ft.Text(t("msg_log_copied")),
                 duration=2000,
             )
-            page.snack_bar.open = True
-            page.update()
+        )
+
+    def copy_log_to_clipboard(_: Any) -> None:
+        """Copies the accumulated console output to system clipboard."""
+        if full_plain_log:
+            page.run_task(_copy_and_notify)
 
     btn_copy_log = ft.IconButton(
-        icon=ft.icons.COPY,
+        icon=ft.Icons.COPY,
         icon_size=16,
         tooltip=t("btn_copy_log"),
         on_click=copy_log_to_clipboard,
     )
 
-    def toggle_logs(e: ft.ControlEvent) -> None:
-        """Toggles detail log container visibility.
-
-        Args:
-            e: The trigger control event instance.
-        """
+    def toggle_logs(_: Any) -> None:
+        """Toggles detail log container visibility."""
         log_container.visible = not log_container.visible
-        btn_toggle_log.text = (
+        btn_toggle_log.content = (
             t("log_btn_hide_logs") if log_container.visible else t("log_btn_view_logs")
         )
         dialog.update()
 
     btn_toggle_log = ft.TextButton(
-        text=t("log_btn_hide_logs"),
-        icon=ft.icons.LIST_ALT,
+        content=t("log_btn_hide_logs"),
+        icon=ft.Icons.LIST_ALT,
         on_click=toggle_logs,
     )
 
@@ -270,7 +265,7 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
                     spacing=2,
                     expand=True,
                 ),
-                bgcolor=ft.colors.BLACK26,
+                bgcolor=ft.Colors.BLACK_26,
                 padding=12,
                 border_radius=8,
                 height=180,
@@ -281,13 +276,10 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
         spacing=6,
     )
 
-    def close_dialog(e: ft.ControlEvent) -> None:
-        """Closes summary dialog modal.
-
-        Args:
-            e: The trigger control event instance.
-        """
+    def close_dialog(_: Any) -> None:
+        """Closes summary dialog modal."""
         dialog.open = False
+        page.pop_dialog()
         page.update()
 
     summary_info: list[ft.Control] = [
@@ -410,7 +402,7 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
         modal=True,
         title=ft.Row(
             [
-                ft.Icon(ft.icons.ASSESSMENT, color=get_color("primary")),
+                ft.Icon(ft.Icons.ASSESSMENT, color=get_color("primary")),
                 ft.Text(
                     t("log_dialog_title"),
                     size=18,
@@ -429,20 +421,18 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
                 tight=True,
             ),
         ),
-        actions=[
-            ft.ElevatedButton(
-                t("btn_ok"),
+        actions=list[ft.Control]([
+            ft.Button(
+                content=t("btn_ok"),
                 bgcolor=get_color("primary"),
                 color=get_color("text"),
                 on_click=close_dialog,
             )
-        ],
+        ]),
         actions_alignment=ft.MainAxisAlignment.END,
     )
 
-    page.dialog = dialog
-    dialog.open = True
-    page.update()
+    page.show_dialog(dialog)
 
 
 def show_no_supported_files_dialog(page: ft.Page, formats: list[str]) -> None:
@@ -456,16 +446,17 @@ def show_no_supported_files_dialog(page: ft.Page, formats: list[str]) -> None:
         formats: Upper-case format names accepted by the calling module.
     """
 
-    def close_dialog(_: ft.ControlEvent) -> None:
+    def close_dialog(_: Any) -> None:
         """Closes the no supported files dialog."""
         dialog.open = False
+        page.pop_dialog()
         page.update()
 
     dialog = ft.AlertDialog(
         modal=True,
         title=ft.Row(
             [
-                ft.Icon(ft.icons.WARNING_AMBER_ROUNDED, color=get_color("warning")),
+                ft.Icon(ft.Icons.WARNING_AMBER_ROUNDED, color=get_color("warning")),
                 ft.Text(
                     t("dialog_no_files_title"),
                     size=18,
@@ -492,17 +483,15 @@ def show_no_supported_files_dialog(page: ft.Page, formats: list[str]) -> None:
                 tight=True,
             ),
         ),
-        actions=[
-            ft.ElevatedButton(
-                t("btn_ok"),
+        actions=list[ft.Control]([
+            ft.Button(
+                content=t("btn_ok"),
                 bgcolor=get_color("primary"),
                 color=get_color("text"),
                 on_click=close_dialog,
             )
-        ],
+        ]),
         actions_alignment=ft.MainAxisAlignment.END,
     )
 
-    page.dialog = dialog
-    dialog.open = True
-    page.update()
+    page.show_dialog(dialog)

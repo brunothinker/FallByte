@@ -32,15 +32,43 @@ class DummyControl(ft.Control):
 
 @pytest.fixture
 def mock_page() -> MagicMock:
-    """Provides a mocked ft.Page instance for headless UI testing.
+    """Provides a mocked ft.Page instance for headless UI testing (Flet 0.8+ API)."""
+    import asyncio
+    import inspect
 
-    Returns:
-        MagicMock: Page double exposing `route`, `overlay` and `dialog`.
-    """
     page = MagicMock()
     page.route = "/"
     page.overlay = []
+    page.services = []
     page.dialog = None
+    page._dialog_stack = []
+
+    def _show_dialog(dlg) -> None:
+        if isinstance(dlg, ft.AlertDialog):
+            dlg.open = True
+            page._dialog_stack.append(dlg)
+            page.dialog = dlg
+
+    def _pop_dialog():
+        if page._dialog_stack:
+            popped = page._dialog_stack.pop()
+            popped.open = False
+        page.dialog = page._dialog_stack[-1] if page._dialog_stack else None
+
+    def _run_task(fn, *args, **kwargs):
+        coro = fn(*args, **kwargs) if callable(fn) else fn
+        if inspect.iscoroutine(coro):
+            try:
+                asyncio.run(coro)
+            except TypeError:
+                # Mocked picker methods may return non-awaitable MagicMocks inside async helpers
+                pass
+            return MagicMock()
+        return coro
+
+    page.show_dialog.side_effect = _show_dialog
+    page.pop_dialog.side_effect = _pop_dialog
+    page.run_task.side_effect = _run_task
     return page
 
 

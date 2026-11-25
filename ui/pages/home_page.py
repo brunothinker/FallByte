@@ -18,8 +18,8 @@ def create_home_page(
     from ui.registry import MODULE_REGISTRY
 
     return ft.Container(
-        alignment=ft.alignment.center,
-        padding=ft.padding.symmetric(horizontal=24, vertical=20),
+        alignment=ft.Alignment.CENTER,
+        padding=ft.Padding.symmetric(horizontal=24, vertical=20),
         content=ft.Column(
             controls=[
                 build_neon_brand_title(

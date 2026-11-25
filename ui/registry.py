@@ -32,7 +32,7 @@ class ModuleOption:
     id: str
     title_key: str
     desc_key: str
-    icon: str
+    icon: ft.IconData
     route_key: str
     builder: Callable[..., ft.Control]
 
@@ -44,8 +44,8 @@ class ModuleDefinition:
     id: str
     title_key: str
     desc_key: str
-    icon: str
-    sidebar_icon: str
+    icon: ft.IconData
+    sidebar_icon: ft.IconData
     route_key: str
     builder: Callable[..., ft.Control]
     options: list[ModuleOption]
@@ -54,7 +54,7 @@ class ModuleDefinition:
 def _hub_builder(
     heading_key: str,
     subheading_key: str,
-    main_icon: str,
+    main_icon: ft.IconData,
     options: list[ModuleOption],
 ) -> Callable[[ft.Page, dict[str, Path], Callable[[str], None]], ft.Container]:
     """Creates a hub view builder backed directly by the module's option list."""
@@ -82,7 +82,7 @@ _IMAGE_OPTIONS: list[ModuleOption] = [
         id="image_conversion",
         title_key="image_hub_card_conversion_title",
         desc_key="image_hub_card_conversion_desc",
-        icon=ft.icons.TRANSFORM,
+        icon=ft.Icons.TRANSFORM,
         route_key="image_conversion",
         builder=create_conversion_page,
     ),
@@ -90,7 +90,7 @@ _IMAGE_OPTIONS: list[ModuleOption] = [
         id="image_compression",
         title_key="image_hub_card_compression_title",
         desc_key="image_hub_card_compression_desc",
-        icon=ft.icons.COMPRESS,
+        icon=ft.Icons.COMPRESS,
         route_key="image_compression",
         builder=create_compression_page,
     ),
@@ -98,7 +98,7 @@ _IMAGE_OPTIONS: list[ModuleOption] = [
         id="image_resize",
         title_key="image_hub_card_resize_title",
         desc_key="image_hub_card_resize_desc",
-        icon=ft.icons.PHOTO_SIZE_SELECT_LARGE,
+        icon=ft.Icons.PHOTO_SIZE_SELECT_LARGE,
         route_key="image_resize",
         builder=create_image_resize_page,
     ),
@@ -106,7 +106,7 @@ _IMAGE_OPTIONS: list[ModuleOption] = [
         id="image_metadata",
         title_key="image_hub_card_metadata_title",
         desc_key="image_hub_card_metadata_desc",
-        icon=ft.icons.PRIVACY_TIP_OUTLINED,
+        icon=ft.Icons.PRIVACY_TIP_OUTLINED,
         route_key="image_metadata",
         builder=create_image_metadata_page,
     ),
@@ -117,7 +117,7 @@ _VIDEO_OPTIONS: list[ModuleOption] = [
         id="video_conversion",
         title_key="video_hub_card_conversion_title",
         desc_key="video_hub_card_conversion_desc",
-        icon=ft.icons.TRANSFORM,
+        icon=ft.Icons.TRANSFORM,
         route_key="video_conversion",
         builder=create_video_conversion_page,
     ),
@@ -125,7 +125,7 @@ _VIDEO_OPTIONS: list[ModuleOption] = [
         id="video_compression",
         title_key="video_hub_card_compression_title",
         desc_key="video_hub_card_compression_desc",
-        icon=ft.icons.COMPRESS,
+        icon=ft.Icons.COMPRESS,
         route_key="video_compression",
         builder=create_video_compression_page,
     ),
@@ -133,7 +133,7 @@ _VIDEO_OPTIONS: list[ModuleOption] = [
         id="video_downscale",
         title_key="video_hub_card_downscale_title",
         desc_key="video_hub_card_downscale_desc",
-        icon=ft.icons.ASPECT_RATIO,
+        icon=ft.Icons.ASPECT_RATIO,
         route_key="video_downscale",
         builder=create_video_downscale_page,
     ),
@@ -141,7 +141,7 @@ _VIDEO_OPTIONS: list[ModuleOption] = [
         id="video_tracks",
         title_key="video_hub_card_tracks_title",
         desc_key="video_hub_card_tracks_desc",
-        icon=ft.icons.SUBTITLES,
+        icon=ft.Icons.SUBTITLES,
         route_key="video_tracks",
         builder=create_video_tracks_page,
     ),
@@ -152,7 +152,7 @@ _AUDIO_OPTIONS: list[ModuleOption] = [
         id="audio_conversion",
         title_key="audio_hub_card_conversion_title",
         desc_key="audio_hub_card_conversion_desc",
-        icon=ft.icons.TRANSFORM,
+        icon=ft.Icons.TRANSFORM,
         route_key="audio_conversion",
         builder=create_audio_conversion_page,
     ),
@@ -160,7 +160,7 @@ _AUDIO_OPTIONS: list[ModuleOption] = [
         id="audio_compression",
         title_key="audio_hub_card_compression_title",
         desc_key="audio_hub_card_compression_desc",
-        icon=ft.icons.COMPRESS,
+        icon=ft.Icons.COMPRESS,
         route_key="audio_compression",
         builder=create_audio_compression_page,
     ),
@@ -168,7 +168,7 @@ _AUDIO_OPTIONS: list[ModuleOption] = [
         id="audio_extraction",
         title_key="audio_hub_card_extraction_title",
         desc_key="audio_hub_card_extraction_desc",
-        icon=ft.icons.AUDIOTRACK,
+        icon=ft.Icons.AUDIOTRACK,
         route_key="audio_extraction",
         builder=create_audio_extraction_page,
     ),
@@ -176,7 +176,7 @@ _AUDIO_OPTIONS: list[ModuleOption] = [
         id="audio_normalization",
         title_key="audio_hub_card_normalization_title",
         desc_key="audio_hub_card_normalization_desc",
-        icon=ft.icons.EQUALIZER,
+        icon=ft.Icons.EQUALIZER,
         route_key="audio_normalization",
         builder=create_audio_normalization_page,
     ),
@@ -189,13 +189,13 @@ MODULE_REGISTRY: list[ModuleDefinition] = [
         id="image",
         title_key="home_mod_image_title",
         desc_key="home_mod_image_desc",
-        icon=ft.icons.IMAGE,
-        sidebar_icon=ft.icons.IMAGE_OUTLINED,
+        icon=ft.Icons.IMAGE,
+        sidebar_icon=ft.Icons.IMAGE_OUTLINED,
         route_key="image_hub",
         builder=_hub_builder(
             heading_key="image_hub_heading",
             subheading_key="image_hub_subheading",
-            main_icon=ft.icons.IMAGE_OUTLINED,
+            main_icon=ft.Icons.IMAGE_OUTLINED,
             options=_IMAGE_OPTIONS,
         ),
         options=_IMAGE_OPTIONS,
@@ -204,13 +204,13 @@ MODULE_REGISTRY: list[ModuleDefinition] = [
         id="video",
         title_key="home_mod_video_title",
         desc_key="home_mod_video_desc",
-        icon=ft.icons.VIDEO_LIBRARY,
-        sidebar_icon=ft.icons.VIDEO_LIBRARY_OUTLINED,
+        icon=ft.Icons.VIDEO_LIBRARY,
+        sidebar_icon=ft.Icons.VIDEO_LIBRARY_OUTLINED,
         route_key="video_hub",
         builder=_hub_builder(
             heading_key="video_hub_heading",
             subheading_key="video_hub_subheading",
-            main_icon=ft.icons.VIDEO_LIBRARY_OUTLINED,
+            main_icon=ft.Icons.VIDEO_LIBRARY_OUTLINED,
             options=_VIDEO_OPTIONS,
         ),
         options=_VIDEO_OPTIONS,
@@ -219,13 +219,13 @@ MODULE_REGISTRY: list[ModuleDefinition] = [
         id="audio",
         title_key="home_mod_audio_title",
         desc_key="home_mod_audio_desc",
-        icon=ft.icons.HEADPHONES,
-        sidebar_icon=ft.icons.HEADPHONES_OUTLINED,
+        icon=ft.Icons.HEADPHONES,
+        sidebar_icon=ft.Icons.HEADPHONES_OUTLINED,
         route_key="audio_hub",
         builder=_hub_builder(
             heading_key="audio_hub_heading",
             subheading_key="audio_hub_subheading",
-            main_icon=ft.icons.HEADPHONES_OUTLINED,
+            main_icon=ft.Icons.HEADPHONES_OUTLINED,
             options=_AUDIO_OPTIONS,
         ),
         options=_AUDIO_OPTIONS,

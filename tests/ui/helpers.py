@@ -14,7 +14,7 @@ def make_job_ui(page) -> JobUI:
         page=page,
         lbl_status=MagicMock(spec=ft.Text),
         progress_bar=MagicMock(spec=ft.ProgressBar),
-        btn_action=MagicMock(spec=ft.ElevatedButton),
+        btn_action=MagicMock(spec=ft.Button),
     )
 
 
@@ -26,10 +26,19 @@ def assert_idle_ui(c) -> None:
     assert c.controller.abort_requested is False, (
         "[ui] Controller must reset abort_requested to False when returning to idle state."
     )
-    assert c.btn_action.text == t("btn_process"), (
+    assert c.btn_action.content == t("btn_process"), (
         "[ui] Action button label must revert to translated 'btn_process' in idle state."
     )
     assert c.btn_action.bgcolor is not None, (
         "[ui] Action button background color must be restored when returning to idle state."
     )
-    c.page.session.set.assert_any_call("is_processing", False)
+    assert c.page.data.get("is_processing") is False
+
+
+def trigger_click(handler, event=None) -> None:
+    """Invokes a Flet ControlEventHandler safely without Pyright union-overload issues."""
+    from typing import Any, cast
+    from unittest.mock import MagicMock
+
+    assert callable(handler), f"Expected callable event handler, got {handler!r}"
+    cast(Any, handler)(MagicMock() if event is None else event)

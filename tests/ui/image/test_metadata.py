@@ -82,6 +82,6 @@ def test_image_metadata_page_renders_and_registers_pickers(mock_page):
     assert isinstance(metadata_view, ft.Container), (
         "[ui] create_image_metadata_page() must return an ft.Container root view."
     )
-    assert len(mock_page.overlay) == 3, (
-        "[ui] Image metadata page must register 3 FilePicker controls (file, folder, output) in page.overlay."
+    assert len(mock_page.overlay) == 0, (
+        "[ui] Image metadata page must not pollute page.overlay in Flet 0.8+."
     )

@@ -15,8 +15,8 @@ def test_audio_pages_render_and_register_pickers(mock_page):
     assert isinstance(conv_view, ft.Container), (
         "[ui] create_audio_conversion_page() must return an ft.Container root view."
     )
-    assert len(mock_page.overlay) == 3, (
-        "[ui] Audio conversion page must register 3 FilePicker controls (file, folder, output) in page.overlay."
+    assert len(mock_page.overlay) == 0, (
+        "[ui] Audio conversion page must not pollute page.overlay in Flet 0.8+."
     )
 
     mock_page.overlay.clear()
@@ -24,8 +24,8 @@ def test_audio_pages_render_and_register_pickers(mock_page):
     assert isinstance(comp_view, ft.Container), (
         "[ui] create_audio_compression_page() must return an ft.Container root view."
     )
-    assert len(mock_page.overlay) == 3, (
-        "[ui] Audio compression page must register 3 FilePicker controls (file, folder, output) in page.overlay."
+    assert len(mock_page.overlay) == 0, (
+        "[ui] Audio compression page must not pollute page.overlay in Flet 0.8+."
     )
 
     mock_page.overlay.clear()
@@ -33,8 +33,8 @@ def test_audio_pages_render_and_register_pickers(mock_page):
     assert isinstance(ext_view, ft.Container), (
         "[ui] create_audio_extraction_page() must return an ft.Container root view."
     )
-    assert len(mock_page.overlay) == 3, (
-        "[ui] Audio extraction page must register 3 FilePicker controls (file, folder, output) in page.overlay."
+    assert len(mock_page.overlay) == 0, (
+        "[ui] Audio extraction page must not pollute page.overlay in Flet 0.8+."
     )
     ext_controls = ext_view.content.content.controls  # type: ignore[union-attr]
     ext_dropdown = next(c for c in ext_controls if isinstance(c, ft.Dropdown))
@@ -47,8 +47,8 @@ def test_audio_pages_render_and_register_pickers(mock_page):
     assert isinstance(norm_view, ft.Container), (
         "[ui] create_audio_normalization_page() must return an ft.Container root view."
     )
-    assert len(mock_page.overlay) == 2, (
-        "[ui] Audio normalization page must register 2 folder FilePicker controls (source folder, output) in page.overlay."
+    assert len(mock_page.overlay) == 0, (
+        "[ui] Audio normalization page must not pollute page.overlay in Flet 0.8+."
     )
     norm_controls = norm_view.content.content.controls  # type: ignore[union-attr]
     norm_dropdown = next(c for c in norm_controls if isinstance(c, ft.Dropdown))

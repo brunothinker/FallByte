@@ -1,3 +1,4 @@
+
 """UI: parameterized tests across multiple controllers (do not split)."""
 
 import logging
@@ -12,7 +13,7 @@ import pytest
 
 from src.utils.file_result import FileResult
 from src.utils.progress import ProgressInfo
-from tests.ui.helpers import assert_idle_ui
+from tests.ui.helpers import assert_idle_ui, trigger_click
 from ui import app_layout, theme
 from ui.i18n import t
 from ui.theme import get_color
@@ -20,8 +21,16 @@ from ui.theme import get_color
 
 def walk(control: ft.Control) -> Iterator[ft.Control]:
     yield control
-    for child in control._get_children():
-        yield from walk(child)
+    for attr in ("content", "leading", "title", "subtitle", "trailing"):
+        child = getattr(control, attr, None)
+        if isinstance(child, ft.Control):
+            yield from walk(child)
+    for attr in ("controls", "actions"):
+        children = getattr(control, attr, None)
+        if isinstance(children, list):
+            for child in children:
+                if isinstance(child, ft.Control):
+                    yield from walk(child)
 
 
 BATCH_OK = {
@@ -65,15 +74,15 @@ def test_back_row_follows_batch(ctx, monkeypatch, palette, outcome):
         c
         for c in walk(layout)
         if isinstance(c, ft.Container)
-        and isinstance(c.content, ft.ElevatedButton)
-        and c.content.icon == ft.icons.ARROW_BACK
+        and isinstance(c.content, ft.Button)
+        and c.content.icon == ft.Icons.ARROW_BACK
     )
     action = next(
         c
         for c in walk(layout)
-        if isinstance(c, ft.ElevatedButton) and c.icon == ft.icons.PLAY_ARROW
+        if isinstance(c, ft.Button) and c.icon == ft.Icons.PLAY_ARROW
     )
-    assert isinstance(back_row.content, ft.ElevatedButton)
+    assert isinstance(back_row.content, ft.Button)
     assert back_row.visible and back_row.content.visible
     assert action.on_click is not None
     observations: list[tuple[bool | None, object]] = []
@@ -84,24 +93,24 @@ def test_back_row_follows_batch(ctx, monkeypatch, palette, outcome):
             raise OSError("test batch failed")
         if outcome == "cancel":
             assert action.on_click is not None
-            action.on_click(None)
+            trigger_click(action.on_click)
             confirm_btn = page.dialog.actions[1]
             assert confirm_btn.on_click is not None
-            confirm_btn.on_click(None)
+            trigger_click(confirm_btn.on_click)
             observations.append((back_row.visible, kwargs["cancel_event"].is_set()))
             return {"cancelled": True}
         return {"success": 1, "total_files": 1}
 
     monkeypatch.setattr(ctx.module, ctx.spec["dir_engine"], run_engine)
-    action.on_click(None)
+    trigger_click(action.on_click)
 
-    expected: list[tuple[bool | None, object]] = [(False, ft.icons.STOP)]
+    expected: list[tuple[bool | None, object]] = [(False, ft.Icons.STOP)]
     if outcome == "cancel":
         expected.append((False, True))
     assert observations == expected
-    assert isinstance(back_row.content, ft.ElevatedButton)
+    assert isinstance(back_row.content, ft.Button)
     assert back_row.visible and back_row.content.visible
-    assert action.icon == ft.icons.PLAY_ARROW
+    assert action.icon == ft.Icons.PLAY_ARROW
 
 
 def test_single_file_success(ctx):
@@ -224,11 +233,11 @@ def test_single_file_sets_stop_button_while_running(ctx):
     seen = {}
 
     def fake(**kwargs):
-        seen["text"] = ctx.btn_action.text
+        seen["text"] = ctx.btn_action.content
         seen["bgcolor"] = ctx.btn_action.bgcolor
         seen["color"] = ctx.btn_action.color
         seen["processing"] = ctx.controller.is_processing
-        seen["session"] = ctx.page.session.set.call_args
+        seen["session"] = ctx.page.data.get("is_processing")
         kwargs["output_path"].parent.mkdir(parents=True, exist_ok=True)
         kwargs["output_path"].write_bytes(b"out")
         return FileResult.processed()
@@ -248,7 +257,7 @@ def test_single_file_sets_stop_button_while_running(ctx):
     assert seen["processing"] is True, (
         "[ui] Controller must set is_processing=True while executing the file engine."
     )
-    assert seen["session"].args == ("is_processing", True), (
+    assert seen["session"] is True, (
         "[ui] Controller must lock page session navigation via session.set('is_processing', True)."
     )
 
@@ -641,7 +650,7 @@ def test_cancel_dialog_confirm_sets_abort_flags(ctx):
         "[ui] Confirm-stop button text in cancel dialog must be '#FFFFFF'."
     )
 
-    stop_btn.on_click(MagicMock())  # "Yes, stop and delete"
+    trigger_click(stop_btn.on_click)  # "Yes, stop and delete"
 
     assert ctx.controller.abort_requested is True, (
         "[ui] Confirming cancellation must set controller.abort_requested = True."
@@ -669,7 +678,7 @@ def test_cancel_dialog_keep_running_changes_nothing(ctx):
     )
     dialog = ctx.controller.cancel_dialog
 
-    dialog.actions[0].on_click(MagicMock())  # "No, keep running"
+    trigger_click(dialog.actions[0].on_click)  # "No, keep running"
 
     assert ctx.controller.abort_requested is False, (
         "[ui] Dismissing cancel dialog with 'keep running' must leave abort_requested as False."

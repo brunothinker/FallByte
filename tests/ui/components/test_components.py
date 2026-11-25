@@ -1,5 +1,6 @@
 """UI: tests for dialog_utils, pickers, path_label, and other components."""
 
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import flet as ft
@@ -273,7 +274,7 @@ def test_create_source_picker_card_structure_and_callbacks():
         lbl_in_path=lbl_in_path,
         on_select_file=on_file,
         on_select_folder=on_folder,
-        file_icon=ft.icons.VIDEO_FILE,
+        file_icon=ft.Icons.VIDEO_FILE,
     )
 
     assert isinstance(card, ft.Container), (
@@ -300,21 +301,21 @@ def test_create_source_picker_card_structure_and_callbacks():
     assert isinstance(item_folder, ft.PopupMenuItem), (
         "[ui] Second source picker menu entry must be an ft.PopupMenuItem for folder selection."
     )
-    assert item_file.icon == ft.icons.VIDEO_FILE, (
+    assert item_file.icon == ft.Icons.VIDEO_FILE, (
         "[ui] File menu item must use the custom file_icon passed to create_source_picker_card()."
     )
-    assert item_folder.icon == ft.icons.FOLDER, (
-        "[ui] Folder menu item must display the standard ft.icons.FOLDER icon."
+    assert item_folder.icon == ft.Icons.FOLDER, (
+        "[ui] Folder menu item must display the standard ft.Icons.FOLDER icon."
     )
 
     if callable(item_file.on_click):
-        item_file.on_click(MagicMock())
+        cast(Any, item_file.on_click)(MagicMock())
     assert file_callback_called is True, (
         "[ui] Clicking the file PopupMenuItem must invoke on_select_file callback."
     )
 
     if callable(item_folder.on_click):
-        item_folder.on_click(MagicMock())
+        cast(Any, item_folder.on_click)(MagicMock())
     assert folder_callback_called is True, (
         "[ui] Clicking the folder PopupMenuItem must invoke on_select_folder callback."
     )

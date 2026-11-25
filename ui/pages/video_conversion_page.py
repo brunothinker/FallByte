@@ -35,7 +35,7 @@ def create_video_conversion_page(
         title_key="video_hub_card_conversion_title",
         formats=video_input_formats(),
         notice_key="msg_supported_formats_notice_conversion",
-        file_icon=ft.icons.VIDEO_FILE,
+        file_icon=ft.Icons.VIDEO_FILE,
         extra_controls=[dd_format],
         get_params=lambda: dd_format.value or default_format,
     )

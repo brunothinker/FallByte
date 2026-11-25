@@ -1,3 +1,4 @@
+
 """UI (image): compression tests (controller and feature page)."""
 
 from unittest.mock import MagicMock, patch
@@ -5,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import flet as ft
 
 from src.utils.file_result import FileResult
-from tests.ui.helpers import make_job_ui
+from tests.ui.helpers import make_job_ui, trigger_click
 from ui.controllers.image_compression_controller import (
     CompressionController,
     CompressionOptions,
@@ -181,7 +182,7 @@ def test_image_compression_page_renders_strip_metadata_checkbox(mock_page):
     mock_page.overlay.clear()
     comp_view = create_compression_page(mock_page, {}, lambda _: None)
     assert isinstance(comp_view, ft.Container)
-    assert len(mock_page.overlay) == 3
+    assert len(mock_page.overlay) == 0
 
     controls = comp_view.content.content.controls  # type: ignore[union-attr]
     chk_strip = next(c for c in controls if isinstance(c, ft.Checkbox))
@@ -189,14 +190,14 @@ def test_image_compression_page_renders_strip_metadata_checkbox(mock_page):
         "[ui] Image compression strip_metadata checkbox must default to False."
     )
 
-    btn_action = next(c for c in controls if isinstance(c, ft.ElevatedButton))
+    btn_action = next(c for c in controls if isinstance(c, ft.Button))
     chk_strip.value = True
 
     with patch(
         "ui.pages.image_compression_page.CompressionController.execute"
     ) as mock_click:
         assert callable(btn_action.on_click)
-        btn_action.on_click(MagicMock())
+        trigger_click(btn_action.on_click)
         mock_click.assert_called_once()
         # The class attribute is patched, so the call is (JobUI, params).
         params = mock_click.call_args.args[1]

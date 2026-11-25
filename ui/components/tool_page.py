@@ -30,7 +30,7 @@ class ToolPageWidgets:
     lbl_out_path: ft.Text
     lbl_status: ft.Text
     progress_bar: ft.ProgressBar
-    btn_action: ft.ElevatedButton
+    btn_action: ft.Button
 
 
 def build_tool_page(
@@ -41,7 +41,7 @@ def build_tool_page(
     *,
     notice_key: str = "msg_supported_formats_notice",
     source_mode: SourceMode = "file_or_folder",
-    file_icon: str = ft.icons.UPLOAD_FILE,
+    file_icon: ft.IconData = ft.Icons.UPLOAD_FILE,
     extra_controls: Sequence[ft.Control] = (),
     get_params: Callable[[], Any] = lambda: None,
     on_input_selected: Callable[[ft.FilePickerResultEvent, ToolPageWidgets], None]
@@ -51,35 +51,15 @@ def build_tool_page(
     spacing: int = 12,
     scrollable: bool = False,
 ) -> ft.Container:
-    """Builds the standard centered tool card and wires it to a controller.
-
-    Args:
-        page: Active Flet page (pickers are added to its overlay).
-        controller: Controller exposing ``execute(ui, params)`` and picker handlers.
-        title_key: i18n key of the card title.
-        formats: Upper-case format names; used for the picker filter and the notice.
-        notice_key: i18n key of the supported-formats notice (takes ``{formats}``).
-        source_mode: ``"file_or_folder"`` (popup menu), ``"file"`` or ``"folder"`` only.
-        file_icon: Icon used for file selection.
-        extra_controls: Tool-specific controls rendered between the I/O row and the progress bar.
-        get_params: Called on click; its result is forwarded to ``controller.execute``.
-        on_input_selected: Optional replacement for the default input picker result handler.
-        trailing_spacer: Adds a small spacer after ``extra_controls``.
-        control_width: Width of the progress bar and the action button.
-        spacing: Vertical spacing of the card column.
-        scrollable: Makes the card column scroll when content overflows.
-
-    Returns:
-        ft.Container: The page view, ready to be returned by a ``create_*_page`` function.
-    """
+    """Builds the standard centered tool card and wires it to a controller."""
     lbl_in_path = create_path_label()
     lbl_out_path = create_path_label()
     lbl_status = ft.Text("", size=13, weight=ft.FontWeight.W_600)
     progress_bar = ft.ProgressBar(width=control_width, value=0, visible=False)
 
-    btn_action = ft.ElevatedButton(
-        t("btn_process"),
-        icon=ft.icons.PLAY_ARROW,
+    btn_action = ft.Button(
+        content=t("btn_process"),
+        icon=ft.Icons.PLAY_ARROW,
         bgcolor=get_color("primary"),
         color=get_color("text"),
         width=control_width,
@@ -106,30 +86,27 @@ def build_tool_page(
         else:
             controller.handle_input_result(e, lbl_in_path, lbl_status)
 
-    picker_in_file = ft.FilePicker(on_result=handle_input)
-    picker_in_dir = ft.FilePicker(on_result=handle_input)
-    picker_out = ft.FilePicker(
-        on_result=lambda e: controller.handle_output_result(e, lbl_out_path, lbl_status)
-    )
-
-    pickers = [picker_out]
-    if source_mode in ("file_or_folder", "file"):
-        pickers.insert(0, picker_in_file)
-    if source_mode in ("file_or_folder", "folder"):
-        pickers.insert(0, picker_in_dir)
-    for picker in pickers:
-        if picker not in page.overlay:
-            page.overlay.append(picker)
+    def handle_output(e: ft.FilePickerResultEvent) -> None:
+        controller.handle_output_result(e, lbl_out_path, lbl_status)
 
     allowed_exts = [f.lower() for f in formats]
 
     def pick_file() -> None:
         controller.open_picker(
-            picker_in_file, allow_directory=False, allowed_extensions=allowed_exts
+            ft.FilePicker(),
+            allow_directory=False,
+            allowed_extensions=allowed_exts,
+            page=page,
+            on_result=handle_input,
         )
 
     def pick_folder() -> None:
-        controller.open_picker(picker_in_dir, allow_directory=True)
+        controller.open_picker(
+            ft.FilePicker(),
+            allow_directory=True,
+            page=page,
+            on_result=handle_input,
+        )
 
     if source_mode == "file_or_folder":
         card_in = create_source_picker_card(
@@ -148,17 +125,21 @@ def build_tool_page(
     else:
         card_in = create_clickable_card(
             title=t("lbl_source"),
-            icon=ft.icons.FOLDER_OPEN,
+            icon=ft.Icons.FOLDER_OPEN,
             lbl_text=lbl_in_path,
             on_click_action=lambda _: pick_folder(),
         )
 
     card_out = create_clickable_card(
         title=t("lbl_destination"),
-        icon=ft.icons.FOLDER,
+        icon=ft.Icons.FOLDER,
         lbl_text=lbl_out_path,
         on_click_action=lambda _: controller.open_picker(
-            picker_out, allow_directory=True, is_output=True
+            ft.FilePicker(),
+            allow_directory=True,
+            is_output=True,
+            page=page,
+            on_result=handle_output,
         ),
     )
 
@@ -193,13 +174,13 @@ def build_tool_page(
 
     return ft.Container(
         expand=True,
-        alignment=ft.alignment.center,
+        alignment=ft.Alignment.CENTER,
         padding=20,
         content=ft.Container(
             width=FORM_WIDTH,
             padding=25,
             bgcolor=get_color("card_bg"),
-            border=ft.border.all(1, ft.colors.OUTLINE_VARIANT),
+            border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
             border_radius=12,
             content=ft.Column(
                 body,

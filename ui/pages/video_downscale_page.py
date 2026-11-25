@@ -41,7 +41,7 @@ def create_video_downscale_page(
         title_key="video_hub_card_downscale_title",
         formats=video_input_formats(),
         notice_key="msg_supported_formats_notice_downscale",
-        file_icon=ft.icons.VIDEO_FILE,
+        file_icon=ft.Icons.VIDEO_FILE,
         extra_controls=[dd_resolution],
         get_params=lambda: dd_resolution.value or default_preset,
     )
