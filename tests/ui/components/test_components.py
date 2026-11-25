@@ -35,55 +35,19 @@ def test_no_supported_files_dialog_lists_formats(mock_page):
 
 
 def test_get_log_line_color_tag_precedence():
-    """Ensures explicit bracket tags take precedence over file name keywords."""
+    """Ensures log color is determined strictly by LogLevel, ignoring filename keywords."""
+    from src.utils.file_result import FileResult, LogLevel
     from ui.components.dialog_utils import get_log_line_color
+    from ui.controllers.base_controller import BaseController
     from ui.theme import get_color
 
-    # Regression: [FAIL] tags with file names containing "compressed" or "converted" must return error color
-    assert get_log_line_color("[FAIL] photo_compressed.png") == get_color("error"), (
-        "[ui] Explicit [FAIL] tag must take precedence over 'compressed' in filename and return error color."
+    # Regression: FAILED result with file name containing "compressed" or "converted" must return error color
+    level, line = BaseController._format_result_entry(
+        "photo_compressed.png", FileResult.failed()
     )
-    assert get_log_line_color("[FAIL] video_converted.mp4") == get_color("error"), (
-        "[ui] Explicit [FAIL] tag must take precedence over 'converted' in filename and return error color."
-    )
-    assert get_log_line_color("[ERROR] file_success.jpg") == get_color("error"), (
-        "[ui] Explicit [ERROR] tag must take precedence over 'success' in filename and return error color."
-    )
-
-    # Explicit [SKIP] tag takes precedence over file names containing "converted" or "compressed"
-    assert get_log_line_color("[SKIP] video_converted.mp4") == get_color("warning"), (
-        "[ui] Explicit [SKIP] tag must take precedence over 'converted' in filename and return warning color."
-    )
-    assert get_log_line_color("[SKIP] image_compressed.png") == get_color("warning"), (
-        "[ui] Explicit [SKIP] tag must resolve to warning theme color."
-    )
-
-    # Valid [OK] logs
-    assert get_log_line_color("[OK] photo_compressed.png") == get_color("success"), (
-        "[ui] Explicit [OK] tag must resolve to success theme color."
-    )
-    assert get_log_line_color("[OK] video_converted.mp4") == get_color("success"), (
-        "[ui] Explicit [OK] tag on converted file log must resolve to success theme color."
-    )
-
-    # Explicit warning tag
-    assert get_log_line_color("[WARNING] slow compression") == get_color("warning"), (
-        "[ui] Explicit [WARNING] tag must resolve to warning theme color."
-    )
-
-    # Keyword fallback checks
-    assert get_log_line_color("An exception occurred") == get_color("error"), (
-        "[ui] Untagged log line mentioning 'exception' must fall back to error theme color."
-    )
-    assert get_log_line_color("Warning: low disk space") == get_color("warning"), (
-        "[ui] Untagged log line starting with 'Warning:' must fall back to warning theme color."
-    )
-    assert get_log_line_color("Successfully converted file") == get_color("success"), (
-        "[ui] Untagged log line with 'Successfully' must fall back to success theme color."
-    )
-    assert get_log_line_color("Processing starting now...") == get_color("subtext"), (
-        "[ui] Neutral informational log line must default to subtext theme color."
-    )
+    assert level is LogLevel.ERROR
+    assert "[FAIL] photo_compressed.png" in line
+    assert get_log_line_color(level) == get_color("error")
 
 
 def test_format_size_units():

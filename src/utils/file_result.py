@@ -5,12 +5,29 @@ from enum import Enum
 from typing import Any
 
 
+class LogLevel(Enum):
+    """Semantic severity level for UI log entries, independent of locale."""
+
+    INFO = "info"
+    SUCCESS = "success"
+    WARNING = "warning"
+    ERROR = "error"
+
+
 class Outcome(Enum):
     """Final state of a single processed file."""
 
     PROCESSED = "processed"
     SKIPPED = "skipped"
     FAILED = "failed"
+
+    def to_log_level(self) -> LogLevel:
+        """Maps a file processing outcome to its corresponding UI log level."""
+        if self is Outcome.PROCESSED:
+            return LogLevel.SUCCESS
+        if self is Outcome.SKIPPED:
+            return LogLevel.WARNING
+        return LogLevel.ERROR
 
 
 @dataclass(frozen=True)
@@ -55,6 +72,11 @@ class FileResult:
     @property
     def is_failed(self) -> bool:
         return self.outcome is Outcome.FAILED
+
+    @property
+    def log_level(self) -> LogLevel:
+        """Returns the semantic LogLevel associated with this result."""
+        return self.outcome.to_log_level()
 
     def __bool__(self) -> bool:
         """True when the file did not fail.

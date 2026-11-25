@@ -3,11 +3,20 @@ from typing import Any
 
 import flet as ft
 
+from src.utils.file_result import LogLevel
 from ui.i18n import t
 from ui.theme import get_color
+from ui.utils.log_capture import LogEntry
 
 # Setup module logger
 logger = logging.getLogger(__name__)
+
+_LOG_LEVEL_COLOR_KEYS: dict[LogLevel, str] = {
+    LogLevel.INFO: "subtext",
+    LogLevel.SUCCESS: "success",
+    LogLevel.WARNING: "warning",
+    LogLevel.ERROR: "error",
+}
 
 
 def format_size(size_bytes: int) -> str:
@@ -29,64 +38,17 @@ def format_size(size_bytes: int) -> str:
     return f"{kb:.1f} KB"
 
 
-def get_log_line_color(line_str: str) -> str:
-    """Determines the theme color key for a terminal log line based on tags and keywords.
-
-    Prioritizes explicit bracket tags ([fail], [error], [warning], [skip], [ok]) before
-    falling back to general text matching to prevent false-positive matches
-    (e.g. '[FAIL] image_compressed.png' or '[SKIP] video_converted.mp4').
+def get_log_line_color(level: LogLevel) -> str:
+    """Resolves the theme color hex for a log line strictly from its semantic LogLevel.
 
     Args:
-        line_str (str): The raw log line string to evaluate.
+        level: Semantic LogLevel associated with the log entry.
 
     Returns:
-        str: Theme color key string (e.g., 'error', 'success', 'warning', 'subtext').
+        Theme hexadecimal color string (e.g., 'error', 'success', 'warning', 'subtext').
     """
-    line_lower = line_str.lower()
-
-    # Priority 1: Check explicit bracket tags first to prevent false positive matches on file names
-    if any(tag in line_lower for tag in ["[fail]", "[error]"]):
-        return get_color("error")
-    if any(tag in line_lower for tag in ["[warning]", "[skip]"]):
-        return get_color("warning")
-    if "[ok]" in line_lower:
-        return get_color("success")
-
-    # Priority 2: Fallback to keyword matching for generic log lines
-    if any(
-        k in line_lower
-        for k in [
-            "falha",
-            "erro",
-            "failed",
-            "exception",
-            "traceback",
-        ]
-    ):
-        return get_color("error")
-
-    if any(
-        k in line_lower
-        for k in [
-            "warning",
-            "aviso",
-        ]
-    ):
-        return get_color("warning")
-
-    if any(
-        k in line_lower
-        for k in [
-            "success",
-            "sucesso",
-            "concluído",
-            "converted",
-            "compressed",
-        ]
-    ):
-        return get_color("success")
-
-    return get_color("subtext")
+    color_key = _LOG_LEVEL_COLOR_KEYS.get(level, "subtext")
+    return get_color(color_key)
 
 
 def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
@@ -108,6 +70,7 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
     orig_bytes = summary.get("original_bytes", 0)
     comp_bytes = summary.get("compressed_bytes", 0)
     file_details: list[dict[str, Any]] = summary.get("files", [])
+    log_entries: list[LogEntry] = summary.get("log_entries", [])
     terminal_log: str = summary.get("terminal_log", "").strip()
 
     reduction_pct = 0.0
@@ -117,28 +80,43 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
     log_items: list[ft.Control] = []
     raw_log_text_list: list[str] = []
 
-    # Priority 1: Render raw terminal output line by line with dynamic colors
-    if terminal_log:
-        lines = terminal_log.splitlines()
-        for line in lines:
-            line_str = line.strip()
+    # Priority 1: Render structured log entries colored strictly by LogLevel
+    if log_entries:
+        for entry in log_entries:
+            line_str = entry.message.strip()
             if not line_str:
                 continue
 
             raw_log_text_list.append(line_str)
-            text_color = get_log_line_color(line_str)
-
             log_items.append(
                 ft.Text(
                     line_str,
                     size=11,
-                    color=text_color,
+                    color=get_log_line_color(entry.level),
                     font_family="monospace",
                     selectable=True,
                 )
             )
 
-    # Priority 2: Render structured file details list
+    # Priority 2: Plain terminal_log fallback without keyword matching
+    elif terminal_log:
+        for line in terminal_log.splitlines():
+            line_str = line.strip()
+            if not line_str:
+                continue
+
+            raw_log_text_list.append(line_str)
+            log_items.append(
+                ft.Text(
+                    line_str,
+                    size=11,
+                    color=get_log_line_color(LogLevel.INFO),
+                    font_family="monospace",
+                    selectable=True,
+                )
+            )
+
+    # Priority 3: Render structured file details list
     elif file_details:
         for item in file_details:
             fname = item.get("name", "Unknown")
@@ -160,7 +138,7 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
                     ft.Text(
                         skip_line,
                         size=11,
-                        color=get_color("warning"),
+                        color=get_log_line_color(LogLevel.WARNING),
                         font_family="monospace",
                     )
                 )
@@ -171,7 +149,7 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
                     ft.Text(
                         err_line,
                         size=11,
-                        color=get_color("error"),
+                        color=get_log_line_color(LogLevel.ERROR),
                         font_family="monospace",
                     )
                 )
@@ -193,12 +171,12 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
                     ft.Text(
                         ok_line,
                         size=11,
-                        color=get_color("success"),
+                        color=get_log_line_color(LogLevel.SUCCESS),
                         font_family="monospace",
                     )
                 )
 
-    # Priority 3: Render standalone error logs
+    # Priority 4: Render standalone error logs
     elif errors:
         for err in errors:
             file_name = err.get("file", "Unknown")
@@ -209,14 +187,20 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
                 ft.Text(
                     err_line,
                     size=11,
-                    color=get_color("error"),
+                    color=get_log_line_color(LogLevel.ERROR),
                     font_family="monospace",
                 )
             )
     else:
         no_err_line = f"[OK] {t('log_no_errors')}"
         raw_log_text_list.append(no_err_line)
-        log_items.append(ft.Text(no_err_line, size=11, color=get_color("success")))
+        log_items.append(
+            ft.Text(
+                no_err_line,
+                size=11,
+                color=get_log_line_color(LogLevel.SUCCESS),
+            )
+        )
 
     full_plain_log = "\n".join(raw_log_text_list)
 

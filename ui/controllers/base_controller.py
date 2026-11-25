@@ -8,7 +8,7 @@ from typing import Any
 
 import flet as ft
 
-from src.utils.file_result import FileResult, as_file_result
+from src.utils.file_result import FileResult, LogLevel, as_file_result
 from src.utils.progress import ProgressInfo
 from ui.components.dialog_utils import (
     show_no_supported_files_dialog,
@@ -425,21 +425,22 @@ class BaseController:
         return text + self._speed_suffix(speed, fps)
 
     @staticmethod
-    def _result_line(
+    def _format_result_entry(
         filename: str,
-        *,
-        skipped: bool = False,
-        success: bool = True,
-        reason_key: str | None = None,
-        reason_params: dict[str, Any] | None = None,
-    ) -> str:
-        """Formats a single-file outcome line ([OK], [SKIP], or [FAIL]) for the log."""
-        if skipped:
-            reason = t(reason_key, **(reason_params or {})) if reason_key else ""
-            return f"[SKIP] {filename} - {reason}" if reason else f"[SKIP] {filename}"
-        if success:
-            return f"[OK] {filename}"
-        return f"[FAIL] {filename}"
+        result: FileResult,
+    ) -> tuple[LogLevel, str]:
+        """Formats a single-file outcome into a (LogLevel, line) pair without text sniffing."""
+        if result.is_skipped:
+            reason = (
+                t(result.reason_key, **result.reason_params)
+                if result.reason_key
+                else ""
+            )
+            msg = f"[SKIP] {filename} - {reason}" if reason else f"[SKIP] {filename}"
+            return result.log_level, msg
+        if result.is_processed:
+            return result.log_level, f"[OK] {filename}"
+        return result.log_level, f"[FAIL] {filename}"
 
     @staticmethod
     def _summary_counts(summary: dict[str, Any]) -> tuple[int, int, int, int]:
@@ -495,22 +496,15 @@ class BaseController:
                         input_path, out_file, params, file_progress_cb
                     )
                 )
-                print(
-                    self._result_line(
-                        filename,
-                        skipped=result.is_skipped,
-                        success=not result.is_failed,
-                        reason_key=result.reason_key,
-                        reason_params=result.reason_params,
-                    )
-                )
+                level, line = self._format_result_entry(filename, result)
+                redirector.log(level, line)
             except InterruptedError:
                 result = FileResult.failed()
                 self.abort_requested = True
-                print(f"[CANCELLED] {filename}")
+                redirector.log(LogLevel.WARNING, f"[CANCELLED] {filename}")
             except Exception as err:
                 result = FileResult.failed()
-                print(f"[ERROR] {filename}: {err}")
+                redirector.log(LogLevel.ERROR, f"[ERROR] {filename}: {err}")
             finally:
                 redirector.stop()
 
@@ -546,6 +540,7 @@ class BaseController:
                         "original_bytes": orig_bytes if result.is_processed else 0,
                         "compressed_bytes": comp_bytes,
                         "terminal_log": redirector.get_logs(),
+                        "log_entries": redirector.get_entries(),
                         "errors": [{"file": filename, "error": t("msg_error")}]
                         if result.is_failed
                         else [],
@@ -575,6 +570,8 @@ class BaseController:
         ui.progress_bar.value = 0
         ui.progress_bar.update()
 
+        redirector = TextRedirector()
+
         def update_progress(info: ProgressInfo) -> None:
             if self.abort_requested or self.cancel_event.is_set():
                 raise InterruptedError("CANCELLED_BY_USER")
@@ -584,15 +581,18 @@ class BaseController:
                 file_name = info.file_path.name if info.file_path else ""
 
                 if info.is_completed:
-                    print(
-                        self._result_line(
-                            file_name,
-                            skipped=info.skipped,
-                            success=info.success,
-                            reason_key=info.skip_reason_key,
-                            reason_params=info.skip_reason_params,
+                    if info.skipped:
+                        file_res = FileResult.skipped(
+                            info.skip_reason_key or "",
+                            **(info.skip_reason_params or {}),
                         )
-                    )
+                    elif info.success:
+                        file_res = FileResult.processed()
+                    else:
+                        file_res = FileResult.failed()
+
+                    level, line = self._format_result_entry(file_name, file_res)
+                    redirector.log(level, line)
 
                 ui.lbl_status.value = self._progress_text(
                     info.current,
@@ -604,7 +604,6 @@ class BaseController:
                 ui.progress_bar.update()
                 ui.lbl_status.update()
 
-        redirector = TextRedirector()
         redirector.start()
 
         summary: dict[str, Any] = {}
@@ -651,15 +650,16 @@ class BaseController:
                 )
 
                 summary["terminal_log"] = redirector.get_logs()
+                summary["log_entries"] = redirector.get_entries()
                 show_summary_dialog(ui.page, summary)
 
         except InterruptedError:
             self.abort_requested = True
-            print(f"[CANCELLED] {t('msg_cancelled_by_user')}")
+            redirector.log(LogLevel.WARNING, f"[CANCELLED] {t('msg_cancelled_by_user')}")
 
         except Exception as err:
             logger.exception("Batch processing failed unexpectedly")
-            print(f"[ERROR] {err}")
+            redirector.log(LogLevel.ERROR, f"[ERROR] {err}")
             self._set_status(ui.lbl_status, t("msg_error"), "error")
 
         finally:
