@@ -14,7 +14,7 @@ packaging/FallByte.spec
 packaging/appimage/appimagetool
 
 # Documentation tools
-repomix-output.xml
+repomix-output.*
 repomix.config.json
 .repomix/
 repomix_help
