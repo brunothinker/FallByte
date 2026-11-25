@@ -1,4 +1,4 @@
-"""Testes transversais: isolamento de arquitetura entre pacotes."""
+"""Cross-cutting tests: architectural isolation between packages."""
 
 import ast
 from pathlib import Path

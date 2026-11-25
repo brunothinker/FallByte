@@ -1,4 +1,4 @@
-"""Core (audio): tests from conversion"""
+"""Core (audio): conversion tests."""
 
 import subprocess
 import threading

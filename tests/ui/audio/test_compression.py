@@ -1,4 +1,4 @@
-"""UI (audio): testes de compression (controller + page da funcionalidade)."""
+"""UI (audio): compression tests (controller and feature page)."""
 
 from unittest.mock import MagicMock, patch
 

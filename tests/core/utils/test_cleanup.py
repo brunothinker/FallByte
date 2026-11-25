@@ -1,4 +1,4 @@
-"""Core: cleanup seguro de saidas de batch."""
+"""Core: safe cleanup of batch outputs."""
 
 from src.utils.batch_runner import run_batch
 from src.utils.cleanup import safe_cleanup_session_files

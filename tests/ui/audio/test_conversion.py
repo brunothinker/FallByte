@@ -1,4 +1,4 @@
-"""UI (audio): testes de conversion (controller + page da funcionalidade)."""
+"""UI (audio): conversion tests (controller and feature page)."""
 
 from unittest.mock import MagicMock, patch
 

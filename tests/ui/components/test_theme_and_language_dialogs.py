@@ -1,1 +1,1 @@
-"""UI: theme_dialog e language_dialog (sem testes na suite original)."""
+"""UI: theme_dialog and language_dialog (no tests in the original suite)."""

@@ -1,1 +1,1 @@
-"""Core: src/formats.py (sem testes dedicados na suite original)."""
+"""Core: src/formats.py (no dedicated tests in the original suite)."""

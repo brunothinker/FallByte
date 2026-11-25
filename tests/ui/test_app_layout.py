@@ -1,4 +1,4 @@
-"""UI: app_layout, registry, router, hubs, overlay e back button."""
+"""UI: app_layout, registry, router, hubs, overlay and back button."""
 
 from collections.abc import Callable
 from unittest.mock import MagicMock

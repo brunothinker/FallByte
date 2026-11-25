@@ -1,4 +1,4 @@
-"""Core (image): tests from resize"""
+"""Core (image): resize tests."""
 
 import threading
 

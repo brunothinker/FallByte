@@ -1,4 +1,4 @@
-"""Core (audio): tests from compression."""
+"""Core (audio): compression tests."""
 
 import threading
 from pathlib import Path

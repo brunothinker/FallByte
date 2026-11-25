@@ -1,4 +1,4 @@
-"""UI (video): tests from downscale (controller and feature page)."""
+"""UI (video): downscale tests (controller and feature page)."""
 
 from unittest.mock import patch
 

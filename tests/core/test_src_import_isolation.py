@@ -1,4 +1,4 @@
-"""Guarda: tests/core nao pode sombrear o pacote real `src`."""
+"""Guard: tests/core must not shadow the real `src` package."""
 
 from pathlib import Path
 

@@ -1,4 +1,4 @@
-"""Core: testes PARAMETRIZADOS entre varios directory processors (nao dividir)."""
+"""Core: parametrized tests shared across several directory processors (do not split)."""
 
 import pytest
 

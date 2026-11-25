@@ -1,4 +1,4 @@
-"""Core (video): tests from converison"""
+"""Core (video): conversion tests."""
 
 import subprocess
 import threading

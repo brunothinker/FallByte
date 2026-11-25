@@ -1,4 +1,4 @@
-"""Core: run_batch (cancelamento, erros, progresso)."""
+"""Core: run_batch (cancellation, errors, progress)."""
 
 import logging
 from pathlib import Path

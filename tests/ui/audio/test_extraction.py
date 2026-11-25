@@ -1,4 +1,4 @@
-"""UI (audio): testes de extraction (controller + page da funcionalidade)."""
+"""UI (audio): extraction tests (controller and feature page)."""
 
 from unittest.mock import MagicMock, patch
 

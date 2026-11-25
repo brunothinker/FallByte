@@ -1,4 +1,4 @@
-"""Core (image): tests from conversion"""
+"""Core (image): conversion tests."""
 
 import pillow_heif
 import pytest

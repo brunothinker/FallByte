@@ -1,4 +1,4 @@
-"""UI: teste de paginas que cobre varias funcionalidades de uma vez."""
+"""UI: page tests that cover several features at once."""
 
 import flet as ft
 

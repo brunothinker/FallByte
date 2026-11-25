@@ -1,4 +1,4 @@
-"""UI (video): testes de conversion (controller + page da funcionalidade)."""
+"""UI (video): conversion tests (controller and feature page)."""
 
 from unittest.mock import MagicMock, patch
 

@@ -1,4 +1,4 @@
-"""Core (image): tests from compression"""
+"""Core (image): compression tests."""
 
 import threading
 

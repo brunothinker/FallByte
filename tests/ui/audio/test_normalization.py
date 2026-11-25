@@ -1,4 +1,4 @@
-"""UI (audio): testes de normalization (controller + page da funcionalidade)."""
+"""UI (audio): normalization tests (controller and feature page)."""
 
 from unittest.mock import patch
 

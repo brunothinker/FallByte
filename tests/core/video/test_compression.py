@@ -1,4 +1,4 @@
-"""Core (video): tests from compression"""
+"""Core (video): compression tests."""
 
 import threading
 

@@ -1,4 +1,4 @@
-"""UI (video): testes from compression (controller and feature page)."""
+"""UI (video): compression tests (controller and feature page)."""
 
 from unittest.mock import MagicMock, patch
 
