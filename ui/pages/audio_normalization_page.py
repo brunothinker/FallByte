@@ -10,6 +10,7 @@ from ui.controllers.audio_normalization_controller import (
     normalizable_audio_formats,
 )
 from ui.i18n import t
+from ui.theme import get_color
 
 
 def create_audio_normalization_page(
@@ -22,6 +23,17 @@ def create_audio_normalization_page(
         label=t("lbl_loudness_preset"),
         value=DEFAULT_LOUDNESS_PRESET,
         width=385,
+        filled=True,
+        bgcolor=get_color("card_bg"),
+        fill_color=get_color("card_bg"),
+        menu_style=ft.MenuStyle(
+            bgcolor=get_color("card_bg"),
+            side=ft.BorderSide(1, get_color("primary")),
+        ),
+        border_color=ft.Colors.with_opacity(0.45, get_color("primary")),
+        border_width=1,
+        focused_border_color=get_color("primary"),
+        focused_border_width=1.5,
         options=[
             ft.dropdown.Option(key="music", text=t("preset_loudness_music")),
             ft.dropdown.Option(key="podcast", text=t("preset_loudness_podcast")),

@@ -11,6 +11,7 @@ import threading
 import time
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from typing import Any
 
 import flet as ft
 
@@ -31,10 +32,10 @@ logger = logging.getLogger(__name__)
 LOG_FILE = CONFIG_DIR / "fallbyte.log"
 
 # Window geometry
-WINDOW_WIDTH = 1100
-WINDOW_HEIGHT = 720
-WINDOW_MIN_WIDTH = 800
-WINDOW_MIN_HEIGHT = 600
+WINDOW_WIDTH = 1140
+WINDOW_HEIGHT = 740
+WINDOW_MIN_WIDTH = 920
+WINDOW_MIN_HEIGHT = 640
 
 # Window/taskbar icon (relative to the project root or the PyInstaller bundle)
 ICON_RELATIVE_PATH = Path("resources") / "icons" / "fallbyte_icon.ico"
@@ -236,6 +237,11 @@ def configure_window(page: ft.Page) -> None:
 
         dialog = ft.AlertDialog(
             modal=True,
+            bgcolor=get_color("card_bg"),
+            shape=ft.RoundedRectangleBorder(
+                radius=12,
+                side=ft.BorderSide(1, get_color("primary")),
+            ),
             title=ft.Text(t("dialog_close_processing_title")),
             content=ft.Text(t("dialog_close_processing_body")),
             actions=[
@@ -263,10 +269,15 @@ def configure_window(page: ft.Page) -> None:
     page.window.prevent_close = True
     page.window.on_event = _on_window_event
 
+    page.window.resizable = True
+    page.window.width = WINDOW_WIDTH
+    page.window.height = WINDOW_HEIGHT
+    page.window.min_width = WINDOW_MIN_WIDTH
+    page.window.min_height = WINDOW_MIN_HEIGHT
+
     async def _setup_and_show() -> None:
         try:
-            page.window.prevent_close = True
-            page.window.resizable = True
+            await asyncio.sleep(0.05)
             page.window.width = WINDOW_WIDTH
             page.window.height = WINDOW_HEIGHT
             page.window.min_width = WINDOW_MIN_WIDTH
@@ -335,4 +346,10 @@ if __name__ == "__main__":
 
     prefer_x11_on_wayland()
     os.environ.setdefault("FLET_HIDE_WINDOW_ON_START", "true")
-    ft.run(main)
+    run_kwargs: dict[str, Any] = {}
+    run_params = inspect.signature(ft.run).parameters
+    if "width" in run_params:
+        run_kwargs["width"] = WINDOW_WIDTH
+    if "height" in run_params:
+        run_kwargs["height"] = WINDOW_HEIGHT
+    ft.run(main, **run_kwargs)

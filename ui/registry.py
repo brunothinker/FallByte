@@ -1,4 +1,3 @@
-import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -20,9 +19,6 @@ from ui.pages.video_compression_page import create_video_compression_page
 from ui.pages.video_conversion_page import create_video_conversion_page
 from ui.pages.video_downscale_page import create_video_downscale_page
 from ui.pages.video_tracks_page import create_video_tracks_page
-
-# Setup module logger
-logger = logging.getLogger(__name__)
 
 
 @dataclass

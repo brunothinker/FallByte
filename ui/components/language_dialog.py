@@ -74,7 +74,7 @@ def build_language_modal(
                                 code.upper(),
                                 size=10,
                                 color=(
-                                    get_color("primary")
+                                    ft.Colors.OUTLINE_VARIANT
                                     if is_selected
                                     else get_color("subtext")
                                 ),
@@ -146,7 +146,7 @@ def build_language_modal(
         width=372,
         bgcolor=get_color("card_bg"),
         border_radius=12,
-        border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+        border=ft.Border.all(1, get_color("primary")),
         padding=20,
         shadow=ft.BoxShadow(
             spread_radius=1,

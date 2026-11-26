@@ -41,6 +41,15 @@ def _schedule_on_page(page: ft.Page, fn: Callable[[], None]) -> None:
     fn()
 
 
+def _ensure_picker_registered(page: ft.Page | None, picker: ft.FilePicker) -> None:
+    """Registers a FilePicker service on the Flet page so the client recognizes it."""
+    if page is None:
+        return
+    services = getattr(page, "services", None)
+    if isinstance(services, list) and picker not in services:
+        services.append(picker)
+
+
 @dataclass(frozen=True)
 class JobUI:
     """UI handles a controller needs to report progress for one tool page."""
@@ -135,6 +144,8 @@ class BaseController:
         safe_dir = get_safe_initial_directory(target_path)
         active_page = page or getattr(picker, "page", None)
         result_cb = on_result or getattr(picker, "on_result", None)
+
+        _ensure_picker_registered(active_page, picker)
 
         async def _pick_async() -> None:
             try:
@@ -351,6 +362,11 @@ class BaseController:
 
         self.cancel_dialog = ft.AlertDialog(
             modal=True,
+            bgcolor=get_color("card_bg"),
+            shape=ft.RoundedRectangleBorder(
+                radius=12,
+                side=ft.BorderSide(1, get_color("primary")),
+            ),
             title=ft.Text(t("dialog_cancel_title")),
             content=ft.Text(t("dialog_cancel_body")),
             actions=list[ft.Control]([

@@ -12,6 +12,7 @@ from typing import Any, Literal
 import flet as ft
 
 from ui.components.io_picker_card import create_clickable_card
+from ui.components.neon_brand_text import build_neon_brand_title
 from ui.components.path_label import create_path_label
 from ui.components.source_picker_card import create_source_picker_card
 from ui.controllers.base_controller import BaseController, JobUI
@@ -55,7 +56,13 @@ def build_tool_page(
     lbl_in_path = create_path_label()
     lbl_out_path = create_path_label()
     lbl_status = ft.Text("", size=13, weight=ft.FontWeight.W_600)
-    progress_bar = ft.ProgressBar(width=control_width, value=0, visible=False)
+    progress_bar = ft.ProgressBar(
+        width=control_width,
+        value=0,
+        color=get_color("primary"),
+        bgcolor=get_color("card_hover"),
+        visible=False,
+    )
 
     btn_action = ft.Button(
         content=t("btn_process"),
@@ -153,13 +160,12 @@ def build_tool_page(
     btn_action.on_click = lambda _: controller.execute(ui, get_params())
 
     body: list[ft.Control] = [
-        ft.Text(
-            t(title_key),
-            size=20,
-            weight=ft.FontWeight.W_600,
-            color=get_color("text"),
+        build_neon_brand_title(
+            value=t(title_key),
+            size=22,
+            letter_spacing=0.6,
         ),
-        ft.Divider(height=15, color=get_color("subtext")),
+        ft.Container(height=1, bgcolor=ft.Colors.with_opacity(0.6, get_color("primary"))),
         ft.Row(
             [card_in, card_out],
             alignment=ft.MainAxisAlignment.CENTER,
@@ -180,7 +186,7 @@ def build_tool_page(
             width=FORM_WIDTH,
             padding=25,
             bgcolor=get_color("card_bg"),
-            border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+            border=ft.Border.all(1, get_color("primary")),
             border_radius=12,
             content=ft.Column(
                 body,

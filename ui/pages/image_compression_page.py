@@ -10,6 +10,7 @@ from ui.controllers.image_compression_controller import (
     CompressionOptions,
 )
 from ui.i18n import t
+from ui.theme import get_color
 from ui.utils.format_utils import image_compression_formats
 
 
@@ -26,6 +27,8 @@ def create_compression_page(
     chk_strip_metadata = ft.Checkbox(
         label=t("lbl_strip_metadata"),
         value=False,
+        active_color=get_color("primary"),
+        check_color="#FFFFFF",
         tooltip=t("tooltip_strip_metadata"),
     )
 

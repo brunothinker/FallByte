@@ -1,4 +1,3 @@
-import logging
 from pathlib import Path
 from typing import Any
 
@@ -15,8 +14,6 @@ from ui.controllers.base_controller import BaseController, ProgressCallback
 from ui.i18n import t
 from ui.theme import get_color
 from ui.utils.format_utils import video_input_formats
-
-logger = logging.getLogger(__name__)
 
 __all__ = ["VideoTracksController"]
 
@@ -108,6 +105,7 @@ class VideoTracksController(BaseController):
                 label=track.display_label(),
                 value=True,
                 active_color=get_color("primary"),
+                check_color="#FFFFFF",
             )
             self._track_checkboxes[track.stream_index] = cb
             target_col.controls.append(cb)

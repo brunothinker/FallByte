@@ -10,6 +10,7 @@ from ui.controllers.image_resize_controller import (
     ResizeOptions,
 )
 from ui.i18n import t
+from ui.theme import get_color
 from ui.utils.format_utils import image_input_formats
 
 
@@ -34,6 +35,17 @@ def create_image_resize_page(
         label=t("lbl_resize_mode"),
         value="dimension",
         width=385,
+        filled=True,
+        bgcolor=get_color("card_bg"),
+        fill_color=get_color("card_bg"),
+        menu_style=ft.MenuStyle(
+            bgcolor=get_color("card_bg"),
+            side=ft.BorderSide(1, get_color("primary")),
+        ),
+        border_color=ft.Colors.with_opacity(0.45, get_color("primary")),
+        border_width=1,
+        focused_border_color=get_color("primary"),
+        focused_border_width=1.5,
         options=[
             ft.dropdown.Option(key="dimension", text=t("resize_mode_dimension")),
             ft.dropdown.Option(key="percentage", text=t("resize_mode_percentage")),
@@ -44,6 +56,14 @@ def create_image_resize_page(
         label=t("lbl_max_width"),
         value="1920",
         width=185,
+        filled=True,
+        bgcolor=get_color("card_bg"),
+        fill_color=get_color("card_bg"),
+        focused_bgcolor=get_color("card_hover"),
+        border_color=ft.Colors.with_opacity(0.45, get_color("primary")),
+        border_width=1,
+        focused_border_color=get_color("primary"),
+        focused_border_width=1.5,
         suffix="px",
         keyboard_type=ft.KeyboardType.NUMBER,
     )
@@ -51,6 +71,14 @@ def create_image_resize_page(
         label=t("lbl_max_height"),
         value="1080",
         width=185,
+        filled=True,
+        bgcolor=get_color("card_bg"),
+        fill_color=get_color("card_bg"),
+        focused_bgcolor=get_color("card_hover"),
+        border_color=ft.Colors.with_opacity(0.45, get_color("primary")),
+        border_width=1,
+        focused_border_color=get_color("primary"),
+        focused_border_width=1.5,
         suffix="px",
         keyboard_type=ft.KeyboardType.NUMBER,
     )
@@ -64,6 +92,14 @@ def create_image_resize_page(
         label=t("lbl_scale_percentage"),
         value="50",
         width=385,
+        filled=True,
+        bgcolor=get_color("card_bg"),
+        fill_color=get_color("card_bg"),
+        focused_bgcolor=get_color("card_hover"),
+        border_color=ft.Colors.with_opacity(0.45, get_color("primary")),
+        border_width=1,
+        focused_border_color=get_color("primary"),
+        focused_border_width=1.5,
         suffix="%",
         keyboard_type=ft.KeyboardType.NUMBER,
         visible=False,

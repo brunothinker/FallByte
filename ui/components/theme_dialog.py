@@ -49,7 +49,7 @@ def build_theme_modal(
 
     def build_theme_tile(key: str) -> ft.Container:
         preset = THEME_PRESETS[key]
-        swatch_primary = preset.get("primary", get_color("primary"))
+        swatch_primary = preset.get("primary", ft.Colors.OUTLINE_VARIANT)
         is_selected = key == current_theme
 
         return ft.Container(
@@ -164,7 +164,7 @@ def build_theme_modal(
             ft.Container(
                 width=1,
                 height=225,
-                bgcolor=ft.Colors.OUTLINE_VARIANT,
+                bgcolor=get_color("primary"),
             ),
             light_column,
         ],
@@ -208,7 +208,7 @@ def build_theme_modal(
         width=376,
         bgcolor=get_color("card_bg"),
         border_radius=12,
-        border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+        border=ft.Border.all(1, get_color("primary")),
         padding=20,
         shadow=ft.BoxShadow(
             spread_radius=1,

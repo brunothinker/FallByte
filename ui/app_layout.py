@@ -24,10 +24,17 @@ def _page_state(page: ft.Page) -> dict[str, Any]:
 
 
 def remove_stale_filepickers(page: ft.Page) -> None:
-    """Drops FilePicker controls left in the overlay by a previous view."""
-    page.overlay[:] = [
-        ctrl for ctrl in page.overlay if not isinstance(ctrl, ft.FilePicker)
-    ]
+    """Drops FilePicker controls/services left behind by a previous view."""
+    overlay = getattr(page, "overlay", None)
+    if isinstance(overlay, list):
+        overlay[:] = [
+            ctrl for ctrl in overlay if not isinstance(ctrl, ft.FilePicker)
+        ]
+    services = getattr(page, "services", None)
+    if isinstance(services, list):
+        services[:] = [
+            srv for srv in services if not isinstance(srv, ft.FilePicker)
+        ]
 
 
 def _extract_submodules(module_def: object) -> list[dict]:
@@ -106,6 +113,7 @@ def create_app_layout(
     def cleanup_page_overlays() -> None:
         page.pop_dialog()
         page.overlay.clear()
+        remove_stale_filepickers(page)
         modal_overlay.visible = False
         modal_overlay.content = None
 
@@ -196,7 +204,7 @@ def create_app_layout(
             controls=[view_control],
             expand=True,
             scroll=ft.ScrollMode.AUTO,
-            alignment=ft.MainAxisAlignment.START,
+            alignment=ft.MainAxisAlignment.CENTER,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
         page.update()
@@ -277,7 +285,7 @@ def create_app_layout(
             active_now = current_route == sub_route
             e.control.bgcolor = (
                 get_color("card_hover")
-                if e.data == "true" or active_now
+                if e.data in (True, "true") or active_now
                 else ft.Colors.TRANSPARENT
             )
             e.control.update()
@@ -348,7 +356,7 @@ def create_app_layout(
             active_now = is_module_selected(module_id, route)
             e.control.bgcolor = (
                 get_color("card_hover")
-                if e.data == "true" or active_now
+                if e.data in (True, "true") or active_now
                 else ft.Colors.TRANSPARENT
             )
             e.control.update()
@@ -552,7 +560,7 @@ def create_app_layout(
                 e.control,
                 "bgcolor",
                 get_color("card_hover")
-                if e.data == "true"
+                if e.data in (True, "true")
                 else ft.Colors.TRANSPARENT,
             )
             or e.control.update()

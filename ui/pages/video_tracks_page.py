@@ -17,7 +17,7 @@ def _build_track_box(icon: ft.IconData, title_key: str, list_col: ft.Column) -> 
     return ft.Container(
         width=TRACKS_BOX_WIDTH,
         padding=10,
-        border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+        border=ft.Border.all(1, get_color("primary")),
         border_radius=10,
         content=ft.Column(
             [

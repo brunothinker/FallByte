@@ -28,10 +28,33 @@ def create_clickable_card(
         width=CARD_WIDTH,
         height=CARD_HEIGHT,
         bgcolor=get_color("card_bg"),
-        border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+        border=ft.Border.all(1, ft.Colors.with_opacity(0.45, get_color("primary"))),
         border_radius=12,
         padding=10,
         ink=True,
+        on_hover=lambda e: (
+            setattr(
+                e.control,
+                "border",
+                ft.Border.all(
+                    1.5 if e.data in (True, "true") else 1,
+                    get_color("primary") if e.data in (True, "true") else ft.Colors.with_opacity(0.45, get_color("primary")),
+                ),
+            ),
+            setattr(
+                e.control,
+                "shadow",
+                ft.BoxShadow(
+                    blur_radius=14,
+                    spread_radius=1,
+                    color=ft.Colors.with_opacity(0.45, get_color("primary")),
+                    blur_style=ft.BlurStyle.OUTER,
+                )
+                if e.data in (True, "true")
+                else None,
+            ),
+            e.control.update(),
+        ),
         on_click=on_click_action,
         content=ft.Column(
             controls=list[ft.Control]([

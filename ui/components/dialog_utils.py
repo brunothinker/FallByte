@@ -1,4 +1,3 @@
-import logging
 from typing import Any
 
 import flet as ft
@@ -7,9 +6,6 @@ from src.utils.file_result import LogLevel
 from ui.i18n import t
 from ui.theme import get_color
 from ui.utils.log_capture import LogEntry
-
-# Setup module logger
-logger = logging.getLogger(__name__)
 
 _LOG_LEVEL_COLOR_KEYS: dict[LogLevel, str] = {
     LogLevel.INFO: "subtext",
@@ -221,6 +217,7 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
     btn_copy_log = ft.IconButton(
         icon=ft.Icons.COPY,
         icon_size=16,
+        icon_color=get_color("subtext"),
         tooltip=t("btn_copy_log"),
         on_click=copy_log_to_clipboard,
     )
@@ -236,6 +233,8 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
     btn_toggle_log = ft.TextButton(
         content=t("log_btn_hide_logs"),
         icon=ft.Icons.LIST_ALT,
+        icon_color=get_color("primary"),
+        style=ft.ButtonStyle(color=get_color("primary")),
         on_click=toggle_logs,
     )
 
@@ -400,6 +399,11 @@ def show_summary_dialog(page: ft.Page, summary: dict[str, Any]) -> None:
 
     dialog = ft.AlertDialog(
         modal=True,
+        bgcolor=get_color("card_bg"),
+        shape=ft.RoundedRectangleBorder(
+            radius=12,
+            side=ft.BorderSide(1, get_color("primary")),
+        ),
         title=ft.Row(
             [
                 ft.Icon(ft.Icons.ASSESSMENT, color=get_color("primary")),
@@ -454,6 +458,11 @@ def show_no_supported_files_dialog(page: ft.Page, formats: list[str]) -> None:
 
     dialog = ft.AlertDialog(
         modal=True,
+        bgcolor=get_color("card_bg"),
+        shape=ft.RoundedRectangleBorder(
+            radius=12,
+            side=ft.BorderSide(1, get_color("primary")),
+        ),
         title=ft.Row(
             [
                 ft.Icon(ft.Icons.WARNING_AMBER_ROUNDED, color=get_color("warning")),

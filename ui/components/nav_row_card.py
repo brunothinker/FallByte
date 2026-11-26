@@ -35,13 +35,24 @@ def build_nav_row_card(
     """
 
     def on_hover(e: Any) -> None:
-        is_hovered = e.data == "true"
+        is_hovered = e.data in (True, "true")
+        primary = get_color("primary")
         e.control.bgcolor = (
             get_color("card_hover") if is_hovered else get_color("card_bg")
         )
         e.control.border = ft.Border.all(
-            1,
-            get_color("primary") if is_hovered else ft.Colors.OUTLINE_VARIANT,
+            1.5 if is_hovered else 1,
+            primary if is_hovered else ft.Colors.OUTLINE_VARIANT,
+        )
+        e.control.shadow = (
+            ft.BoxShadow(
+                blur_radius=14,
+                spread_radius=1,
+                color=ft.Colors.with_opacity(0.45, primary),
+                blur_style=ft.BlurStyle.OUTER,
+            )
+            if is_hovered
+            else None
         )
         e.control.update()
 

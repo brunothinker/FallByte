@@ -5,6 +5,7 @@ from typing import Any
 import flet as ft
 
 from ui.components.nav_row_card import build_nav_row_card
+from ui.components.neon_brand_text import build_neon_brand_title
 from ui.i18n import t
 from ui.theme import get_color
 
@@ -38,12 +39,10 @@ def create_media_hub_page(
         padding=ft.Padding.symmetric(horizontal=24, vertical=20),
         content=ft.Column(
             controls=list[ft.Control]([
-                ft.Text(
-                    t(heading_key),
-                    size=26,
-                    weight=ft.FontWeight.BOLD,
-                    color=get_color("text"),
-                    text_align=ft.TextAlign.CENTER,
+                build_neon_brand_title(
+                    value=t(heading_key),
+                    size=28,
+                    letter_spacing=0.8,
                 ),
                 ft.Text(
                     t(subheading_key),

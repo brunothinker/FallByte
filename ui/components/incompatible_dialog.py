@@ -41,6 +41,11 @@ def show_incompatible_files_dialog(
 
     dialog = ft.AlertDialog(
         modal=True,
+        bgcolor=get_color("card_bg"),
+        shape=ft.RoundedRectangleBorder(
+            radius=12,
+            side=ft.BorderSide(1, get_color("primary")),
+        ),
         title=ft.Text(t("dialog_incompatible_title"), weight=ft.FontWeight.W_600),
         content=ft.Text(
             t(
@@ -52,7 +57,11 @@ def show_incompatible_files_dialog(
             size=13,
         ),
         actions=list[ft.Control]([
-            ft.TextButton(content=t("btn_cancel"), on_click=close_dialog),
+            ft.TextButton(
+                content=t("btn_cancel"),
+                style=ft.ButtonStyle(color=get_color("subtext")),
+                on_click=close_dialog,
+            ),
             ft.Button(
                 content=t("btn_continue"),
                 bgcolor=get_color("primary"),

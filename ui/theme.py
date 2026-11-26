@@ -154,8 +154,6 @@ def get_color(color_key: str) -> str:
         "error": ft.Colors.RED_600,
         "danger": ft.Colors.RED_600,
         "warning": ft.Colors.AMBER_600,
-        "button_stop": ft.Colors.RED_600,
-        "button_stop_hover": ft.Colors.RED_700,
     }
     return static_colors.get(color_key, "#FFFFFF")
 
@@ -187,8 +185,63 @@ def build_flet_theme() -> ft.Theme:
         **{key: value for key, value in wanted.items() if key in valid_fields}
     )
 
+    def _make_subtheme(cls_name: str, **kwargs: Any) -> Any:
+        cls = getattr(ft, cls_name, None)
+        if cls is None:
+            return None
+        params = inspect.signature(cls).parameters
+        return cls(**{k: v for k, v in kwargs.items() if k in params})
+
+    theme_kwargs: dict[str, Any] = {
+        "font_family": FONT_FAMILY,
+        "use_material3": True,
+        "color_scheme": scheme,
+        "dialog_theme": _make_subtheme(
+            "DialogTheme",
+            bgcolor=get_color("card_bg"),
+            shape=ft.RoundedRectangleBorder(
+                radius=12,
+                side=ft.BorderSide(1, get_color("primary")),
+            ),
+        ),
+        "popup_menu_theme": _make_subtheme(
+            "PopupMenuTheme",
+            color=get_color("card_bg"),
+            bgcolor=get_color("card_bg"),
+            surface_tint_color=ft.Colors.TRANSPARENT,
+            elevation=6,
+            shape=ft.RoundedRectangleBorder(
+                radius=10,
+                side=ft.BorderSide(1, get_color("primary")),
+            ),
+        ),
+        "dropdown_menu_theme": _make_subtheme(
+            "DropdownMenuTheme",
+            menu_style=_make_subtheme(
+                "MenuStyle",
+                bgcolor=get_color("card_bg"),
+                side=ft.BorderSide(1, get_color("primary")),
+            ),
+        ),
+        "progress_bar_theme": _make_subtheme(
+            "ProgressBarTheme",
+            color=get_color("primary"),
+            linear_track_color=get_color("card_hover"),
+        ),
+        "slider_theme": _make_subtheme(
+            "SliderTheme",
+            active_track_color=get_color("primary"),
+            inactive_track_color=get_color("card_hover"),
+            thumb_color=get_color("primary"),
+        ),
+        "checkbox_theme": _make_subtheme(
+            "CheckboxTheme",
+            fill_color=get_color("primary"),
+            check_color="#FFFFFF",
+        ),
+    }
+
+    valid_theme_fields = inspect.signature(ft.Theme).parameters
     return ft.Theme(
-        font_family=FONT_FAMILY,
-        use_material3=True,
-        color_scheme=scheme,
+        **{k: v for k, v in theme_kwargs.items() if k in valid_theme_fields and v is not None}
     )

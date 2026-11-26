@@ -29,10 +29,24 @@ class QualitySelector(ft.Column):
         )
 
         self.slider_quality = ft.Slider(
-            min=1, max=100, divisions=100, value=initial_value, expand=True
+            min=1,
+            max=100,
+            divisions=99,
+            value=initial_value,
+            active_color=get_color("primary"),
+            inactive_color=get_color("card_hover"),
+            expand=True,
         )
 
         self.txt_quality = ft.TextField(
+            filled=True,
+            bgcolor=get_color("card_bg"),
+            fill_color=get_color("card_bg"),
+            focused_bgcolor=get_color("card_hover"),
+            border_color=ft.Colors.with_opacity(0.45, get_color("primary")),
+        border_width=1,
+        focused_border_color=get_color("primary"),
+        focused_border_width=1.5,
             value=str(initial_value),
             width=75,
             height=40,

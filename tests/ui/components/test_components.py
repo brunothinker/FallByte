@@ -254,7 +254,7 @@ def test_create_path_label_defaults_and_custom_text():
 
 
 def test_create_source_picker_card_structure_and_callbacks():
-    """Verifies that create_source_picker_card renders PopupMenuButton and triggers selection callbacks."""
+    """Verifies that create_source_picker_card toggles hover options and triggers selection callbacks."""
     from ui.components.path_label import create_path_label
     from ui.components.source_picker_card import create_source_picker_card
 
@@ -278,44 +278,46 @@ def test_create_source_picker_card_structure_and_callbacks():
     )
 
     assert isinstance(card, ft.Container), (
-        "[ui] create_source_picker_card() must wrap the picker trigger in an ft.Container."
+        "[ui] create_source_picker_card() must wrap the picker in an ft.Container."
     )
-    assert isinstance(card.content, ft.PopupMenuButton), (
-        "[ui] Source picker card content must be an ft.PopupMenuButton offering file/folder choice."
-    )
-
-    popup_menu = card.content
-    assert popup_menu.items is not None, (
-        "[ui] Source picker PopupMenuButton must define selectable menu items."
-    )
-    assert len(popup_menu.items) == 2, (
-        "[ui] Source picker PopupMenuButton must expose exactly 2 items (file and folder)."
+    assert isinstance(card.content, ft.Stack) and len(card.content.controls) == 2, (
+        "[ui] Source picker card must use a 2-layer ft.Stack (default view + hover actions)."
     )
 
-    item_file = popup_menu.items[0]
-    item_folder = popup_menu.items[1]
+    default_view = card.content.controls[0].content
+    hover_view = card.content.controls[1].content
+    assert isinstance(default_view, ft.Column) and default_view.visible is True
+    assert isinstance(hover_view, ft.Column) and hover_view.visible is False
 
-    assert isinstance(item_file, ft.PopupMenuItem), (
-        "[ui] First source picker menu entry must be an ft.PopupMenuItem for file selection."
-    )
-    assert isinstance(item_folder, ft.PopupMenuItem), (
-        "[ui] Second source picker menu entry must be an ft.PopupMenuItem for folder selection."
-    )
-    assert item_file.icon == ft.Icons.VIDEO_FILE, (
-        "[ui] File menu item must use the custom file_icon passed to create_source_picker_card()."
-    )
-    assert item_folder.icon == ft.Icons.FOLDER, (
-        "[ui] Folder menu item must display the standard ft.Icons.FOLDER icon."
+    # Simula hover entrando e saindo do card
+    card.update = MagicMock()
+    assert callable(card.on_hover)
+    cast(Any, card.on_hover)(MagicMock(control=card, data=True))
+    assert default_view.visible is False and hover_view.visible is True
+
+    cast(Any, card.on_hover)(MagicMock(control=card, data=False))
+    assert default_view.visible is True and hover_view.visible is False
+
+    # Valida ícones e callbacks das opções de arquivo e pasta
+    option_rows = [c for c in hover_view.controls if isinstance(c, ft.Container)]
+    assert len(option_rows) == 2, (
+        "[ui] Hover view must expose exactly 2 clickable rows (file and folder)."
     )
 
-    if callable(item_file.on_click):
-        cast(Any, item_file.on_click)(MagicMock())
+    file_row, folder_row = option_rows
+    assert isinstance(file_row.content, ft.Row)
+    assert isinstance(folder_row.content, ft.Row)
+    assert file_row.content.controls[0].icon == ft.Icons.VIDEO_FILE
+    assert folder_row.content.controls[0].icon == ft.Icons.FOLDER
+
+    if callable(file_row.on_click):
+        cast(Any, file_row.on_click)(MagicMock())
     assert file_callback_called is True, (
-        "[ui] Clicking the file PopupMenuItem must invoke on_select_file callback."
+        "[ui] Clicking the file option row must invoke on_select_file callback."
     )
 
-    if callable(item_folder.on_click):
-        cast(Any, item_folder.on_click)(MagicMock())
+    if callable(folder_row.on_click):
+        cast(Any, folder_row.on_click)(MagicMock())
     assert folder_callback_called is True, (
-        "[ui] Clicking the folder PopupMenuItem must invoke on_select_folder callback."
+        "[ui] Clicking the folder option row must invoke on_select_folder callback."
     )
