@@ -1,6 +1,8 @@
 import argparse
+import asyncio
 import atexit
 import ctypes
+import inspect
 import logging
 import os
 import subprocess
@@ -178,14 +180,92 @@ def apply_window_icon(title: str) -> None:
 def configure_window(page: ft.Page) -> None:
     """Applies window size/minimum size and registers the close handler."""
 
-    def _on_window_event(e: ft.WindowEvent) -> None:
-        if e.type == ft.WindowEventType.CLOSE:
-            shutdown_active_processes()
+    async def _destroy_window() -> None:
+        shutdown_active_processes()
+        destroy_fn = getattr(page.window, "destroy", None)
+        if callable(destroy_fn):
+            try:
+                res = destroy_fn()
+                if inspect.isawaitable(res):
+                    await res
+            except RuntimeError:
+                pass
+        else:
+            try:
+                page.window.prevent_close = False
+                page.update()
+            except RuntimeError:
+                pass
 
+    async def _cancel_and_close_task() -> None:
+        data = page.data if isinstance(getattr(page, "data", None), dict) else {}
+        controller = data.get("active_controller")
+        if controller is not None and hasattr(controller, "trigger_cancel"):
+            controller.trigger_cancel()  # type: ignore[attr-defined]
+
+        # Wait for the job thread to observe cancellation and run session cleanup
+        # before forcing FFmpeg subprocess teardown and destroying the window.
+        deadline = time.monotonic() + 10.0
+        while time.monotonic() < deadline:
+            is_still_running = (
+                bool(getattr(controller, "is_processing", False))
+                if controller is not None
+                else bool((page.data or {}).get("is_processing"))
+            )
+            if not is_still_running:
+                break
+            await asyncio.sleep(0.05)
+
+        # Fallback if a subprocess did not exit on cancel_event alone.
+        shutdown_active_processes()
+        await _destroy_window()
+
+    def _show_close_confirmation(controller: object | None) -> None:
+        _ = controller
+
+        def on_keep(_: object) -> None:
+            dialog.open = False
+            page.pop_dialog()
+            page.update()
+
+        def on_confirm(_: object) -> None:
+            dialog.open = False
+            page.pop_dialog()
+            page.update()
+            page.run_task(_cancel_and_close_task)
+
+        dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text(t("dialog_close_processing_title")),
+            content=ft.Text(t("dialog_close_processing_body")),
+            actions=[
+                ft.TextButton(content=t("btn_keep_running"), on_click=on_keep),
+                ft.Button(
+                    content=t("btn_close_and_cancel"),
+                    bgcolor=get_color("danger"),
+                    color="#FFFFFF",
+                    on_click=on_confirm,
+                ),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        page.show_dialog(dialog)
+
+    def _on_window_event(e: ft.WindowEvent) -> None:
+        if e.type != ft.WindowEventType.CLOSE:
+            return
+        data = page.data if isinstance(getattr(page, "data", None), dict) else {}
+        if data.get("is_processing"):
+            _show_close_confirmation(data.get("active_controller"))
+        else:
+            page.run_task(_destroy_window)
+
+    page.window.prevent_close = True
     page.window.on_event = _on_window_event
 
     async def _setup_and_show() -> None:
         try:
+            page.window.prevent_close = True
             page.window.resizable = True
             page.window.width = WINDOW_WIDTH
             page.window.height = WINDOW_HEIGHT

@@ -251,16 +251,25 @@ class BaseController:
     # ------------------------------------------------------------------
 
     def _set_processing_state(self, page: ft.Page, processing: bool) -> None:
-        """Keep the navigation lock and the layout's Back row in sync."""
+        """Keep the navigation lock, active controller ref, and Back row in sync."""
         self.is_processing = processing
         self.abort_requested = False
         if not isinstance(getattr(page, "data", None), dict):
             page.data = {}
         page.data["is_processing"] = processing
+        if processing:
+            page.data["active_controller"] = self
+        elif page.data.get("active_controller") is self:
+            page.data.pop("active_controller", None)
         back_row = page.data.get("back_row")
         if back_row is not None:
             back_row.visible = not processing
             back_row.update()
+
+    def trigger_cancel(self) -> None:
+        """Requests cancellation of the active job so cleanup runs before exit."""
+        self.abort_requested = True
+        self._on_cancel_confirmed()
 
     def _set_processing_ui(
         self,
