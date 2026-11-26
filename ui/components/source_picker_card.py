@@ -79,7 +79,7 @@ def create_source_picker_card(
     def _set_card_active(card: ft.Container, active: bool) -> None:
         primary = get_color("primary")
         card.border = ft.Border.all(
-            1.5 if active else 1,
+            1.5,
             primary if active else ft.Colors.with_opacity(0.45, primary),
         )
         card.shadow = (
@@ -107,7 +107,7 @@ def create_source_picker_card(
         width=CARD_WIDTH,
         height=CARD_HEIGHT,
         bgcolor=get_color("card_bg"),
-        border=ft.Border.all(1, ft.Colors.with_opacity(0.45, get_color("primary"))),
+        border=ft.Border.all(1.5, ft.Colors.with_opacity(0.45, get_color("primary"))),
         border_radius=12,
         padding=10,
         on_hover=on_card_hover,

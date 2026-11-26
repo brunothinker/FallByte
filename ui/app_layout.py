@@ -77,10 +77,10 @@ def _apply_nav_glow(
             blur_style=ft.BlurStyle.NORMAL,
         )
     elif is_parent_active:
-        container.border = ft.Border.all(1, ft.Colors.with_opacity(0.45, primary))
+        container.border = ft.Border.all(1.5, ft.Colors.with_opacity(0.45, primary))
         container.shadow = None
     else:
-        container.border = ft.Border.all(1, ft.Colors.TRANSPARENT)
+        container.border = ft.Border.all(1.5, ft.Colors.TRANSPARENT)
         container.shadow = None
 
 

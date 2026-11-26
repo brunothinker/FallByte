@@ -41,7 +41,7 @@ def build_nav_row_card(
             get_color("card_hover") if is_hovered else get_color("card_bg")
         )
         e.control.border = ft.Border.all(
-            1.5 if is_hovered else 1,
+            1.5,
             primary if is_hovered else ft.Colors.OUTLINE_VARIANT,
         )
         e.control.shadow = (
@@ -60,7 +60,7 @@ def build_nav_row_card(
         width=width,
         padding=ft.Padding.symmetric(horizontal=20, vertical=15),
         bgcolor=get_color("card_bg"),
-        border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+        border=ft.Border.all(1.5, ft.Colors.OUTLINE_VARIANT),
         border_radius=12,
         ink=True,
         on_click=lambda _: on_navigate(route_key),

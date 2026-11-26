@@ -28,7 +28,7 @@ def create_clickable_card(
         width=CARD_WIDTH,
         height=CARD_HEIGHT,
         bgcolor=get_color("card_bg"),
-        border=ft.Border.all(1, ft.Colors.with_opacity(0.45, get_color("primary"))),
+        border=ft.Border.all(1.5, ft.Colors.with_opacity(0.45, get_color("primary"))),
         border_radius=12,
         padding=10,
         ink=True,
@@ -37,7 +37,7 @@ def create_clickable_card(
                 e.control,
                 "border",
                 ft.Border.all(
-                    1.5 if e.data in (True, "true") else 1,
+                    1.5,
                     get_color("primary") if e.data in (True, "true") else ft.Colors.with_opacity(0.45, get_color("primary")),
                 ),
             ),
