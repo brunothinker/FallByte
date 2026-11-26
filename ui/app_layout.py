@@ -51,6 +51,39 @@ def _extract_submodules(module_def: object) -> list[dict]:
     ]
 
 
+def _apply_nav_glow(
+    container: ft.Container,
+    *,
+    is_current: bool = False,
+    is_parent_active: bool = False,
+    is_hovered: bool = False,
+) -> None:
+    """Applies consistent background, neon border, and outer glow to sidebar items."""
+    primary = get_color("primary")
+    highlighted = is_current or is_hovered
+    if is_current or is_hovered:
+        container.bgcolor = get_color("card_hover")
+    elif is_parent_active:
+        container.bgcolor = ft.Colors.with_opacity(0.45, get_color("card_hover"))
+    else:
+        container.bgcolor = ft.Colors.TRANSPARENT
+
+    if highlighted:
+        container.border = ft.Border.all(1.5, primary)
+        container.shadow = ft.BoxShadow(
+            blur_radius=12,
+            spread_radius=1,
+            color=ft.Colors.with_opacity(0.45, primary),
+            blur_style=ft.BlurStyle.OUTER,
+        )
+    elif is_parent_active:
+        container.border = ft.Border.all(1, ft.Colors.with_opacity(0.45, primary))
+        container.shadow = None
+    else:
+        container.border = ft.Border.all(1, ft.Colors.TRANSPARENT)
+        container.shadow = None
+
+
 def create_app_layout(
     page: ft.Page, selected_paths: dict[str, Path], app_version: str = "dev"
 ) -> ft.Container:
@@ -266,11 +299,10 @@ def create_app_layout(
         )
 
         def on_sub_hover(e: Any) -> None:
-            active_now = current_route == sub_route
-            e.control.bgcolor = (
-                get_color("card_hover")
-                if e.data in (True, "true") or active_now
-                else ft.Colors.TRANSPARENT
+            _apply_nav_glow(
+                e.control,
+                is_current=(current_route == sub_route),
+                is_hovered=e.data in (True, "true"),
             )
             e.control.update()
 
@@ -282,12 +314,12 @@ def create_app_layout(
             ),
             padding=ft.Padding.only(left=34, right=12, top=7, bottom=7),
             border_radius=8,
-            bgcolor=get_color("card_hover") if is_active else ft.Colors.TRANSPARENT,
             ink=True,
             tooltip=None,
             on_click=lambda _, r=sub_route: navigate_to(r),
             on_hover=on_sub_hover,
         )
+        _apply_nav_glow(btn, is_current=is_active)
         btn.data = {
             "module_id": module_id,
             "route": sub_route,
@@ -337,11 +369,11 @@ def create_app_layout(
         )
 
         def on_mod_hover(e: Any) -> None:
-            active_now = is_module_selected(module_id, route)
-            e.control.bgcolor = (
-                get_color("card_hover")
-                if e.data in (True, "true") or active_now
-                else ft.Colors.TRANSPARENT
+            _apply_nav_glow(
+                e.control,
+                is_current=(current_route == route),
+                is_parent_active=is_module_selected(module_id, route),
+                is_hovered=e.data in (True, "true"),
             )
             e.control.update()
 
@@ -359,11 +391,15 @@ def create_app_layout(
             ),
             padding=ft.Padding.symmetric(vertical=10, horizontal=12),
             border_radius=8,
-            bgcolor=get_color("card_hover") if is_active else ft.Colors.TRANSPARENT,
             ink=True,
             tooltip=None,
             on_click=on_mod_click,
             on_hover=on_mod_hover,
+        )
+        _apply_nav_glow(
+            parent_btn,
+            is_current=(current_route == route),
+            is_parent_active=is_active,
         )
         parent_btn.data = {
             "id": module_id,
@@ -401,14 +437,10 @@ def create_app_layout(
                 is_expanded = module_id in expanded_modules
                 is_direct_route = current_route == route
 
-                btn.bgcolor = (
-                    get_color("card_hover")
-                    if is_direct_route
-                    else (
-                        ft.Colors.with_opacity(0.45, get_color("card_hover"))
-                        if is_active
-                        else ft.Colors.TRANSPARENT
-                    )
+                _apply_nav_glow(
+                    btn,
+                    is_current=is_direct_route,
+                    is_parent_active=is_active,
                 )
 
                 icon_ctrl = btn.data["icon_control"]
@@ -452,9 +484,7 @@ def create_app_layout(
         for sub_btn in submodule_buttons:
             if isinstance(sub_btn.data, dict):
                 is_sub_active = current_route == sub_btn.data["route"]
-                sub_btn.bgcolor = (
-                    get_color("card_hover") if is_sub_active else ft.Colors.TRANSPARENT
-                )
+                _apply_nav_glow(sub_btn, is_current=is_sub_active)
 
                 sub_icon = sub_btn.data["icon_control"]
                 sub_text = sub_btn.data["text_control"]
@@ -533,15 +563,10 @@ def create_app_layout(
     icon_github = ft.Icon(ft.Icons.CODE, size=18, color=get_color("subtext"))
 
     def attach_footer_hover(container: ft.Container) -> ft.Container:
+        _apply_nav_glow(container)
         container.on_hover = lambda e: (
-            setattr(
-                e.control,
-                "bgcolor",
-                get_color("card_hover")
-                if e.data in (True, "true")
-                else ft.Colors.TRANSPARENT,
-            )
-            or e.control.update()
+            _apply_nav_glow(e.control, is_hovered=e.data in (True, "true")),
+            e.control.update(),
         )
         return container
 
