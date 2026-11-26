@@ -73,6 +73,29 @@ def build_tool_page(
         height=BUTTON_HEIGHT,
     )
 
+    def _on_action_hover(e: Any) -> None:
+        is_hovered = e.data in (True, "true")
+        glow_color = (
+            get_color("danger") if controller.is_processing else get_color("primary")
+        )
+        e.control.shadow = (
+            ft.BoxShadow(
+                blur_radius=14,
+                spread_radius=1,
+                color=ft.Colors.with_opacity(0.55, glow_color),
+                blur_style=ft.BlurStyle.NORMAL,
+            )
+            if is_hovered
+            else None
+        )
+        e.control.update()
+
+    btn_action_wrapper = ft.Container(
+        content=btn_action,
+        border_radius=BUTTON_HEIGHT / 2,
+        on_hover=_on_action_hover,
+    )
+
     widgets = ToolPageWidgets(
         lbl_in_path=lbl_in_path,
         lbl_out_path=lbl_out_path,
@@ -175,7 +198,7 @@ def build_tool_page(
     ]
     if trailing_spacer:
         body.append(ft.Container(height=5))
-    body.extend([progress_bar, btn_action, lbl_notice, lbl_status])
+    body.extend([progress_bar, btn_action_wrapper, lbl_notice, lbl_status])
 
     return ft.Container(
         expand=True,

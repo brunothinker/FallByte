@@ -49,7 +49,7 @@ def build_nav_row_card(
                 blur_radius=14,
                 spread_radius=1,
                 color=ft.Colors.with_opacity(0.45, primary),
-                blur_style=ft.BlurStyle.OUTER,
+                blur_style=ft.BlurStyle.NORMAL,
             )
             if is_hovered
             else None

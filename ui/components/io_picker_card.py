@@ -48,7 +48,7 @@ def create_clickable_card(
                     blur_radius=14,
                     spread_radius=1,
                     color=ft.Colors.with_opacity(0.45, get_color("primary")),
-                    blur_style=ft.BlurStyle.OUTER,
+                    blur_style=ft.BlurStyle.NORMAL,
                 )
                 if e.data in (True, "true")
                 else None,

@@ -190,7 +190,12 @@ def test_image_compression_page_renders_strip_metadata_checkbox(mock_page):
         "[ui] Image compression strip_metadata checkbox must default to False."
     )
 
-    btn_action = next(c for c in controls if isinstance(c, ft.Button))
+    btn_action = next(
+        c.content if isinstance(c, ft.Container) and isinstance(c.content, ft.Button) else c
+        for c in controls
+        if isinstance(c, ft.Button)
+        or (isinstance(c, ft.Container) and isinstance(c.content, ft.Button))
+    )
     chk_strip.value = True
 
     with patch(
