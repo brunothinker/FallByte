@@ -34,7 +34,6 @@ strings:
   lbl_select_folder: "选择文件夹"
   lbl_not_selected: "未选择"
   lbl_quality_title: "压缩质量"
-  lbl_quality_percentage: "质量: {value}%"
   lbl_target_format: "目标格式"
   lbl_transparency_color: "透明背景色"
   lbl_no_extension: "无扩展名"
@@ -185,7 +184,6 @@ strings:
   preset_resolution_1080p: "1080p Full HD"
   preset_resolution_720p: "720p HD"
   preset_resolution_480p: "480p SD"
-  tooltip_skip_upscale: "已达到或低于目标分辨率的视频将直接复制，不会放大。"
   msg_downscaling_progress: "正在降低分辨率: [{current}/{total}] - {filename}"
   msg_supported_formats_notice_downscale: "支持降低分辨率的格式: {formats}"
   # --- Video: Track Selection ---

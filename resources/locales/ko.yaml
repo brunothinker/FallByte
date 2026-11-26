@@ -34,7 +34,6 @@ strings:
   lbl_select_folder: "폴더 선택"
   lbl_not_selected: "선택 안 됨"
   lbl_quality_title: "압축 품질"
-  lbl_quality_percentage: "품질: {value}%"
   lbl_target_format: "대상 형식"
   lbl_transparency_color: "투명 배경색"
   lbl_no_extension: "확장자 없음"
@@ -185,7 +184,6 @@ strings:
   preset_resolution_1080p: "1080p Full HD"
   preset_resolution_720p: "720p HD"
   preset_resolution_480p: "480p SD"
-  tooltip_skip_upscale: "이미 목표 해상도 이하인 비디오는 업스케일링 없이 복사됩니다."
   msg_downscaling_progress: "해상도 축소 중: [{current}/{total}] - {filename}"
   msg_supported_formats_notice_downscale: "해상도 축소 지원 형식: {formats}"
   # --- Video: Track Selection ---

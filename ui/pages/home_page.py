@@ -25,7 +25,6 @@ def create_home_page(
                 build_neon_brand_title(
                     value=t("home_heading"),
                     size=36,
-                    letter_spacing=1.2,
                 ),
                 ft.Text(
                     t("home_subheading"),

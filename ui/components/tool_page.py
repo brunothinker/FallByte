@@ -163,7 +163,6 @@ def build_tool_page(
         build_neon_brand_title(
             value=t(title_key),
             size=22,
-            letter_spacing=0.6,
         ),
         ft.Container(height=1, bgcolor=ft.Colors.with_opacity(0.6, get_color("primary"))),
         ft.Row(

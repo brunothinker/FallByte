@@ -34,7 +34,6 @@ strings:
   lbl_select_folder: "フォルダーを選択"
   lbl_not_selected: "未選択"
   lbl_quality_title: "圧縮品質"
-  lbl_quality_percentage: "品質: {value}%"
   lbl_target_format: "出力フォーマット"
   lbl_transparency_color: "透過背景色"
   lbl_no_extension: "拡張子なし"
@@ -185,7 +184,6 @@ strings:
   preset_resolution_1080p: "1080p Full HD"
   preset_resolution_720p: "720p HD"
   preset_resolution_480p: "480p SD"
-  tooltip_skip_upscale: "すでに目標解像度以下の動画はアップスケールせずそのままコピーされます。"
   msg_downscaling_progress: "ダウンスケール中: [{current}/{total}] - {filename}"
   msg_supported_formats_notice_downscale: "ダウンスケール対応フォーマット: {formats}"
   # --- Video: Track Selection ---

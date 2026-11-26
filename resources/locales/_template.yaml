@@ -34,7 +34,6 @@ strings:
   lbl_select_folder: ""
   lbl_not_selected: ""
   lbl_quality_title: ""
-  lbl_quality_percentage: ""
   lbl_target_format: ""
   lbl_transparency_color: ""
   lbl_no_extension: ""
@@ -185,7 +184,6 @@ strings:
   preset_resolution_1080p: ""
   preset_resolution_720p: ""
   preset_resolution_480p: ""
-  tooltip_skip_upscale: ""
   msg_downscaling_progress: ""
   msg_supported_formats_notice_downscale: ""
   # --- Video: Track Selection ---

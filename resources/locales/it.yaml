@@ -34,7 +34,6 @@ strings:
   lbl_select_folder: "Seleziona cartella"
   lbl_not_selected: "Nessuna selezione"
   lbl_quality_title: "Qualità di compressione"
-  lbl_quality_percentage: "Qualità: {value}%"
   lbl_target_format: "Formato di destinazione"
   lbl_transparency_color: "Sfondo trasparenza"
   lbl_no_extension: "Senza estensione"
@@ -185,7 +184,6 @@ strings:
   preset_resolution_1080p: "1080p Full HD"
   preset_resolution_720p: "720p HD"
   preset_resolution_480p: "480p SD"
-  tooltip_skip_upscale: "I video già alla risoluzione di destinazione o inferiore vengono copiati senza ingrandimento."
   msg_downscaling_progress: "Riduzione risoluzione: [{current}/{total}] - {filename}"
   msg_supported_formats_notice_downscale: "Formati supportati per la riduzione risoluzione: {formats}"
   # --- Video: Track Selection ---

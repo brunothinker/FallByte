@@ -34,7 +34,6 @@ strings:
   lbl_select_folder: "Выбрать папку"
   lbl_not_selected: "Не выбрано"
   lbl_quality_title: "Качество сжатия"
-  lbl_quality_percentage: "Качество: {value}%"
   lbl_target_format: "Целевой формат"
   lbl_transparency_color: "Фон прозрачности"
   lbl_no_extension: "Без расширения"
@@ -185,7 +184,6 @@ strings:
   preset_resolution_1080p: "1080p Full HD"
   preset_resolution_720p: "720p HD"
   preset_resolution_480p: "480p SD"
-  tooltip_skip_upscale: "Видео с разрешением не выше целевого копируются без увеличения."
   msg_downscaling_progress: "Понижение разрешения: [{current}/{total}] - {filename}"
   msg_supported_formats_notice_downscale: "Поддерживаемые форматы для понижения разрешения: {formats}"
   # --- Video: Track Selection ---

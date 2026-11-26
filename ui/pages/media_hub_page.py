@@ -10,20 +10,6 @@ from ui.i18n import t
 from ui.theme import get_color
 
 
-def _resolve_option_str(option: Any, key: str) -> str:
-    """Extracts a string attribute or dictionary field from a hub option entry."""
-    if isinstance(option, dict):
-        return str(option.get(key, ""))
-    return str(getattr(option, key, ""))
-
-
-def _resolve_option_icon(option: Any) -> ft.IconData:
-    """Extracts the icon field preserving ft.IconData instances."""
-    if isinstance(option, dict):
-        return option.get("icon", ft.Icons.CIRCLE)
-    return getattr(option, "icon", ft.Icons.CIRCLE)
-
-
 def create_media_hub_page(
     page: ft.Page,
     selected_paths: dict[str, Path],
@@ -42,7 +28,6 @@ def create_media_hub_page(
                 build_neon_brand_title(
                     value=t(heading_key),
                     size=28,
-                    letter_spacing=0.8,
                 ),
                 ft.Text(
                     t(subheading_key),
@@ -54,10 +39,10 @@ def create_media_hub_page(
                 ft.Column(
                     controls=list[ft.Control]([
                         build_nav_row_card(
-                            title_key=_resolve_option_str(opt, "title_key"),
-                            description_key=_resolve_option_str(opt, "desc_key"),
-                            icon=_resolve_option_icon(opt),
-                            route_key=_resolve_option_str(opt, "route_key"),
+                            title_key=str(getattr(opt, "title_key", "")),
+                            description_key=str(getattr(opt, "desc_key", "")),
+                            icon=getattr(opt, "icon", ft.Icons.CIRCLE),
+                            route_key=str(getattr(opt, "route_key", "")),
                             on_navigate=on_navigate,
                         )
                         for opt in options

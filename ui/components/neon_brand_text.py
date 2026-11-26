@@ -6,11 +6,9 @@ from ui.theme import get_color
 def build_neon_brand_title(
     value: str,
     size: float,
-    letter_spacing: float = 0.8,
     glow_intensity: float = 0.28,
 ) -> ft.Container:
     """Renders brand text with a soft primary shadow without a solid pill background."""
-    del letter_spacing
     primary = get_color("primary")
 
     char_factor = 0.64 if size >= 30 else 0.60

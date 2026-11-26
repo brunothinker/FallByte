@@ -76,32 +76,32 @@ def create_source_picker_card(
         visible=False,
     )
 
-    def on_card_hover(e: Any) -> None:
-        is_hovered = e.data in (True, "true")
+    def _set_card_active(card: ft.Container, active: bool) -> None:
         primary = get_color("primary")
-        e.control.border = ft.Border.all(
-            1.5 if is_hovered else 1,
-            primary if is_hovered else ft.Colors.with_opacity(0.45, get_color("primary")),
+        card.border = ft.Border.all(
+            1.5 if active else 1,
+            primary if active else ft.Colors.with_opacity(0.45, primary),
         )
-        e.control.shadow = (
+        card.shadow = (
             ft.BoxShadow(
                 blur_radius=14,
                 spread_radius=1,
                 color=ft.Colors.with_opacity(0.45, primary),
                 blur_style=ft.BlurStyle.OUTER,
             )
-            if is_hovered
+            if active
             else None
         )
-        default_view.visible = not is_hovered
-        hover_view.visible = is_hovered
-        e.control.update()
+        default_view.visible = not active
+        hover_view.visible = active
+        card.update()
+
+    def on_card_hover(e: Any) -> None:
+        _set_card_active(e.control, e.data in (True, "true"))
 
     def on_card_click(e: Any) -> None:
         if default_view.visible:
-            default_view.visible = False
-            hover_view.visible = True
-            e.control.update()
+            _set_card_active(e.control, True)
 
     return ft.Container(
         width=CARD_WIDTH,

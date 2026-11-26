@@ -38,33 +38,17 @@ def remove_stale_filepickers(page: ft.Page) -> None:
 
 
 def _extract_submodules(module_def: object) -> list[dict]:
-    """Extracts submodule entries from options, submodules, or tools."""
-    for attr in ("options", "submodules", "tools"):
-        raw = getattr(module_def, attr, None)
-        if raw:
-            break
-    else:
-        return []
-
-    submodules: list[dict] = []
-    for item in raw:
-        if isinstance(item, dict):
-            route = str(item.get("route_key") or item.get("route") or "")
-            title_key = str(item.get("title_key") or "")
-            icon = item.get("icon") or item.get(
-                "sidebar_icon", ft.Icons.SUBDIRECTORY_ARROW_RIGHT
-            )
-        else:
-            route = str(
-                getattr(item, "route_key", None) or getattr(item, "route", "") or ""
-            )
-            title_key = str(getattr(item, "title_key", "") or "")
-            icon = getattr(item, "icon", None) or getattr(
-                item, "sidebar_icon", ft.Icons.SUBDIRECTORY_ARROW_RIGHT
-            )
-        if route and title_key:
-            submodules.append({"route": route, "title_key": title_key, "icon": icon})
-    return submodules
+    """Extracts submodule entries from a module definition's options list."""
+    options = getattr(module_def, "options", None) or []
+    return [
+        {
+            "route": opt.route_key,
+            "title_key": opt.title_key,
+            "icon": opt.icon,
+        }
+        for opt in options
+        if getattr(opt, "route_key", "") and getattr(opt, "title_key", "")
+    ]
 
 
 def create_app_layout(
@@ -451,11 +435,8 @@ def create_app_layout(
                     )
 
                 try:
-                    try:
-                        if btn.page:
-                            btn.update()
-                    except RuntimeError:
-                        pass
+                    if btn.page:
+                        btn.update()
                 except RuntimeError:
                     pass
 
@@ -508,11 +489,8 @@ def create_app_layout(
                 if isinstance(text_ctrl, ft.Text):
                     text_ctrl.value = t(btn.data["title_key"])
                 try:
-                    try:
-                        if btn.page:
-                            btn.update()
-                    except RuntimeError:
-                        pass
+                    if btn.page:
+                        btn.update()
                 except RuntimeError:
                     pass
 
