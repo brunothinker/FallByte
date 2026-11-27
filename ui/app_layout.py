@@ -1,4 +1,4 @@
-import logging
+import asyncio
 import sys
 import webbrowser
 from collections.abc import Callable
@@ -7,6 +7,7 @@ from typing import Any
 
 import flet as ft
 
+from ui import theme as ui_theme
 from ui.components.language_dialog import build_language_modal
 from ui.components.neon_brand_text import build_neon_brand_title
 from ui.components.theme_dialog import build_theme_modal
@@ -15,15 +16,13 @@ from ui.registry import MODULE_REGISTRY, resolve_active_module_id, resolve_paren
 from ui.router import build_page_view
 from ui.theme import get_color
 
-logger = logging.getLogger(__name__)
-
 SIDEBAR_EXPANDED_WIDTH = 255
 SIDEBAR_COLLAPSED_WIDTH = 68
 SIDEBAR_MARGIN_LEFT = 12
 SIDEBAR_MARGIN_TOP = 12
 SIDEBAR_HEADER_TOP_MARGIN = 12
 SIDEBAR_HEADER_BOTTOM_MARGIN = 10
-SIDEBAR_HEADER_HEIGHT = 42
+SIDEBAR_HEADER_HEIGHT = 52
 SIDEBAR_NAV_ROW_HEIGHT = 42
 SIDEBAR_FOOTER_ROW_HEIGHT = 36
 SIDEBAR_FOOTER_BOTTOM_PADDING = 15
@@ -31,11 +30,26 @@ SIDEBAR_PILL_LEFT = SIDEBAR_MARGIN_LEFT + SIDEBAR_COLLAPSED_WIDTH + 10
 SIDEBAR_EXPANDED_PILL_LEFT = SIDEBAR_MARGIN_LEFT + SIDEBAR_EXPANDED_WIDTH + 10
 
 
-def _resolve_icon_path() -> str:
-    """Resolves the path to resources/icons/fallbyte_icon.png in dev and PyInstaller builds."""
+_THEME_COLOR_ICON_MAP: dict[str, str] = {
+    "emerald": "green",
+}
+
+
+def _resolve_icon_path(theme_key: str | None = None) -> str:
+    """Resolves the theme-colored icon path in resources/icons/themes/ with fallback."""
     meipass = getattr(sys, "_MEIPASS", None)
     base = Path(meipass) if meipass else Path(__file__).resolve().parent.parent
-    return str(base / "resources" / "icons" / "fallbyte_icon.png")
+    icons_dir = base / "resources" / "icons"
+
+    active_key = theme_key or ui_theme.CURRENT_THEME_KEY
+    color_prefix = active_key.split("_", 1)[0]
+    icon_stem = _THEME_COLOR_ICON_MAP.get(color_prefix, color_prefix)
+
+    themed_icon = icons_dir / "themes" / f"{icon_stem}.png"
+    if themed_icon.exists():
+        return str(themed_icon)
+
+    return str(icons_dir / "fallbyte_icon.png")
 
 
 def _page_state(page: ft.Page) -> dict[str, Any]:
@@ -419,8 +433,8 @@ def create_app_layout(
 
     app_icon = ft.Image(
         src=_resolve_icon_path(),
-        width=28,
-        height=28,
+        width=46,
+        height=46,
         fit=ft.BoxFit.CONTAIN,
         visible=True,
     )
@@ -433,7 +447,8 @@ def create_app_layout(
     brand_title_box = ft.Container(
         content=build_neon_brand_title(
             value="FallByte",
-            size=20,
+            size=26,
+            align_left=True,
         ),
         alignment=ft.Alignment.CENTER_LEFT,
     )
@@ -485,12 +500,14 @@ def create_app_layout(
         content=ft.Stack(
             controls=[app_icon, expand_hover_icon],
             alignment=ft.Alignment.CENTER,
-            width=28,
-            height=28,
+            width=46,
+            height=46,
         ),
-        height=42,
+        height=SIDEBAR_HEADER_HEIGHT,
         border_radius=8,
         alignment=ft.Alignment.CENTER,
+        scale=1.0,
+        animate_scale=ft.Animation(160, ft.AnimationCurve.EASE_OUT_BACK),
         ink=True,
         tooltip=None,
         on_click=lambda _: toggle_sidebar_collapse(),
@@ -504,7 +521,6 @@ def create_app_layout(
             header_spacer,
             btn_collapse_sidebar,
         ],
-        spacing=6,
         alignment=ft.MainAxisAlignment.START,
         vertical_alignment=ft.CrossAxisAlignment.CENTER,
     )
@@ -566,10 +582,18 @@ def create_app_layout(
         )
 
         def on_sub_hover(e: Any) -> None:
+            hovered = e.data in (True, "true")
+            active = current_route == sub_route
             _apply_nav_glow(
                 e.control,
-                is_current=(current_route == sub_route),
-                is_hovered=e.data in (True, "true"),
+                is_current=active,
+                is_hovered=hovered,
+            )
+            sub_icon.color = (
+                get_color("primary") if (active or hovered) else get_color("subtext")
+            )
+            sub_text.color = (
+                get_color("text") if (active or hovered) else get_color("subtext")
             )
             e.control.update()
 
@@ -647,11 +671,21 @@ def create_app_layout(
 
         def on_mod_hover(e: Any) -> None:
             hovered = e.data in (True, "true")
+            active = is_module_selected(module_id, route)
             _apply_nav_glow(
                 e.control,
                 is_current=(current_route == route),
-                is_parent_active=is_module_selected(module_id, route),
+                is_parent_active=active,
                 is_hovered=hovered,
+            )
+            icon_control.color = (
+                get_color("primary") if (active or hovered) else get_color("subtext")
+            )
+            btn_text.color = (
+                get_color("text") if (active or hovered) else get_color("subtext")
+            )
+            chevron_control.color = (
+                get_color("primary") if (active or hovered) else get_color("subtext")
             )
             e.control.update()
             if hovered and sidebar_collapsed:
@@ -793,9 +827,11 @@ def create_app_layout(
                     pass
 
     def update_sidebar_labels() -> None:
+        app_icon.src = _resolve_icon_path()
         brand_title_box.content = build_neon_brand_title(
             value="FallByte",
-            size=20,
+            size=26,
+            align_left=True,
         )
 
         for btn in module_buttons:
@@ -836,7 +872,7 @@ def create_app_layout(
 
         icon_theme.color = get_color("primary")
         icon_lang.color = get_color("primary")
-        icon_github.color = get_color("subtext")
+        icon_github.color = get_color("primary")
 
         try:
             if sidebar.page:
@@ -868,10 +904,11 @@ def create_app_layout(
 
     icon_theme = ft.Icon(ft.Icons.PALETTE_OUTLINED, size=18, color=get_color("primary"))
     icon_lang = ft.Icon(ft.Icons.LANGUAGE, size=18, color=get_color("primary"))
-    icon_github = ft.Icon(ft.Icons.CODE, size=18, color=get_color("subtext"))
+    icon_github = ft.Icon(ft.Icons.CODE, size=18, color=get_color("primary"))
 
     def attach_footer_hover(
         container: ft.Container,
+        text_control: ft.Text,
         label_getter: Callable[[], str],
         footer_index: int,
     ) -> ft.Container:
@@ -880,6 +917,9 @@ def create_app_layout(
         def _on_hover(e: Any) -> None:
             hovered = e.data in (True, "true")
             _apply_nav_glow(e.control, is_hovered=hovered)
+            text_control.color = (
+                get_color("text") if hovered else get_color("subtext")
+            )
             e.control.update()
             if hovered and sidebar_collapsed:
                 show_floating_pill(label_getter(), f"footer_{footer_index}")
@@ -918,6 +958,7 @@ def create_app_layout(
             tooltip=None,
             on_click=lambda _: open_theme_dialog(),
         ),
+        lbl_theme_text,
         lambda: t("lbl_theme"),
         0,
     )
@@ -931,6 +972,7 @@ def create_app_layout(
             tooltip=None,
             on_click=lambda _: open_language_dialog(),
         ),
+        lbl_lang_text,
         lambda: t("lbl_language"),
         1,
     )
@@ -947,6 +989,7 @@ def create_app_layout(
                 webbrowser.open("https://github.com/brunothinker/FallByte"),
             ),
         ),
+        lbl_github_text,
         lambda: t("lbl_github_repo"),
         2,
     )
@@ -988,37 +1031,7 @@ def create_app_layout(
         content=ft.Column(controls=sidebar_controls, expand=True),
     )
 
-    def apply_sidebar_collapse_state() -> None:
-        collapsed = sidebar_collapsed
-        hide_floating_pill()
-        hide_expanded_close_pill()
-        sidebar.width = (
-            SIDEBAR_COLLAPSED_WIDTH if collapsed else SIDEBAR_EXPANDED_WIDTH
-        )
-        sidebar.padding = ft.Padding.symmetric(horizontal=8 if collapsed else 10)
-
-        brand_title_box.visible = not collapsed
-        header_spacer.visible = not collapsed
-        btn_collapse_sidebar.visible = not collapsed
-        app_icon.visible = True
-        expand_hover_icon.visible = False
-        btn_expand_icon.expand = collapsed
-        btn_expand_icon.width = None if collapsed else 42
-        btn_expand_icon.ink = collapsed
-        _apply_nav_glow(btn_expand_icon, is_hovered=False)
-        _apply_nav_glow(btn_collapse_sidebar, is_hovered=False)
-        btn_expand_icon.on_click = (
-            (lambda _: toggle_sidebar_collapse()) if collapsed else None
-        )
-        btn_expand_icon.on_hover = on_icon_expand_hover if collapsed else None
-        brand_row.spacing = 0 if collapsed else 6
-        brand_row.alignment = (
-            ft.MainAxisAlignment.CENTER if collapsed else ft.MainAxisAlignment.START
-        )
-        brand_container.padding = ft.Padding.symmetric(
-            horizontal=0 if collapsed else 4
-        )
-
+    def _sync_sidebar_body_state(collapsed: bool) -> None:
         for btn in module_buttons:
             if isinstance(btn.data, dict):
                 row_ctrl = btn.data["row_control"]
@@ -1068,17 +1081,120 @@ def create_app_layout(
                 horizontal=0 if collapsed else 12
             )
 
+    def _configure_collapsed_header_icon(visible: bool, scale: float = 1.0) -> None:
+        btn_expand_icon.visible = visible
+        btn_expand_icon.scale = scale
+        btn_expand_icon.expand = True
+        btn_expand_icon.ink = visible
+        app_icon.visible = True
+        expand_hover_icon.visible = False
+        _apply_nav_glow(btn_expand_icon, is_hovered=False)
+        btn_expand_icon.on_click = (
+            (lambda _: toggle_sidebar_collapse()) if visible else None
+        )
+        btn_expand_icon.on_hover = on_icon_expand_hover if visible else None
+
+    def _configure_expanded_header(visible: bool) -> None:
+        brand_title_box.visible = visible
+        header_spacer.visible = visible
+        btn_collapse_sidebar.visible = visible
+        _apply_nav_glow(btn_collapse_sidebar, is_hovered=False)
+
+    def apply_sidebar_collapse_state() -> None:
+        collapsed = sidebar_collapsed
+        hide_floating_pill()
+        hide_expanded_close_pill()
+        sidebar.width = (
+            SIDEBAR_COLLAPSED_WIDTH if collapsed else SIDEBAR_EXPANDED_WIDTH
+        )
+        sidebar.padding = ft.Padding.symmetric(horizontal=8 if collapsed else 10)
+        brand_row.alignment = (
+            ft.MainAxisAlignment.CENTER if collapsed else ft.MainAxisAlignment.START
+        )
+        brand_container.padding = ft.Padding.symmetric(
+            horizontal=0 if collapsed else 12
+        )
+        _configure_collapsed_header_icon(visible=collapsed, scale=1.0)
+        _configure_expanded_header(visible=not collapsed)
+        _sync_sidebar_body_state(collapsed)
+
+    sidebar_anim_seq = 0
+
     def toggle_sidebar_collapse() -> None:
-        nonlocal sidebar_collapsed
+        nonlocal sidebar_collapsed, sidebar_anim_seq
         hide_floating_pill()
         hide_expanded_close_pill()
         sidebar_collapsed = not sidebar_collapsed
-        apply_sidebar_collapse_state()
+        collapsed = sidebar_collapsed
+        sidebar_anim_seq += 1
+        seq = sidebar_anim_seq
+
+        run_task = getattr(page, "run_task", None)
+        if not callable(run_task) or not getattr(sidebar, "page", None):
+            apply_sidebar_collapse_state()
+            try:
+                if sidebar.page:
+                    sidebar.update()
+            except RuntimeError:
+                pass
+            return
+
+        # Etapa 1: Esconde imediatamente o conteúdo anterior e dispara a animação da largura
+        sidebar.width = (
+            SIDEBAR_COLLAPSED_WIDTH if collapsed else SIDEBAR_EXPANDED_WIDTH
+        )
+        sidebar.padding = ft.Padding.symmetric(horizontal=8 if collapsed else 10)
+        brand_row.alignment = (
+            ft.MainAxisAlignment.CENTER if collapsed else ft.MainAxisAlignment.START
+        )
+        brand_container.padding = ft.Padding.symmetric(
+            horizontal=0 if collapsed else 12
+        )
+
+        if collapsed:
+            _configure_expanded_header(visible=False)
+            _configure_collapsed_header_icon(visible=False, scale=0.0)
+            _sync_sidebar_body_state(True)
+        else:
+            _configure_collapsed_header_icon(visible=False, scale=0.0)
+            _configure_expanded_header(visible=False)
+
         try:
-            if sidebar.page:
-                sidebar.update()
+            sidebar.update()
         except RuntimeError:
-            pass
+            return
+
+        # Etapa 2: Revela o novo cabeçalho/conteúdo após a barra concluir o movimento
+        async def _finish_transition() -> None:
+            await asyncio.sleep(0.165)
+            if seq != sidebar_anim_seq:
+                return
+            if collapsed:
+                _configure_collapsed_header_icon(visible=True, scale=0.25)
+                try:
+                    if sidebar.page:
+                        sidebar.update()
+                except RuntimeError:
+                    return
+                await asyncio.sleep(0.02)
+                if seq != sidebar_anim_seq:
+                    return
+                btn_expand_icon.scale = 1.0
+                try:
+                    if btn_expand_icon.page:
+                        btn_expand_icon.update()
+                except RuntimeError:
+                    pass
+            else:
+                _configure_expanded_header(visible=True)
+                _sync_sidebar_body_state(False)
+                try:
+                    if sidebar.page:
+                        sidebar.update()
+                except RuntimeError:
+                    pass
+
+        run_task(_finish_transition)
 
     lbl_version = ft.Text(
         f"v{app_version}",

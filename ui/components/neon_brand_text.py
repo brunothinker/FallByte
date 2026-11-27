@@ -7,12 +7,14 @@ def build_neon_brand_title(
     value: str,
     size: float,
     glow_intensity: float = 0.28,
+    align_left: bool = False,
 ) -> ft.Container:
     """Renders brand text with a soft primary shadow without a solid pill background."""
     primary = get_color("primary")
 
-    char_factor = 0.64 if size >= 30 else 0.60
-    box_width = max(120.0, len(value) * size * char_factor)
+    char_factor = 0.64 if size >= 30 else 0.56
+    raw_width = len(value) * size * char_factor
+    box_width = raw_width if align_left else max(120.0, raw_width)
 
     # The text line is taller than the font size (Segoe UI is ~1.33x), so the
     # box needs enough vertical room or descenders ("y", "g", "p") get clipped.
@@ -20,6 +22,10 @@ def build_neon_brand_title(
 
     # Keep the glow the same size as before the box was made taller.
     glow_base_height = size * 1.25
+
+    content_alignment = (
+        ft.Alignment.CENTER_LEFT if align_left else ft.Alignment.CENTER
+    )
 
     glow_halo = ft.Container(
         width=box_width * 0.85,
@@ -40,7 +46,7 @@ def build_neon_brand_title(
         size=size,
         weight=ft.FontWeight.BOLD,
         color=primary,
-        text_align=ft.TextAlign.CENTER,
+        text_align=ft.TextAlign.LEFT if align_left else ft.TextAlign.CENTER,
     )
 
     return ft.Container(
@@ -52,15 +58,15 @@ def build_neon_brand_title(
                     width=box_width,
                     height=box_height,
                     content=glow_halo,
-                    alignment=ft.Alignment.CENTER,
+                    alignment=content_alignment,
                 ),
                 ft.Container(
                     width=box_width,
                     height=box_height,
                     content=label,
-                    alignment=ft.Alignment.CENTER,
+                    alignment=content_alignment,
                 ),
             ],
         ),
-        alignment=ft.Alignment.CENTER,
+        alignment=content_alignment,
     )
