@@ -308,3 +308,71 @@ def test_directory_metadata_remover_cancellation_cleans_session_files(
 
     assert summary.get("cancelled") is True
     assert list(out_dir.iterdir()) == []
+
+
+def test_jpeg_metadata_removal_is_lossless_on_unrotated_images(tmp_workspace) -> None:
+    """Verifies unrotated JPEGs strip EXIF, GPS, XMP, ICC, and COM without re-encoding pixels."""
+    in_dir, out_dir = tmp_workspace
+    src_jpg = in_dir / "photo_q75.jpg"
+
+    # Create a gradient/patterned RGB image saved at low quality (75) with rich metadata
+    base = Image.new("RGB", (240, 180))
+    pixels = [
+        ((x * 7 + y * 3) % 256, (x * 5) % 256, (y * 11) % 256)
+        for y in range(180)
+        for x in range(240)
+    ]
+    base.putdata(pixels)
+
+    exif = base.getexif()
+    exif[271] = "CameraVendor"
+    exif[274] = 1  # Orientation = Normal (1)
+    exif[34853] = {1: "S", 2: (19.0, 49.0, 0.0)}  # GPSInfo
+    xmp_payload = b"http://ns.adobe.com/xap/1.0/\x00<x:xmpmeta>PrivateXMP</x:xmpmeta>"
+    icc_payload = b"fake-display-p3-icc-profile-bytes" * 16
+
+    base.save(
+        src_jpg,
+        format="JPEG",
+        quality=75,
+        exif=exif.tobytes(),
+        icc_profile=icc_payload,
+        xmp=xmp_payload,
+        comment=b"Private camera comment",
+    )
+
+    with Image.open(src_jpg) as orig_img:
+        expected_pixels = list(orig_img.get_flattened_data())
+
+    dst_jpg = out_dir / "photo_q75_clean.jpg"
+    res = file_metadata_remover(src_jpg, dst_jpg)
+
+    assert res.is_processed, f"[image] Lossless JPEG metadata removal failed: {res}."
+    assert dst_jpg.exists()
+    # Must never inflate a quality-75 JPEG (re-encoding at q=95 would bloat size significantly)
+    assert dst_jpg.stat().st_size < src_jpg.stat().st_size, (
+        "[image] Lossless JPEG stripping must reduce file size rather than inflating low-quality JPEGs."
+    )
+
+    with Image.open(dst_jpg) as out_img:
+        assert len(out_img.getexif()) == 0, "[image] EXIF/GPS tags were not stripped."
+        assert "icc_profile" not in out_img.info, "[image] ICC profile was not stripped."
+        assert "xmp" not in out_img.info, "[image] XMP packet was not stripped."
+        assert "comment" not in out_img.info, "[image] JPEG COM marker was not stripped."
+        assert list(out_img.get_flattened_data()) == expected_pixels, (
+            "[image] Lossless JPEG metadata stripping must preserve exact decoded pixel values."
+        )
+
+
+def test_strip_jpeg_metadata_bytes_rejects_malformed_or_truncated_streams() -> None:
+    """Ensures bitstream parser rejects non-JPEG or truncated scan streams cleanly."""
+    import pytest
+
+    from src.image.utils.jpeg_lossless_metadata import strip_jpeg_metadata_bytes
+
+    with pytest.raises(ValueError, match="missing SOI"):
+        strip_jpeg_metadata_bytes(b"NOT_A_JPEG")
+
+    # Valid SOI + APP1 segment header declaring length beyond buffer
+    with pytest.raises(ValueError, match="Invalid segment length"):
+        strip_jpeg_metadata_bytes(b"\xff\xd8\xff\xe1\x00\x50short")
