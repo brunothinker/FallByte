@@ -18,6 +18,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import cast
 
+from src.utils.media_tracks import MediaTrack, probe_media_tracks
+
 logger = logging.getLogger(__name__)
 
 # Single primary audio stream, ignoring embedded cover art (-vn), subtitles, and data.
@@ -170,6 +172,12 @@ def probe_audio_streams(ffmpeg_bin: Path, input_path: Path) -> AudioStreamInfo:
 
     stderr_text = result.stderr.decode("utf-8", errors="ignore")
     return parse_audio_stderr(stderr_text)
+
+
+def probe_audio_tracks(ffmpeg_bin: Path, input_path: Path) -> list[MediaTrack]:
+    """Inspects a media file and returns its embedded audio tracks."""
+    audio_tracks, _ = probe_media_tracks(ffmpeg_bin, input_path)
+    return audio_tracks
 
 
 def quality_to_bitrate_kbps(target_fmt: str, quality: int, channels: int = 2) -> int:

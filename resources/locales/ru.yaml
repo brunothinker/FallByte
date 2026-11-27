@@ -214,6 +214,7 @@ strings:
   # --- Audio: Video-to-Audio Extraction ---
   audio_hub_card_extraction_title: "Извлечение аудио"
   audio_hub_card_extraction_desc: "Извлекайте основную аудиодорожку из видеофайлов."
+  lbl_audio_track: "Аудиодорожка"
   # --- Audio: Volume Normalization ---
   audio_hub_card_normalization_title: "Нормализовать громкость"
   audio_hub_card_normalization_desc: "Нормализуйте громкость аудиофайлов по стандарту EBU R128."

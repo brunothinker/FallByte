@@ -1,15 +1,15 @@
-"""UI (audio): extraction tests (controller and feature page)."""
+"""UI (audio): single-file extraction tests (controller and feature page)."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from tests.ui.helpers import make_job_ui
 from ui.controllers.audio_extraction_controller import AudioExtractionController
+from ui.i18n import t
 
 
-def test_audio_extraction_batch_no_supported_files(tmp_workspace, mock_page):
-    """Verifies audio extraction controller handles empty/unsupported batch directories gracefully."""
+def test_audio_extraction_rejects_directory_input(tmp_workspace, mock_page):
+    """Verifies single-file audio extraction rejects directory selection with an error status."""
     in_dir, out_dir = tmp_workspace
-    (in_dir / "notes.txt").write_bytes(b"text data")
 
     controller = AudioExtractionController()
     controller.selected_input = in_dir
@@ -19,17 +19,10 @@ def test_audio_extraction_batch_no_supported_files(tmp_workspace, mock_page):
 
     with (
         patch("ui.controllers.base_controller.show_summary_dialog") as mock_summary,
-        patch(
-            "ui.controllers.base_controller.show_no_supported_files_dialog"
-        ) as mock_no_files,
+        patch.object(controller, "_start_thread") as mock_thread,
     ):
-        controller._run_batch_directory_job(ui, "mp3")
+        controller.execute(ui, "mp3")
 
         mock_summary.assert_not_called()
-        mock_no_files.assert_called_once()
-        assert "MP4" in mock_no_files.call_args.args[1], (
-            "[ui] Audio extraction unsupported-files dialog must advertise supported video formats including 'MP4'."
-        )
-        assert ui.progress_bar.visible is False, (
-            "[ui] Progress bar must remain hidden when audio extraction finds no supported videos."
-        )
+        mock_thread.assert_not_called()
+        assert ui.lbl_status.value == t("msg_single_video_required")

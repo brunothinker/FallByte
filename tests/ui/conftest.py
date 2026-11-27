@@ -97,9 +97,10 @@ SPECS = [
         "module": "ui.controllers.audio_extraction_controller",
         "cls": "AudioExtractionController",
         "file_engine": "file_extractor",
-        "dir_engine": "directory_extractor",
+        "dir_engine": None,
         "params": "mp3",
         "has_cancel_event": True,
+        "supports_batch": False,
         "in_name": "clip.mp4",
     },
     {
@@ -187,6 +188,8 @@ class Ctx:
 
     def run_batch(self) -> None:
         """Runs the batch-directory flow synchronously on the input directory."""
+        if not self.spec.get("supports_batch", True):
+            pytest.skip(f"{self.spec['id']} is single-file only.")
         self.controller.selected_input = self.in_dir
         self.controller.selected_output_dir = self.out_dir
         self.controller._run_batch_directory_job(self.ui, self.params)
@@ -244,6 +247,8 @@ class Ctx:
                 raise raises
             return dict(result) if result is not None else {}
 
+        if not self.spec.get("supports_batch", True):
+            pytest.skip(f"{self.spec['id']} is single-file only.")
         setattr(self.module, self.spec["dir_engine"], fake)
 
     def summary_payload(self) -> dict:
@@ -280,5 +285,8 @@ def ctx(request, tmp_workspace, mock_page, monkeypatch) -> Ctx:
         monkeypatch.setattr(
             module, spec["file_engine"], getattr(module, spec["file_engine"])
         )
-    monkeypatch.setattr(module, spec["dir_engine"], getattr(module, spec["dir_engine"]))
+    if spec.get("dir_engine"):
+        monkeypatch.setattr(
+            module, spec["dir_engine"], getattr(module, spec["dir_engine"])
+        )
     return c

@@ -8,10 +8,12 @@ from pathlib import Path
 from src.audio.utils.audio_ffmpeg_utils import (
     RESCUE_INPUT_ARGS,
     SAFE_AUDIO_MAP,
+    MediaTrack,
     base_command,
     get_audio_codec_args,
     is_same_file,
     probe_audio_streams,
+    probe_audio_tracks,
     run_audio_strategies,
 )
 from src.utils.binary_manager import get_ffmpeg_path
@@ -20,25 +22,47 @@ from src.utils.file_result import FileResult
 logger = logging.getLogger(__name__)
 
 
+def inspect_audio_tracks(
+    input_path: Path,
+    ffmpeg_bin: Path | None = None,
+) -> list[MediaTrack]:
+    """Inspects a single media file and returns its embedded audio tracks."""
+    if not input_path.exists() or not input_path.is_file():
+        logger.warning(f"Media file not found for audio track inspection: '{input_path}'")
+        return []
+
+    resolved_ffmpeg = ffmpeg_bin or get_ffmpeg_path()
+    return probe_audio_tracks(resolved_ffmpeg, input_path)
+
+
+def _resolve_audio_map(stream_index: int | None) -> list[str]:
+    """Builds FFmpeg `-map` arguments for either a specific stream index or default primary audio."""
+    if stream_index is None:
+        return list(SAFE_AUDIO_MAP)
+    return ["-map", f"0:{stream_index}", "-vn", "-sn", "-dn"]
+
+
 def _build_strategies(
     ffmpeg_bin: Path,
     input_path: Path,
     tmp_path: Path,
     target_fmt: str,
+    stream_index: int | None = None,
 ) -> list[tuple[str, list[str]]]:
     """Builds ordered (label, command) strategies targeting a temporary audio file."""
     out = [str(tmp_path)]
     codec_args = get_audio_codec_args(target_fmt, quality=None)
+    audio_map = _resolve_audio_map(stream_index)
 
     strategies: list[tuple[str, list[str]]] = [
         (
             "standard audio extraction",
-            base_command(ffmpeg_bin, input_path) + SAFE_AUDIO_MAP + codec_args + out,
+            base_command(ffmpeg_bin, input_path) + audio_map + codec_args + out,
         ),
         (
             "rescue stereo extraction",
             base_command(ffmpeg_bin, input_path, RESCUE_INPUT_ARGS)
-            + SAFE_AUDIO_MAP
+            + audio_map
             + ["-ac", "2"]
             + codec_args
             + out,
@@ -53,12 +77,14 @@ def file_extractor(
     target_format: str,
     cancel_event: threading.Event | None = None,
     file_progress_callback: Callable[[float, float, float, float], None] | None = None,
+    stream_index: int | None = None,
 ) -> FileResult:
-    """Extracts the primary audio track from a single video file into target_format.
+    """Extracts an audio track from a single video file into target_format.
 
-    Strips video, subtitle, and data streams (`-map 0:a:0 -vn`) and encodes
-    directly into the chosen audio format in a single FFmpeg pass. Safely
-    aborts and returns False if the source video contains no audio stream.
+    Strips video, subtitle, and data streams (`-map 0:a:0 -vn` by default, or
+    `-map 0:<stream_index> -vn` when specified) and encodes directly into the
+    chosen audio format in a single FFmpeg pass. Safely aborts and returns
+    skipped if the source video contains no audio stream.
 
     Args:
         input_path (Path): Path to the source video file.
@@ -70,6 +96,8 @@ def file_extractor(
         file_progress_callback (Callable[[float, float, float, float], None] | None, optional):
             Callback receiving (duration_seconds, processed_seconds, fps, speed).
             Defaults to None.
+        stream_index (int | None, optional): Global stream index to extract
+            (e.g. `1` -> `-map 0:1`). Defaults to None (`0:a:0`).
 
     Returns:
         FileResult: Outcome of the audio extraction operation.
@@ -118,6 +146,7 @@ def file_extractor(
             input_path,
             tmp_path,
             target_fmt,
+            stream_index=stream_index,
         )
 
         def _inner_progress(out_time: float, fps: float, speed: float) -> None:

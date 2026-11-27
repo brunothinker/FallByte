@@ -214,6 +214,7 @@ strings:
   # --- Audio: Video-to-Audio Extraction ---
   audio_hub_card_extraction_title: ""
   audio_hub_card_extraction_desc: ""
+  lbl_audio_track: ""
   # --- Audio: Volume Normalization ---
   audio_hub_card_normalization_title: ""
   audio_hub_card_normalization_desc: ""

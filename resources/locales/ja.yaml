@@ -214,6 +214,7 @@ strings:
   # --- Audio: Video-to-Audio Extraction ---
   audio_hub_card_extraction_title: "音声抽出"
   audio_hub_card_extraction_desc: "動画ファイルから主音声トラックを抽出します。"
+  lbl_audio_track: "オーディオトラック"
   # --- Audio: Volume Normalization ---
   audio_hub_card_normalization_title: "音量正規化"
   audio_hub_card_normalization_desc: "EBU R128規格に基づいて音声ファイルのラウドネスを正規化します。"

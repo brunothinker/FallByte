@@ -101,6 +101,8 @@ def test_back_row_follows_batch(ctx, monkeypatch, palette, outcome):
             return {"cancelled": True}
         return {"success": 1, "total_files": 1}
 
+    if not ctx.spec.get("supports_batch", True):
+        pytest.skip(f"{ctx.spec['id']} is single-file only.")
     monkeypatch.setattr(ctx.module, ctx.spec["dir_engine"], run_engine)
     trigger_click(action.on_click)
 
@@ -317,6 +319,8 @@ def test_batch_with_skipped_files_logs_and_reports_counts(ctx):
             "cleaned_files_count": 0,
         }
 
+    if not ctx.spec.get("supports_batch", True):
+        pytest.skip(f"{ctx.spec['id']} is single-file only.")
     setattr(ctx.module, ctx.spec["dir_engine"], fake_dir)
     ctx.run_batch()
 
@@ -736,6 +740,8 @@ def test_image_cancellation_path_end_to_end(ctx):
                 pass
         return {"cancelled": True, "cleaned_files_count": 1}
 
+    if not ctx.spec.get("supports_batch", True):
+        pytest.skip(f"{ctx.spec['id']} is single-file only.")
     setattr(ctx.module, ctx.spec["dir_engine"], fake_dir_engine_interrupted)
 
     ctx.run_batch()
