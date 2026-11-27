@@ -121,6 +121,7 @@ Icon=fallbyte
 Terminal=false
 Type=Application
 Categories=AudioVideo;
+StartupWMClass=com.appveyor.flet
 Keywords=media;compress;convert;optimization;offline;
 EOF
 

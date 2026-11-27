@@ -165,6 +165,7 @@ pyinstaller \
     --collect-all pillow_heif \
     --distpath "$PYINSTALLER_DIR/dist" \
     --workpath "$PYINSTALLER_DIR/build" \
+    --specpath "$PYINSTALLER_DIR" \
     "$MAIN_PY"
 
 # Strip non-Linux FFmpeg binaries (Windows/macOS) from Linux bundle

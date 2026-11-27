@@ -35,6 +35,11 @@ fi
 log_info "4. Verifying RPM installation metadata and AppStream XML..."
 rpm -qi fallbyte
 
+if ! grep -q "^StartupWMClass=com.appveyor.flet$" /usr/share/applications/fallbyte.desktop; then
+    log_error "StartupWMClass=com.appveyor.flet missing from /usr/share/applications/fallbyte.desktop"
+    exit 1
+fi
+
 if [ ! -f "/usr/share/metainfo/fallbyte.metainfo.xml" ]; then
     log_error "AppStream metainfo XML not found in /usr/share/metainfo/."
     exit 1

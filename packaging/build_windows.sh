@@ -28,7 +28,8 @@ BUILD_DIR="$PROJECT_ROOT/build"
 WORK_DIR="$BUILD_DIR/.windows_work"
 DIST_DIR="$WORK_DIR/dist/FallByte"
 MAIN_PY="$PROJECT_ROOT/main.py"
-NOTICES_SRC="$PROJECT_ROOT/THIRD_PARTY_NOTICES.md"
+LICENSE_SRC="$PROJECT_ROOT/LICENSE"
+NOTICES_SRC="$PROJECT_ROOT/docs/THIRD_PARTY_NOTICES.md"
 
 show_help() {
     cat <<EOF
@@ -210,6 +211,10 @@ pyinstaller \
 rm -rf "$DIST_DIR/_internal/resources/bin/linux"* \
        "$DIST_DIR/_internal/resources/bin/darwin"* \
        "$DIST_DIR/_internal/resources/bin/mac"*
+
+if [ -f "$LICENSE_SRC" ]; then
+    cp "$LICENSE_SRC" "$DIST_DIR/"
+fi
 
 if [ -f "$NOTICES_SRC" ]; then
     cp "$NOTICES_SRC" "$DIST_DIR/"

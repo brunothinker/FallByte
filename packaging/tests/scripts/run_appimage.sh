@@ -50,6 +50,11 @@ if [ ! -f "$EXTRACTED_DIR/fallbyte.desktop" ] || [ ! -f "$EXTRACTED_DIR/fallbyte
     exit 1
 fi
 
+if ! grep -q "^StartupWMClass=com.appveyor.flet$" "$EXTRACTED_DIR/fallbyte.desktop"; then
+    log_error "StartupWMClass=com.appveyor.flet missing from AppImage fallbyte.desktop"
+    exit 1
+fi
+
 if [ ! -f "$EXTRACTED_DIR/usr/share/metainfo/io.github.brunothinker.fallbyte.appdata.xml" ]; then
     log_error "AppStream metainfo XML missing from AppImage."
     exit 1
