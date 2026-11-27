@@ -7,7 +7,7 @@ from typing import Any
 import pillow_heif
 from PIL import Image, ImageOps, ImageSequence
 
-from src.formats import UNCOMPRESSIBLE_FORMATS
+from src.formats import UNCOMPRESSIBLE_FORMATS, normalize_image_format
 from src.image.utils.image_metadata_utils import clear_metadata_keep_transparency
 from src.image.utils.image_remove_transparency import has_transparency
 from src.utils.cleanup import copy_original_file_atomically
@@ -19,26 +19,6 @@ if hasattr(pillow_heif, "register_heif_opener"):
 
 # Setup module logger
 logger = logging.getLogger(__name__)
-
-FORMAT_ALIASES = {
-    "JPG": "JPEG",
-    "MPO": "JPEG",
-    "JFIF": "JPEG",
-    "TIF": "TIFF",
-    "HEIC": "HEIF",
-}
-
-# Formats whose compression is skipped (original file is kept as-is):
-# BMP/PPM are raw, GIF/ICO cannot be safely re-encoded without losing
-# animation frames or embedded icon sizes. HEIC/HEIF compression as output is
-# skipped to prevent generation of degraded native containers without pillow-heif encoder support.
-
-
-def _normalize_format(raw_format: str | None, path: Path) -> str:
-    """Resolves the real image format, mapping aliases (JPG/MPO -> JPEG)."""
-    fmt = (raw_format or path.suffix.lstrip(".")).upper()
-    return FORMAT_ALIASES.get(fmt, fmt)
-
 
 def _quantize_png(img: Image.Image, quality: int) -> Image.Image:
     """Reduces a PNG's palette (TinyPNG style). Returns the input if unsupported."""
@@ -112,7 +92,7 @@ def file_compressor(
             tmp_path = Path(tmp.name)
 
         with Image.open(input_path) as img:
-            fmt = _normalize_format(img.format, input_path)
+            fmt = normalize_image_format(img.format, input_path)
             n_frames = getattr(img, "n_frames", 1)
 
             if fmt in UNCOMPRESSIBLE_FORMATS:

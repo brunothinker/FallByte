@@ -8,6 +8,7 @@ from typing import Any
 import pillow_heif
 from PIL import Image, ImageOps, ImageSequence
 
+from src.formats import UNWRITABLE_IMAGE_FORMATS, normalize_image_format
 from src.image.utils.image_metadata_utils import clear_metadata_keep_transparency
 from src.utils.file_result import FileResult
 
@@ -17,22 +18,7 @@ if hasattr(pillow_heif, "register_heif_opener"):
 
 logger = logging.getLogger(__name__)
 
-FORMAT_ALIASES = {
-    "JPG": "JPEG",
-    "MPO": "JPEG",
-    "JFIF": "JPEG",
-    "TIF": "TIFF",
-    "HEIC": "HEIF",
-}
-
-# Formats that Pillow cannot natively encode without custom container encoders
-UNWRITABLE_METADATA_FORMATS: frozenset[str] = frozenset({"HEIC", "HEIF"})
-
-
-def _normalize_format(raw_format: str | None, path: Path) -> str:
-    """Resolves the canonical Pillow image format identifier from metadata or extension."""
-    fmt = (raw_format or path.suffix.lstrip(".")).upper()
-    return FORMAT_ALIASES.get(fmt, fmt)
+UNWRITABLE_METADATA_FORMATS = UNWRITABLE_IMAGE_FORMATS
 
 
 def _strip_frame_pixels(frame: Image.Image) -> Image.Image:
@@ -86,7 +72,7 @@ def file_metadata_remover(input_path: Path, output_path: Path) -> FileResult:
             tmp_path = Path(tmp.name)
 
         with Image.open(input_path) as img:
-            fmt = _normalize_format(img.format, input_path)
+            fmt = normalize_image_format(img.format, input_path)
             save_fmt = "PNG" if fmt in UNWRITABLE_METADATA_FORMATS else fmt
             n_frames = getattr(img, "n_frames", 1)
             save_kwargs: dict[str, Any] = {}

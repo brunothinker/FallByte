@@ -10,6 +10,7 @@ from src.audio import (
     audio_file_normalization,
 )
 from src.audio.utils import audio_ffmpeg_utils
+from src.formats import NORMALIZABLE_AUDIO_FORMATS
 from src.utils import binary_manager
 from tests.core.audio.helpers import (
     requires_libmp3lame,
@@ -55,7 +56,7 @@ def test_resolve_loudness_preset_and_filter_string():
 
 
 @pytest.mark.parametrize(
-    "ext", sorted(audio_file_normalization.NORMALIZABLE_AUDIO_FORMATS)
+    "ext", sorted(NORMALIZABLE_AUDIO_FORMATS)
 )
 def test_file_normalizer_normalizes_all_supported_formats_and_preserves_format(
     sample_audio_factory, tmp_path: Path, ext: str

@@ -6,10 +6,10 @@ from typing import Any
 
 from src.audio.audio_file_normalization import (
     DEFAULT_LOUDNESS_PRESET,
-    NORMALIZABLE_AUDIO_FORMATS,
     file_normalizer,
 )
 from src.audio.utils.audio_scanner import scan_audio_files
+from src.formats import NORMALIZABLE_AUDIO_FORMATS
 from src.utils.batch_runner import run_batch
 from src.utils.file_result import FileResult
 from src.utils.output_naming import unique_batch_output_path

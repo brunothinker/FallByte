@@ -8,6 +8,7 @@ from typing import Any
 import pillow_heif
 from PIL import Image, ImageOps, ImageSequence
 
+from src.formats import UNWRITABLE_IMAGE_FORMATS, normalize_image_format
 from src.utils.file_result import FileResult
 
 # Register HEIC/HEIF opener at startup for Pillow integration
@@ -16,22 +17,7 @@ if hasattr(pillow_heif, "register_heif_opener"):
 
 logger = logging.getLogger(__name__)
 
-FORMAT_ALIASES = {
-    "JPG": "JPEG",
-    "MPO": "JPEG",
-    "JFIF": "JPEG",
-    "TIF": "TIFF",
-    "HEIC": "HEIF",
-}
-
-# Formats that Pillow cannot natively encode without custom container encoders
-UNRESIZABLE_FORMATS: frozenset[str] = frozenset({"HEIC", "HEIF"})
-
-
-def _normalize_format(raw_format: str | None, path: Path) -> str:
-    """Resolves the canonical Pillow image format identifier from metadata or extension."""
-    fmt = (raw_format or path.suffix.lstrip(".")).upper()
-    return FORMAT_ALIASES.get(fmt, fmt)
+UNRESIZABLE_FORMATS = UNWRITABLE_IMAGE_FORMATS
 
 
 def compute_target_dimensions(
@@ -162,7 +148,7 @@ def file_resizer(
             tmp_path = Path(tmp.name)
 
         with Image.open(input_path) as img:
-            fmt = _normalize_format(img.format, input_path)
+            fmt = normalize_image_format(img.format, input_path)
             save_fmt = "PNG" if fmt in UNRESIZABLE_FORMATS else fmt
             n_frames = getattr(img, "n_frames", 1)
             icc = img.info.get("icc_profile")

@@ -3,10 +3,8 @@ from pathlib import Path
 from typing import Any
 
 from src.audio.audio_directory_normalization import directory_normalizer
-from src.audio.audio_file_normalization import (
-    DEFAULT_LOUDNESS_PRESET,
-    NORMALIZABLE_AUDIO_FORMATS,
-)
+from src.audio.audio_file_normalization import DEFAULT_LOUDNESS_PRESET
+from src.formats import NORMALIZABLE_AUDIO_FORMATS
 from src.utils.progress import ProgressInfo
 from ui.controllers.base_controller import BaseController
 

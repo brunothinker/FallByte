@@ -7,6 +7,7 @@ from typing import Any
 import pillow_heif
 from PIL import Image, ImageOps, ImageSequence
 
+from src.formats import normalize_image_format
 from src.image.utils.image_remove_transparency import (
     ALPHA_SUPPORTED_FORMATS,
     NON_ALPHA_FORMATS,
@@ -21,13 +22,6 @@ if hasattr(pillow_heif, "register_heif_opener"):
 
 # Setup module logger
 logger = logging.getLogger(__name__)
-
-FORMAT_ALIASES = {
-    "JPG": "JPEG",
-    "JFIF": "JPEG",
-    "TIF": "TIFF",
-    "HEIC": "HEIF",
-}
 
 # Pixel modes each target format can write. None = no restriction.
 ALLOWED_MODES: dict[str, set[str] | None] = {
@@ -52,12 +46,6 @@ ANIMATION_TARGETS = {"GIF", "WEBP"}
 PAGE_TARGETS = {"TIFF", "PDF"}
 
 ICO_SIZES = (16, 24, 32, 48, 64, 128, 256)
-
-
-def _normalize_format(fmt: str) -> str:
-    """Normalizes a format name to the identifier Pillow expects."""
-    fmt = fmt.upper().lstrip(".")
-    return FORMAT_ALIASES.get(fmt, fmt)
 
 
 def _to_8bit(frame: Image.Image) -> Image.Image:
@@ -164,7 +152,7 @@ def file_converter(
             return FileResult.failed()
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        fmt = _normalize_format(target_format)
+        fmt = normalize_image_format(target_format)
 
         with tempfile.NamedTemporaryFile(
             dir=output_path.parent,

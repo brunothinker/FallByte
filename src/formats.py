@@ -1,5 +1,7 @@
 """Centralized media format definitions and constants for FallByte."""
 
+from pathlib import Path
+
 # Supported input image extensions (lowercase with leading dot)
 SUPPORTED_IMAGE_EXTENSIONS: set[str] = {
     ".jpg",
@@ -77,8 +79,32 @@ AUDIO_TARGET_FORMATS: list[str] = [
     "wav",
 ]
 
+# Image formats that Pillow cannot natively encode without custom container encoders (caps, no dot)
+UNWRITABLE_IMAGE_FORMATS: frozenset[str] = frozenset({"HEIC", "HEIF"})
+
 # Image formats that cannot be further compressed via PIL (caps, no dot)
 UNCOMPRESSIBLE_FORMATS: set[str] = {"BMP", "PPM", "GIF", "ICO", "HEIC", "HEIF"}
 
 # Audio formats copied atomically without recompression (lossless PCM/containers or legacy encoders)
 UNCOMPRESSIBLE_AUDIO_FORMATS: frozenset[str] = frozenset({"FLAC", "WAV", "WMA", "AIFF"})
+
+# Canonical Pillow image format aliases (uppercase, no dot)
+IMAGE_FORMAT_ALIASES: dict[str, str] = {
+    "JPG": "JPEG",
+    "MPO": "JPEG",
+    "JFIF": "JPEG",
+    "TIF": "TIFF",
+    "HEIC": "HEIF",
+}
+
+# Audio container/codec formats supported for EBU R128 loudness normalization (lowercase, no dot)
+NORMALIZABLE_AUDIO_FORMATS: frozenset[str] = frozenset(
+    {"mp3", "m4a", "aac", "ogg", "opus", "flac", "wav"}
+)
+
+
+def normalize_image_format(raw_format: str | None, path: Path | None = None) -> str:
+    """Resolves a canonical Pillow image format identifier from metadata, string, or file path."""
+    raw = raw_format or (path.suffix if path is not None else "")
+    fmt = raw.upper().lstrip(".")
+    return IMAGE_FORMAT_ALIASES.get(fmt, fmt)

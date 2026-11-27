@@ -15,16 +15,11 @@ from src.audio.utils.audio_ffmpeg_utils import (
     probe_audio_streams,
     run_audio_strategies,
 )
+from src.formats import NORMALIZABLE_AUDIO_FORMATS
 from src.utils.binary_manager import get_ffmpeg_path
 from src.utils.file_result import FileResult
 
 logger = logging.getLogger(__name__)
-
-# Audio container/codec formats supported for EBU R128 loudness normalization.
-NORMALIZABLE_AUDIO_FORMATS: frozenset[str] = frozenset(
-    {"mp3", "m4a", "aac", "ogg", "opus", "flac", "wav"}
-)
-
 
 @dataclass(frozen=True)
 class LoudnessPreset:
