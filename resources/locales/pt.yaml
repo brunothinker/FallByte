@@ -11,6 +11,8 @@ strings:
   app_title: "FallByte - Ferramentas de Mídia"
   header_back_tooltip: "Voltar"
   route_not_found: "Rota '{route_key}' não encontrada."
+  sidebar_expand_tooltip: "Abrir barra lateral"
+  sidebar_collapse_tooltip: "Fechar barra lateral"
 
   # ============================================================================
   # Global: Home Dashboard

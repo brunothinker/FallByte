@@ -11,6 +11,8 @@ strings:
   app_title: "FallByte - Media Tools"
   header_back_tooltip: "Zurück"
   route_not_found: "Route '{route_key}' nicht gefunden."
+  sidebar_expand_tooltip: "Seitenleiste öffnen"
+  sidebar_collapse_tooltip: "Seitenleiste schließen"
 
   # ============================================================================
   # Global: Home Dashboard

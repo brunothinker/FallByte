@@ -11,6 +11,8 @@ strings:
   app_title: "FallByte - Media Tools"
   header_back_tooltip: "뒤로"
   route_not_found: "'{route_key}' 경로를 찾을 수 없습니다."
+  sidebar_expand_tooltip: "사이드바 열기"
+  sidebar_collapse_tooltip: "사이드바 닫기"
 
   # ============================================================================
   # Global: Home Dashboard

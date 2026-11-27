@@ -11,6 +11,8 @@ strings:
   app_title: ""
   header_back_tooltip: ""
   route_not_found: ""
+  sidebar_expand_tooltip: ""
+  sidebar_collapse_tooltip: ""
 
   # ============================================================================
   # Global: Home Dashboard

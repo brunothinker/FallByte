@@ -11,6 +11,8 @@ strings:
   app_title: "FallByte - Media Tools"
   header_back_tooltip: "返回"
   route_not_found: "未找到路由 '{route_key}'。"
+  sidebar_expand_tooltip: "打开侧边栏"
+  sidebar_collapse_tooltip: "关闭侧边栏"
 
   # ============================================================================
   # Global: Home Dashboard

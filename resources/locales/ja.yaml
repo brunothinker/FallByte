@@ -11,6 +11,8 @@ strings:
   app_title: "FallByte - Media Tools"
   header_back_tooltip: "戻る"
   route_not_found: "ルート '{route_key}' が見つかりません。"
+  sidebar_expand_tooltip: "サイドバーを開く"
+  sidebar_collapse_tooltip: "サイドバーを閉じる"
 
   # ============================================================================
   # Global: Home Dashboard
