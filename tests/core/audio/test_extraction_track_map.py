@@ -2,9 +2,9 @@
 
 import ast
 from pathlib import Path
-from unittest.mock import MagicMock
 
 from src.audio.audio_file_extraction import _build_strategies, file_extractor
+from src.audio.utils.audio_ffmpeg_utils import AudioStreamInfo
 from src.utils.media_tracks import MediaTrack
 
 
@@ -49,10 +49,7 @@ def test_file_extractor_forwards_custom_stream_index(tmp_path, monkeypatch):
     captured_cmds: list[list[str]] = []
 
     def fake_probe(_ffmpeg_bin, _input_path):
-        info = MagicMock()
-        info.audio_codecs = ["aac", "ac3"]
-        info.duration_seconds = 10.0
-        return info
+        return AudioStreamInfo(audio_codecs=["aac", "ac3"], duration_seconds=10.0)
 
     def fake_run(strategies, tmp_out, _name, _cancel, progress_callback=None):
         captured_cmds.extend(cmd for _, cmd in strategies)

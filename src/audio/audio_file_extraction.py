@@ -48,10 +48,23 @@ def _build_strategies(
     tmp_path: Path,
     target_fmt: str,
     stream_index: int | None = None,
+    channels: int = 2,
+    source_bitrate_kbps: int | None = None,
 ) -> list[tuple[str, list[str]]]:
     """Builds ordered (label, command) strategies targeting a temporary audio file."""
     out = [str(tmp_path)]
-    codec_args = get_audio_codec_args(target_fmt, quality=None)
+    codec_args = get_audio_codec_args(
+        target_fmt,
+        quality=None,
+        channels=channels,
+        source_bitrate_kbps=source_bitrate_kbps,
+    )
+    rescue_codec_args = get_audio_codec_args(
+        target_fmt,
+        quality=None,
+        channels=2,
+        source_bitrate_kbps=source_bitrate_kbps,
+    )
     audio_map = _resolve_audio_map(stream_index)
 
     strategies: list[tuple[str, list[str]]] = [
@@ -64,7 +77,7 @@ def _build_strategies(
             base_command(ffmpeg_bin, input_path, RESCUE_INPUT_ARGS)
             + audio_map
             + ["-ac", "2"]
-            + codec_args
+            + rescue_codec_args
             + out,
         ),
     ]
@@ -83,8 +96,9 @@ def file_extractor(
 
     Strips video, subtitle, and data streams (`-map 0:a:0 -vn` by default, or
     `-map 0:<stream_index> -vn` when specified) and encodes directly into the
-    chosen audio format in a single FFmpeg pass. Safely aborts and returns
-    skipped if the source video contains no audio stream.
+    chosen audio format in a single FFmpeg pass, preserving the source stream's
+    bitrate (clamped to the target format's bounds) when available. Safely aborts
+    and returns skipped if the source video contains no audio stream.
 
     Args:
         input_path (Path): Path to the source video file.
@@ -147,6 +161,8 @@ def file_extractor(
             tmp_path,
             target_fmt,
             stream_index=stream_index,
+            channels=info.channels,
+            source_bitrate_kbps=info.bitrate_for_stream(stream_index),
         )
 
         def _inner_progress(out_time: float, fps: float, speed: float) -> None:

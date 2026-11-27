@@ -21,6 +21,7 @@ from src.utils.file_result import FileResult
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass(frozen=True)
 class LoudnessPreset:
     """EBU R128 loudness normalization target parameters."""
@@ -79,11 +80,17 @@ def _build_strategies(
     preset: LoudnessPreset,
     channels: int,
     sample_rate: int,
+    source_bitrate_kbps: int | None = None,
 ) -> list[tuple[str, list[str]]]:
     """Builds ordered (label, command) strategies applying EBU R128 `loudnorm`."""
     out = [str(tmp_path)]
     filter_args = ["-af", preset.to_filter_arg()]
-    codec_args = get_audio_codec_args(target_fmt, quality=None, channels=channels)
+    codec_args = get_audio_codec_args(
+        target_fmt,
+        quality=None,
+        channels=channels,
+        source_bitrate_kbps=source_bitrate_kbps,
+    )
 
     # FFmpeg's `loudnorm` internally upsamples to 192 kHz; restore source sample rate
     # for formats that do not enforce their own rate (Opus already sets `-ar 48000`).
@@ -93,7 +100,12 @@ def _build_strategies(
         else []
     )
 
-    rescue_codec_args = get_audio_codec_args(target_fmt, quality=None, channels=2)
+    rescue_codec_args = get_audio_codec_args(
+        target_fmt,
+        quality=None,
+        channels=2,
+        source_bitrate_kbps=source_bitrate_kbps,
+    )
 
     return [
         (
@@ -127,8 +139,8 @@ def file_normalizer(
 ) -> FileResult:
     """Normalizes perceived loudness of an audio file using FFmpeg's `loudnorm` filter.
 
-    Preserves the source file's audio format and writes the normalized output
-    atomically without modifying the original file.
+    Preserves the source file's audio format and bitrate (when available) and writes
+    the normalized output atomically without modifying the original file.
 
     Args:
         input_path (Path): Path to the source audio file.
@@ -202,6 +214,7 @@ def file_normalizer(
             preset=preset,
             channels=info.channels,
             sample_rate=info.sample_rate,
+            source_bitrate_kbps=info.bitrate_kbps,
         )
 
         def _inner_progress(out_time: float, fps: float, speed: float) -> None:

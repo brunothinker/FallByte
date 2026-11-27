@@ -307,3 +307,47 @@ def test_directory_extractor_handles_empty_dir_and_cancellation(
     assert not (out_dir / "extracted").exists(), (
         "[audio] Expected empty session directory 'extracted' to be removed after cancellation cleanup."
     )
+
+
+@requires_libmp3lame
+def test_file_extractor_preserves_source_audio_bitrate(
+    sample_audio_factory, tmp_path: Path
+):
+    """`file_extractor` must reuse the probed source audio bitrate instead of inflating low-bitrate streams."""
+    ffmpeg_bin = binary_manager.get_ffmpeg_path()
+    low_mp3 = sample_audio_factory("low_64.mp3", duration=1.0, bitrate="64k")
+    src = tmp_path / "low_audio.mp4"
+    subprocess.run(
+        [
+            str(ffmpeg_bin),
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=black:s=64x64:d=1.0:r=10",
+            "-i",
+            str(low_mp3),
+            "-c:v",
+            "mpeg4",
+            "-c:a",
+            "copy",
+            "-shortest",
+            str(src),
+        ],
+        check=True,
+    )
+    dst = tmp_path / "extracted_64.mp3"
+
+    res = audio_file_extraction.file_extractor(
+        input_path=src,
+        output_path=dst,
+        target_format="mp3",
+    )
+    assert res.is_processed
+    probed = audio_ffmpeg_utils.probe_audio_streams(ffmpeg_bin, dst)
+    assert probed.bitrate_kbps == 64, (
+        f"[audio] Expected extracted MP3 from 64k audio track to stay at 64 kbps, got {probed.bitrate_kbps}."
+    )

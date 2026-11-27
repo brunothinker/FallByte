@@ -497,3 +497,76 @@ def test_run_audio_strategies_cancels_promptly_when_stdout_readline_blocks(
     assert not audio_ffmpeg_utils._active_processes, (
         "[audio] _active_processes registry must be cleared after stalled cancellation."
     )
+
+
+def test_parse_audio_stderr_extracts_stream_and_container_bitrate():
+    """`parse_audio_stderr` must parse stream bitrate, multi-stream bitrates, and audio container fallback."""
+    mp3_stderr = (
+        "Input #0, mp3, from 'hi_res.mp3':\n"
+        "  Duration: 00:03:10.00, start: 0.000000, bitrate: 320 kb/s\n"
+        "  Stream #0:0: Audio: mp3, 44100 Hz, stereo, fltp, 320 kb/s\n"
+    )
+    info = audio_ffmpeg_utils.parse_audio_stderr(mp3_stderr)
+    assert info.bitrate_kbps == 320
+    assert info.bitrate_for_stream(0) == 320
+
+    # Pure audio container without stream-level kb/s falls back to Duration bitrate
+    container_only_stderr = (
+        "Input #0, ogg, from 'podcast.ogg':\n"
+        "  Duration: 00:10:00.00, start: 0.000000, bitrate: 96 kb/s\n"
+        "  Stream #0:0: Audio: vorbis, 44100 Hz, mono, fltp\n"
+    )
+    container_info = audio_ffmpeg_utils.parse_audio_stderr(container_only_stderr)
+    assert container_info.bitrate_kbps == 96
+
+    # Video container with unlabelled audio stream bitrate must NOT inherit total video bitrate
+    video_stderr = (
+        "Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'clip.mp4':\n"
+        "  Duration: 00:01:00.00, start: 0.000000, bitrate: 4500 kb/s\n"
+        "  Stream #0:0[0x1]: Video: h264, yuv420p, 1920x1080, 4370 kb/s, 30 fps\n"
+        "  Stream #0:1[0x2](eng): Audio: aac, 48000 Hz, stereo, fltp\n"
+    )
+    video_info = audio_ffmpeg_utils.parse_audio_stderr(video_stderr)
+    assert video_info.bitrate_kbps == 0
+
+    # Multi-track video exposes per-stream bitrates
+    dual_audio_stderr = (
+        "Input #0, matroska,webm, from 'movie.mkv':\n"
+        "  Duration: 01:30:00.00, start: 0.000000, bitrate: 6000 kb/s\n"
+        "  Stream #0:0: Video: h264, yuv420p, 1920x1080\n"
+        "  Stream #0:1(eng): Audio: ac3, 48000 Hz, 5.1, fltp, 384 kb/s\n"
+        "  Stream #0:2(por): Audio: aac, 48000 Hz, stereo, fltp, 96 kb/s\n"
+    )
+    dual_info = audio_ffmpeg_utils.parse_audio_stderr(dual_audio_stderr)
+    assert dual_info.bitrate_kbps == 384
+    assert dual_info.bitrate_for_stream(1) == 384
+    assert dual_info.bitrate_for_stream(2) == 96
+
+
+@pytest.mark.parametrize(
+    ("fmt", "quality", "channels", "source_kbps", "expected_tokens"),
+    [
+        ("mp3", None, 2, 320, ["-c:a", "libmp3lame", "-b:a", "320k"]),
+        ("mp3", None, 2, 64, ["-c:a", "libmp3lame", "-b:a", "64k"]),
+        ("m4a", None, 2, 32, ["-c:a", "aac", "-b:a", "64k", "-movflags", "+faststart"]),
+        ("opus", None, 2, 320, ["-c:a", "libopus", "-b:a", "192k", "-ar", "48000"]),
+        ("ogg", None, 1, 320, ["-c:a", "libvorbis", "-b:a", "256k"]),
+        ("ogg", None, 2, 320, ["-c:a", "libvorbis", "-b:a", "320k"]),
+        ("mp3", None, 2, 0, ["-c:a", "libmp3lame", "-b:a", "192k"]),
+        ("opus", None, 2, None, ["-c:a", "libopus", "-b:a", "128k", "-ar", "48000"]),
+        ("mp3", 50, 2, 320, ["-c:a", "libmp3lame", "-b:a", "183k"]),
+        ("flac", None, 2, 320, ["-c:a", "flac", "-compression_level", "5"]),
+        ("wav", None, 2, 320, ["-c:a", "pcm_s16le"]),
+    ],
+)
+def test_get_audio_codec_args_preserves_and_clamps_source_bitrate(
+    fmt, quality, channels, source_kbps, expected_tokens
+):
+    """`get_audio_codec_args` must reuse clamped `source_bitrate_kbps` only when `quality is None`."""
+    args = audio_ffmpeg_utils.get_audio_codec_args(
+        fmt,
+        quality=quality,
+        channels=channels,
+        source_bitrate_kbps=source_kbps,
+    )
+    assert args == expected_tokens

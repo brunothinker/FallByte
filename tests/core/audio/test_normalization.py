@@ -347,3 +347,29 @@ def test_directory_normalizer_handles_empty_dir_and_cancellation(
     assert not (out_dir / "normalized").exists(), (
         "[audio] Expected empty session directory 'normalized' to be removed after cancellation cleanup."
     )
+
+
+@requires_libmp3lame
+def test_file_normalizer_preserves_high_and_low_source_bitrates(
+    sample_audio_factory, tmp_path: Path
+):
+    """`file_normalizer` must preserve 320 kbps sources and avoid inflating 64 kbps sources."""
+    ffmpeg_bin = binary_manager.get_ffmpeg_path()
+
+    src_320 = sample_audio_factory("hi.mp3", duration=1.0, bitrate="320k")
+    dst_320 = tmp_path / "out_320.mp3"
+    res_320 = audio_file_normalization.file_normalizer(src_320, dst_320)
+    assert res_320.is_processed
+    probed_320 = audio_ffmpeg_utils.probe_audio_streams(ffmpeg_bin, dst_320)
+    assert probed_320.bitrate_kbps == 320, (
+        f"[audio] Expected 320 kbps MP3 to keep 320 kbps after normalization, got {probed_320.bitrate_kbps}."
+    )
+
+    src_64 = sample_audio_factory("speech.mp3", duration=1.0, bitrate="64k")
+    dst_64 = tmp_path / "out_64.mp3"
+    res_64 = audio_file_normalization.file_normalizer(src_64, dst_64)
+    assert res_64.is_processed
+    probed_64 = audio_ffmpeg_utils.probe_audio_streams(ffmpeg_bin, dst_64)
+    assert probed_64.bitrate_kbps == 64, (
+        f"[audio] Expected 64 kbps MP3 not to be inflated to 192 kbps, got {probed_64.bitrate_kbps}."
+    )
