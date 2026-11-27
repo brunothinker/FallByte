@@ -9,12 +9,18 @@ import pillow_heif
 from PIL import Image, ImageOps, ImageSequence
 
 from src.formats import UNWRITABLE_IMAGE_FORMATS, normalize_image_format
+from src.image.utils.image_limits import (
+    configure_image_pixel_limits,
+    log_decompression_bomb_error,
+)
 from src.image.utils.image_metadata_utils import clear_metadata_keep_transparency
 from src.utils.file_result import FileResult
 
 # Register HEIC/HEIF opener at startup for Pillow integration
 if hasattr(pillow_heif, "register_heif_opener"):
     pillow_heif.register_heif_opener()
+
+configure_image_pixel_limits()
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +130,11 @@ def file_metadata_remover(input_path: Path, output_path: Path) -> FileResult:
         )
         return FileResult.processed()
 
+    except Image.DecompressionBombError as bomb_err:
+        log_decompression_bomb_error(logger, input_path.name, bomb_err)
+        if tmp_path and tmp_path.exists():
+            tmp_path.unlink(missing_ok=True)
+        return FileResult.failed()
     except Exception:
         logger.exception(f"Failed to remove metadata from '{input_path.name}'")
         if tmp_path and tmp_path.exists():

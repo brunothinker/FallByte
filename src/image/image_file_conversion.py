@@ -8,6 +8,10 @@ import pillow_heif
 from PIL import Image, ImageOps, ImageSequence
 
 from src.formats import normalize_image_format
+from src.image.utils.image_limits import (
+    configure_image_pixel_limits,
+    log_decompression_bomb_error,
+)
 from src.image.utils.image_remove_transparency import (
     ALPHA_SUPPORTED_FORMATS,
     NON_ALPHA_FORMATS,
@@ -19,6 +23,8 @@ from src.utils.file_result import FileResult
 # Register HEIC/HEIF opener at startup for Pillow integration
 if hasattr(pillow_heif, "register_heif_opener"):
     pillow_heif.register_heif_opener()
+
+configure_image_pixel_limits()
 
 # Setup module logger
 logger = logging.getLogger(__name__)
@@ -207,6 +213,11 @@ def file_converter(
         logger.info(f"Successfully converted '{input_path.name}' to '{fmt}'.")
         return FileResult.processed()
 
+    except Image.DecompressionBombError as bomb_err:
+        log_decompression_bomb_error(logger, input_path.name, bomb_err)
+        if tmp_path and tmp_path.exists():
+            tmp_path.unlink(missing_ok=True)
+        return FileResult.failed()
     except Exception:
         logger.exception(f"Failed to convert '{input_path.name}'")
         if tmp_path and tmp_path.exists():

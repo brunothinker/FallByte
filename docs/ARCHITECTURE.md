@@ -96,6 +96,7 @@ FallByte/
   - **Cancellation (`InterruptedError`)** stops processing and removes only newly created files tracked in the current session, preserving any pre-existing files.
   - **Batch-level errors** (e.g., scan or setup failures) abort the batch and populate `stats["error"]`.
 - **Binary Management (`src/utils/binary_manager.py`):** Resolves the bundled static `ffmpeg` binary inside `resources/bin/` (and inside PyInstaller's `sys._MEIPASS` bundle when packaged).
+- **Image Pixel Limit (`src/image/utils/image_limits.py`):** Raises Pillow's `Image.MAX_IMAGE_PIXELS` from its server-oriented ~89.5 MP default to `250_000_000` (500 MP hard error ceiling, ~2 GB max RGBA buffer) and silences `DecompressionBombWarning` so local desktop workflows (high-resolution photography, panoramas, scans, and 3D renders) succeed without false alarms. Images exceeding the ceiling raise `Image.DecompressionBombError`, which all four image workers catch explicitly to log `<filename>: image too large (<X.X> MP)`.
 
 ### Presentation & Controllers (`ui/`)
 - **Tool Pages (`ui/pages/` & `ui/components/tool_page.py`):** Declarative Flet views built on a shared card scaffold.
