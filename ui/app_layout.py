@@ -12,7 +12,12 @@ from ui.components.language_dialog import build_language_modal
 from ui.components.neon_brand_text import build_neon_brand_title
 from ui.components.theme_dialog import build_theme_modal
 from ui.i18n import t
-from ui.registry import MODULE_REGISTRY, resolve_active_module_id, resolve_parent_route
+from ui.registry import (
+    MODULE_REGISTRY,
+    ModuleDefinition,
+    resolve_active_module_id,
+    resolve_parent_route,
+)
 from ui.router import build_page_view
 from ui.theme import get_color
 
@@ -73,17 +78,16 @@ def remove_stale_filepickers(page: ft.Page) -> None:
         ]
 
 
-def _extract_submodules(module_def: object) -> list[dict]:
-    """Extracts submodule entries from a module definition's options list."""
-    options = getattr(module_def, "options", None) or []
+def _extract_submodules(module_def: ModuleDefinition) -> list[dict[str, Any]]:
+    """Extracts sidebar submodule navigation entries from ModuleDefinition.options."""
     return [
         {
             "route": opt.route_key,
             "title_key": opt.title_key,
             "icon": opt.icon,
         }
-        for opt in options
-        if getattr(opt, "route_key", "") and getattr(opt, "title_key", "")
+        for opt in module_def.options
+        if opt.route_key and opt.title_key
     ]
 
 
