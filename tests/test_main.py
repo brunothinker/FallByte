@@ -98,3 +98,77 @@ def test_setup_logging_without_stderr(isolated_logging, monkeypatch):
     assert "file only" in log_file.read_text(encoding="utf-8"), (
         "[main] File logging must continue recording INFO entries even when sys.stderr is None."
     )
+
+
+def test_configure_window_closes_immediately_when_idle(monkeypatch):
+    """Window close event destroys window and shuts down processes immediately when idle."""
+    import asyncio
+    from unittest.mock import MagicMock
+
+    import flet as ft
+
+    shutdowns = {"called": 0}
+    monkeypatch.setattr(
+        main,
+        "shutdown_active_processes",
+        lambda: shutdowns.__setitem__("called", shutdowns["called"] + 1),
+    )
+
+    page = MagicMock()
+    page.data = {"is_processing": False}
+    page.window = MagicMock()
+    page.window.destroy = MagicMock(return_value=None)
+    page.run_task = lambda fn, *a: asyncio.run(fn(*a))
+
+    main.configure_window(page)
+
+    event = MagicMock()
+    event.type = ft.WindowEventType.CLOSE
+    page.window.on_event(event)
+
+    assert shutdowns["called"] == 1
+    page.window.destroy.assert_called_once()
+
+
+def test_configure_window_confirms_and_cancels_when_processing(monkeypatch):
+    """Window close event prompts confirmation while processing and cancels active controller."""
+    import asyncio
+    from unittest.mock import MagicMock
+
+    import flet as ft
+
+    shutdowns = {"called": 0}
+    monkeypatch.setattr(
+        main,
+        "shutdown_active_processes",
+        lambda: shutdowns.__setitem__("called", shutdowns["called"] + 1),
+    )
+
+    controller = MagicMock()
+    controller.is_processing = False
+    shown_dialogs: list[ft.AlertDialog] = []
+
+    page = MagicMock()
+    page.data = {"is_processing": True, "active_controller": controller}
+    page.window = MagicMock()
+    page.window.destroy = MagicMock(return_value=None)
+    page.show_dialog = shown_dialogs.append
+    page.run_task = lambda fn, *a: asyncio.run(fn(*a))
+
+    main.configure_window(page)
+
+    event = MagicMock()
+    event.type = ft.WindowEventType.CLOSE
+    page.window.on_event(event)
+
+    assert shutdowns["called"] == 0
+    assert len(shown_dialogs) == 1
+    dialog = shown_dialogs[0]
+    assert isinstance(dialog, ft.AlertDialog)
+
+    confirm_btn = dialog.actions[1]
+    confirm_btn.on_click(MagicMock())
+
+    controller.trigger_cancel.assert_called_once()
+    assert shutdowns["called"] >= 1
+    page.window.destroy.assert_called_once()

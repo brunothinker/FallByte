@@ -62,3 +62,28 @@ def test_audio_pages_render_and_register_pickers(mock_page):
     assert norm_dropdown.value == "music", (
         "[ui] Audio normalization page dropdown must default to 'music' preset."
     )
+
+
+def test_video_and_image_conversion_pages_render_cleanly(mock_page) -> None:
+    """Verifies that video_conversion, video_compression, video_tracks, and image_conversion render cleanly."""
+    from ui.pages.image_conversion_page import create_conversion_page
+    from ui.pages.video_compression_page import create_video_compression_page
+    from ui.pages.video_conversion_page import create_video_conversion_page
+    from ui.pages.video_tracks_page import create_video_tracks_page
+
+    factories = [
+        ("create_video_conversion_page", create_video_conversion_page),
+        ("create_video_compression_page", create_video_compression_page),
+        ("create_video_tracks_page", create_video_tracks_page),
+        ("create_conversion_page", create_conversion_page),
+    ]
+
+    for name, factory in factories:
+        mock_page.overlay.clear()
+        view = factory(mock_page, {}, lambda _: None)
+        assert isinstance(view, ft.Container), (
+            f"[ui] {name}() must return an ft.Container root view."
+        )
+        assert len(mock_page.overlay) == 0, (
+            f"[ui] {name}() must not pollute page.overlay in Flet 0.8+."
+        )
