@@ -97,7 +97,7 @@ Section: utils
 Priority: optional
 Architecture: $ARCH
 Installed-Size: $INSTALLED_SIZE
-Depends: libgtk-3-0, libgstreamer1.0-0, libgstreamer-plugins-base1.0-0, libmpv2 | libmpv1 | mpv, libheif1
+Depends: libgtk-3-0, libgstreamer1.0-0, libgstreamer-plugins-base1.0-0, libmpv2 | libmpv1 | mpv, libheif1, libsecret-1-0
 Maintainer: Bruno Henrique <brunothinker@github.com>
 Homepage: https://github.com/brunothinker/FallByte
 Description: Local-first media optimization and conversion suite

@@ -74,30 +74,9 @@ if [ -f "$NOTICES_SRC" ]; then
     cp "$NOTICES_SRC" "$APPDIR/usr/share/doc/$APP_NAME/"
 fi
 
-# Copy libmpv and non-core dependencies (exclude glibc/system runtime libraries)
-INTERNAL_DIR="$APPDIR/usr/bin/_internal"
-mkdir -p "$INTERNAL_DIR"
-
-EXCLUDE_REGEX="^(libc|libm|libpthread|libdl|librt|libresolv|libgcc_s|libstdc\+\+|ld-linux|libdrm|libGL|libEGL|libwayland|libX11|libxcb|libxkbcommon|libasound|libpulse|libdbus|libsystemd|libglib-2\.0|libgobject-2\.0|libgio-2\.0)\.so"
-
-MPV_PATH=$(ldconfig -p 2>/dev/null | grep -E "libmpv\.so" | head -n 1 | awk '{print $NF}')
-
-if [ -n "$MPV_PATH" ] && [ -f "$MPV_PATH" ]; then
-    echo "--> Bundling $MPV_PATH and non-system dependencies into AppImage..."
-    cp -L "$MPV_PATH" "$APPDIR/usr/bin/libmpv.so.2"
-
-    ldd "$MPV_PATH" | awk '/=>/ {print $3}' | grep "^/" | while read -r LIB; do
-        LIB_NAME="$(basename "$LIB")"
-        if [[ ! "$LIB_NAME" =~ $EXCLUDE_REGEX ]] && [ -f "$LIB" ]; then
-            cp -L -n "$LIB" "$APPDIR/usr/bin/" 2>/dev/null || true
-        fi
-    done
-
-    ln -sf "libmpv.so.2" "$APPDIR/usr/bin/libmpv.so.1"
-    ln -sf "../libmpv.so.2" "$INTERNAL_DIR/libmpv.so.1"
-else
-    echo "WARNING: libmpv not found on build host. Creating fallback symlink."
-    ln -sf "libmpv.so.2" "$INTERNAL_DIR/libmpv.so.1"
+# Link system libmpv.so.2 -> libmpv.so.1 inside _internal (avoids bundling host-specific ABI/GLIBC libraries)
+if [ -d "$APPDIR/usr/bin/_internal" ]; then
+    ln -sf /usr/lib/x86_64-linux-gnu/libmpv.so.2 "$APPDIR/usr/bin/_internal/libmpv.so.1"
 fi
 
 # Copy root icons and generate multi-size hicolor icons

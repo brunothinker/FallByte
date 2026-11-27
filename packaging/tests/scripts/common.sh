@@ -38,12 +38,22 @@ run_gui_headless_check() {
     log_info "Testing GUI startup under xvfb-run..."
     
     if command -v xvfb-run &>/dev/null; then
-        timeout 5s xvfb-run --auto-servernum "$bin_path" || local ret=$?
+        local gui_log
+        gui_log=$(mktemp)
+        local ret=0
+        timeout 5s xvfb-run --auto-servernum "$bin_path" >"$gui_log" 2>&1 || ret=$?
+        cat "$gui_log"
+        if grep -qE "error while loading shared libraries|The Flet desktop client could not start|not found \(required by" "$gui_log"; then
+            rm -f "$gui_log"
+            log_error "GUI client failed to load shared libraries."
+            exit 1
+        fi
+        rm -f "$gui_log"
         # Exit code 124 indicates timeout reached (application launched and stayed alive)
-        if [ "${ret:-0}" -eq 124 ] || [ "${ret:-0}" -eq 0 ]; then
+        if [ "$ret" -eq 124 ] || [ "$ret" -eq 0 ]; then
             log_info "GUI headless test passed successfully."
         else
-            log_error "GUI startup failed with exit code ${ret:-0}."
+            log_error "GUI startup failed with exit code $ret."
             exit 1
         fi
     else

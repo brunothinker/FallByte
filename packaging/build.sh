@@ -168,6 +168,16 @@ pyinstaller \
     --specpath "$PYINSTALLER_DIR" \
     "$MAIN_PY"
 
+# Bundle pre-downloaded Flet desktop client so the app runs 100% offline on first launch
+FLET_CLIENT_SRC=$(find "$HOME/.flet/client" -maxdepth 1 -mindepth 1 -type d | head -n 1)
+if [ -n "$FLET_CLIENT_SRC" ] && [ -d "$FLET_CLIENT_SRC" ]; then
+    echo "--> Bundling offline Flet desktop client from $FLET_CLIENT_SRC..."
+    mkdir -p "$PYINSTALLER_DIR/dist/FallByte/_internal/flet_client"
+    cp -r "$FLET_CLIENT_SRC"/* "$PYINSTALLER_DIR/dist/FallByte/_internal/flet_client/"
+else
+    echo "WARNING: Local ~/.flet/client cache not found; app will attempt online download on first run."
+fi
+
 # Strip non-Linux FFmpeg binaries (Windows/macOS) from Linux bundle
 rm -rf "$PYINSTALLER_DIR/dist/FallByte/_internal/resources/bin/win"* \
        "$PYINSTALLER_DIR/dist/FallByte/_internal/resources/bin/darwin"* \

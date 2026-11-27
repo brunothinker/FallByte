@@ -324,6 +324,23 @@ def main(page: ft.Page) -> None:
     page.update()
 
 
+def configure_bundled_runtime() -> None:
+    """Configures bundled Flet desktop client and SSL CA certificates when frozen."""
+    if not getattr(sys, "frozen", False):
+        return
+    base_dir = Path(getattr(sys, "_MEIPASS", Path(sys.executable).resolve().parent))
+    flet_client_dir = base_dir / "flet_client"
+    if (flet_client_dir / "flet").is_dir():
+        flet_client_dir = flet_client_dir / "flet"
+    if flet_client_dir.exists():
+        os.environ.setdefault("FLET_VIEW_PATH", str(flet_client_dir))
+    try:
+        import certifi
+        os.environ.setdefault("SSL_CERT_FILE", certifi.where())
+    except ImportError:
+        pass
+
+
 def prefer_x11_on_wayland() -> None:
     """Forces the GTK client to run through XWayland on Wayland sessions."""
     if not sys.platform.startswith("linux"):
@@ -344,6 +361,7 @@ if __name__ == "__main__":
         success = run_smoke_check()
         sys.exit(0 if success else 1)
 
+    configure_bundled_runtime()
     prefer_x11_on_wayland()
     os.environ.setdefault("FLET_HIDE_WINDOW_ON_START", "true")
     run_kwargs: dict[str, Any] = {}

@@ -2,6 +2,7 @@ Name:           fallbyte
 Version:        %{?_version}%{!?_version:dev}
 Release:        1%{?dist}
 Summary:        Local-first media optimization and conversion suite
+Requires:       libsecret
 
 License:        GPL-3.0-or-later
 URL:            https://github.com/brunothinker/FallByte

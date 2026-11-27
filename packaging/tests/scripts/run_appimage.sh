@@ -62,6 +62,7 @@ fi
 
 log_info "4. Running CLI checks via extracted AppRun..."
 run_cli_checks "$EXTRACTED_DIR/AppRun"
+run_gui_headless_check "$EXTRACTED_DIR/AppRun"
 
 rm -rf "$EXTRACTED_DIR"
 log_info "AppImage structural, metadata, and CLI verification passed successfully."
