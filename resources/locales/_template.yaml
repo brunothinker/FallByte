@@ -134,6 +134,7 @@ strings:
   skip_no_upscale: ""
   skip_no_audio_stream: ""
   skip_unsupported_normalization_format: ""
+  skip_silent_audio: ""
 
   # ============================================================================
   # Module: Image

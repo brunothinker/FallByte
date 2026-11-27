@@ -134,6 +134,7 @@ strings:
   skip_no_upscale: "すでに {src_width}x{src_height}（{target_height}p以下）のためアップスケールしませんでした"
   skip_no_audio_stream: "動画に音声トラックが含まれていません"
   skip_unsupported_normalization_format: "{fmt} はラウドネス正規化に対応していません"
+  skip_silent_audio: "音声トラックが完全に無音です"
 
   # ============================================================================
   # Module: Image

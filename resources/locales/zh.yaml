@@ -134,6 +134,7 @@ strings:
   skip_no_upscale: "分辨率已为 {src_width}x{src_height}（等于或低于 {target_height}p），未进行放大"
   skip_no_audio_stream: "视频不包含音轨"
   skip_unsupported_normalization_format: "{fmt} 不支持响度标准化"
+  skip_silent_audio: "音轨完全静音"
 
   # ============================================================================
   # Module: Image

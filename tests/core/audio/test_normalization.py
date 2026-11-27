@@ -373,3 +373,155 @@ def test_file_normalizer_preserves_high_and_low_source_bitrates(
     assert probed_64.bitrate_kbps == 64, (
         f"[audio] Expected 64 kbps MP3 not to be inflated to 192 kbps, got {probed_64.bitrate_kbps}."
     )
+
+
+def test_parse_loudnorm_json_extracts_finite_metrics_and_rejects_silence() -> None:
+    """`parse_loudnorm_json` must parse valid FFmpeg JSON blocks and return None for `-inf`/invalid output."""
+    sample_stderr = """
+    [Parsed_loudnorm_0 @ 0x55a1]
+    {
+        "input_i" : "-18.42",
+        "input_tp" : "-2.15",
+        "input_lra" : "6.80",
+        "input_thresh" : "-28.90",
+        "output_i" : "-14.01",
+        "output_tp" : "-1.00",
+        "output_lra" : "6.50",
+        "output_thresh" : "-24.50",
+        "normalization_type" : "linear",
+        "target_offset" : "4.42"
+    }
+    """
+    parsed = audio_file_normalization.parse_loudnorm_json(sample_stderr)
+    assert parsed is not None
+    assert parsed.input_i == pytest.approx(-18.42)
+    assert parsed.input_tp == pytest.approx(-2.15)
+    assert parsed.input_lra == pytest.approx(6.80)
+    assert parsed.input_thresh == pytest.approx(-28.90)
+    assert parsed.target_offset == pytest.approx(4.42)
+
+    preset = audio_file_normalization.resolve_loudness_preset("music")
+    linear_arg = parsed.to_linear_filter_arg(preset)
+    assert "measured_I=-18.42" in linear_arg
+    assert "measured_TP=-2.15" in linear_arg
+    assert "measured_LRA=6.80" in linear_arg
+    assert "measured_thresh=-28.90" in linear_arg
+    assert "offset=4.42" in linear_arg
+    assert "linear=true" in linear_arg
+
+    silent_stderr = """
+    {
+        "input_i" : "-inf",
+        "input_tp" : "-inf",
+        "input_lra" : "0.00",
+        "input_thresh" : "-inf",
+        "target_offset" : "inf"
+    }
+    """
+    assert audio_file_normalization.parse_loudnorm_json(silent_stderr) is None
+    assert audio_file_normalization.parse_loudnorm_json("no json output") is None
+
+
+def test_file_normalizer_two_pass_injects_measured_linear_params_and_splits_progress(
+    sample_audio_factory, tmp_path: Path, monkeypatch
+) -> None:
+    """Mocked Pass-1 measurement must feed Pass 2 with `measured_*` + `linear=true` and split progress 0-50% / 50-100%."""
+    src = sample_audio_factory("two_pass_mock.wav", duration=2.0)
+    dst = tmp_path / "out_linear.wav"
+
+    mock_measurement = audio_file_normalization.LoudnormMeasurement(
+        input_i=-20.5,
+        input_tp=-3.1,
+        input_lra=5.4,
+        input_thresh=-31.2,
+        target_offset=6.5,
+    )
+
+    def _fake_pass1(ffmpeg_bin, input_path, preset, cancel_event=None, progress_callback=None):
+        if progress_callback:
+            progress_callback(1.0, 0.0, 4.0)
+            progress_callback(2.0, 0.0, 4.0)
+        return audio_file_normalization.Pass1Result(measurement=mock_measurement)
+
+    captured_cmds: list[list[str]] = []
+    real_run = audio_ffmpeg_utils.run_audio_strategies
+
+    def _capture_pass2(
+        strategies, output_path, display_name, cancel_event=None, progress_callback=None
+    ):
+        captured_cmds.append(strategies[0][1])
+        return real_run(
+            strategies,
+            output_path,
+            display_name,
+            cancel_event=cancel_event,
+            progress_callback=progress_callback,
+        )
+
+    monkeypatch.setattr(audio_file_normalization, "_measure_loudnorm_pass", _fake_pass1)
+    monkeypatch.setattr(audio_file_normalization, "run_audio_strategies", _capture_pass2)
+
+    progress_events: list[tuple[float, float]] = []
+    res = audio_file_normalization.file_normalizer(
+        input_path=src,
+        output_path=dst,
+        preset_key="music",
+        file_progress_callback=lambda dur, proc, _fps, _spd: progress_events.append((dur, proc)),
+    )
+
+    assert res.is_processed
+    assert dst.exists() and dst.stat().st_size > 0
+    assert len(captured_cmds) == 1
+
+    af_idx = captured_cmds[0].index("-af")
+    filter_val = captured_cmds[0][af_idx + 1]
+    assert "measured_I=-20.50" in filter_val
+    assert "measured_TP=-3.10" in filter_val
+    assert "measured_LRA=5.40" in filter_val
+    assert "measured_thresh=-31.20" in filter_val
+    assert "offset=6.50" in filter_val
+    assert "linear=true" in filter_val
+
+    # Pass 1 reports up to 50% (1.0s of 2.0s), Pass 2 advances from 50% to 100% (2.0s of 2.0s)
+    processed_values = [proc for _dur, proc in progress_events]
+    assert any(0.0 < p <= 1.0 for p in processed_values), f"Missing Pass-1 half progress: {processed_values}"
+    assert any(p > 1.0 for p in processed_values), f"Missing Pass-2 second-half progress: {processed_values}"
+
+
+@pytest.mark.parametrize("ext", ["wav", "flac", "mp3", "m4a"])
+def test_file_normalizer_handles_silent_audio_fallback_across_formats(
+    tmp_path: Path, ext: str
+) -> None:
+    """Completely silent audio (`input_i=-inf`) must fall back to single-pass and succeed across formats."""
+    import subprocess
+
+    skip_if_format_encoders_unavailable(ext)
+    ffmpeg_bin = binary_manager.get_ffmpeg_path()
+    src = tmp_path / f"silence.{ext}"
+    dst = tmp_path / "out" / f"silence_norm.{ext}"
+
+    codec_args = audio_ffmpeg_utils.get_audio_codec_args(ext, quality=None)
+    subprocess.run(
+        [
+            str(ffmpeg_bin),
+            "-hide_banner",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "anullsrc=r=44100:cl=stereo",
+            "-t",
+            "0.8",
+            *codec_args,
+            str(src),
+        ],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+    res = audio_file_normalization.file_normalizer(src, dst, preset_key="podcast")
+    assert res.is_skipped and res.reason_key == "skip_silent_audio", (
+        f"[audio] Silent '{ext}' must copy original as skipped ('skip_silent_audio'), got {res}."
+    )
+    assert dst.exists() and dst.stat().st_size > 0

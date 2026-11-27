@@ -134,6 +134,7 @@ strings:
   skip_no_upscale: "déjà en {src_width}x{src_height} (inférieur ou égal à {target_height}p), non agrandi"
   skip_no_audio_stream: "la vidéo ne contient aucune piste audio"
   skip_unsupported_normalization_format: "{fmt} n'est pas pris en charge pour la normalisation du volume"
+  skip_silent_audio: "la piste audio est totalement silencieuse"
 
   # ============================================================================
   # Module: Image

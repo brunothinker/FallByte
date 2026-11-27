@@ -134,6 +134,7 @@ strings:
   skip_no_upscale: "이미 {src_width}x{src_height}({target_height}p 이하)이므로 업스케일하지 않았습니다"
   skip_no_audio_stream: "비디오에 오디오 트랙이 포함되어 있지 않습니다"
   skip_unsupported_normalization_format: "{fmt} 형식은 음량 정규화를 지원하지 않습니다"
+  skip_silent_audio: "오디오 트랙이 완전히 무음입니다"
 
   # ============================================================================
   # Module: Image

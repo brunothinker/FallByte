@@ -134,6 +134,7 @@ strings:
   skip_no_upscale: "уже {src_width}x{src_height} (не выше {target_height}p), масштабирование не выполнено"
   skip_no_audio_stream: "видео не содержит аудиодорожки"
   skip_unsupported_normalization_format: "{fmt} не поддерживается для нормализации громкости"
+  skip_silent_audio: "аудиодорожка полностью беззвучна"
 
   # ============================================================================
   # Module: Image
