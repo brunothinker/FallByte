@@ -113,12 +113,7 @@ class BaseController:
         src = self.selected_input.resolve()
         dst = self.selected_output_dir.resolve()
 
-        if src.is_file():
-            if src.parent == dst:
-                return "msg_same_folder_error"
-            if dst in src.parents:
-                return "msg_nested_folder_error"
-        else:
+        if not src.is_file():
             if src == dst:
                 return "msg_same_folder_error"
             if dst in src.parents or src in dst.parents:
