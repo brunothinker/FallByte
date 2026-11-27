@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from pathlib import Path
+from typing import Any
 
 import flet as ft
 
@@ -9,17 +9,24 @@ from ui.i18n import t
 from ui.theme import get_color
 from ui.utils.format_utils import audio_output_formats, video_input_formats
 
+ROUTE_KEY = "audio_extraction"
+
 
 def create_audio_extraction_page(
     page: ft.Page,
-    _selected_paths: dict[str, Path],
+    selected_paths: dict[str, Any],
     _on_navigate: Callable[[str], None],
 ) -> ft.Container:
     """Builds the video-to-audio extraction page."""
+    saved_opts = (selected_paths.get(ROUTE_KEY) or {}).get("options") or {}
     output_formats = audio_output_formats()
+    initial_fmt = saved_opts.get("target_format")
+    if initial_fmt not in output_formats:
+        initial_fmt = output_formats[0]
+
     dd_format = ft.Dropdown(
         label=t("lbl_target_format"),
-        value=output_formats[0],
+        value=initial_fmt,
         width=385,
         filled=True,
         bgcolor=get_color("card_bg"),
@@ -44,4 +51,7 @@ def create_audio_extraction_page(
         file_icon=ft.Icons.VIDEO_FILE,
         extra_controls=[dd_format],
         get_params=lambda: dd_format.value or output_formats[0],
+        selected_paths=selected_paths,
+        route_key=ROUTE_KEY,
+        get_state=lambda: {"target_format": dd_format.value or output_formats[0]},
     )

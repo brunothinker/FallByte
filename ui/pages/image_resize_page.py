@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from pathlib import Path
 from typing import Any
 
 import flet as ft
@@ -12,6 +11,8 @@ from ui.controllers.image_resize_controller import (
 from ui.i18n import t
 from ui.theme import get_color
 from ui.utils.format_utils import image_input_formats
+
+ROUTE_KEY = "image_resize"
 
 
 def _parse_positive_int(raw: str | None) -> int | None:
@@ -27,13 +28,20 @@ def _parse_positive_int(raw: str | None) -> int | None:
 
 def create_image_resize_page(
     page: ft.Page,
-    _selected_paths: dict[str, Path],
+    selected_paths: dict[str, Any],
     _on_navigate: Callable[[str], None],
 ) -> ft.Container:
     """Builds the image resize page (dimension/percentage mode switch)."""
+    saved_opts = (selected_paths.get(ROUTE_KEY) or {}).get("options") or {}
+    initial_mode = saved_opts.get("mode")
+    if initial_mode not in ("dimension", "percentage"):
+        initial_mode = "dimension"
+
+    is_dimension_initial = initial_mode == "dimension"
+
     dd_mode = ft.Dropdown(
         label=t("lbl_resize_mode"),
-        value="dimension",
+        value=initial_mode,
         width=385,
         filled=True,
         bgcolor=get_color("card_bg"),
@@ -54,7 +62,7 @@ def create_image_resize_page(
 
     txt_max_width = ft.TextField(
         label=t("lbl_max_width"),
-        value="1920",
+        value=str(saved_opts.get("max_width", "1920")),
         width=185,
         filled=True,
         bgcolor=get_color("card_bg"),
@@ -69,7 +77,7 @@ def create_image_resize_page(
     )
     txt_max_height = ft.TextField(
         label=t("lbl_max_height"),
-        value="1080",
+        value=str(saved_opts.get("max_height", "1080")),
         width=185,
         filled=True,
         bgcolor=get_color("card_bg"),
@@ -86,11 +94,11 @@ def create_image_resize_page(
         [txt_max_width, txt_max_height],
         alignment=ft.MainAxisAlignment.CENTER,
         spacing=15,
-        visible=True,
+        visible=is_dimension_initial,
     )
     txt_percentage = ft.TextField(
         label=t("lbl_scale_percentage"),
-        value="50",
+        value=str(saved_opts.get("percentage", "50")),
         width=385,
         filled=True,
         bgcolor=get_color("card_bg"),
@@ -102,7 +110,7 @@ def create_image_resize_page(
         focused_border_width=1.5,
         suffix="%",
         keyboard_type=ft.KeyboardType.NUMBER,
-        visible=False,
+        visible=not is_dimension_initial,
     )
 
     def on_mode_change(_: Any) -> None:
@@ -137,4 +145,12 @@ def create_image_resize_page(
         notice_key="msg_supported_formats_notice_resize",
         extra_controls=[dd_mode, dimension_row, txt_percentage],
         get_params=collect_options,
+        selected_paths=selected_paths,
+        route_key=ROUTE_KEY,
+        get_state=lambda: {
+            "mode": dd_mode.value or "dimension",
+            "max_width": txt_max_width.value or "",
+            "max_height": txt_max_height.value or "",
+            "percentage": txt_percentage.value or "",
+        },
     )

@@ -5,8 +5,9 @@ bar, the action button, the notice and the status label. Pages only provide
 their tool-specific controls and a ``get_params`` callback.
 """
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Literal
 
 import flet as ft
@@ -51,6 +52,10 @@ def build_tool_page(
     control_width: int = FORM_WIDTH,
     spacing: int = 12,
     scrollable: bool = False,
+    selected_paths: dict[str, Any] | None = None,
+    route_key: str = "",
+    get_state: Callable[[], dict[str, Any]] | None = None,
+    on_restore_state: Callable[[Mapping[str, Any], ToolPageWidgets], None] | None = None,
 ) -> ft.Container:
     """Builds the standard centered tool card and wires it to a controller."""
     lbl_in_path = create_path_label()
@@ -181,6 +186,42 @@ def build_tool_page(
     )
 
     btn_action.on_click = lambda _: controller.execute(ui, get_params())
+
+    # Restore persisted paths & tool state if available and valid
+    cached_entry = (
+        selected_paths.get(route_key)
+        if isinstance(selected_paths, dict) and route_key
+        else None
+    )
+    if isinstance(cached_entry, Mapping):
+        saved_in = cached_entry.get("input_path")
+        if isinstance(saved_in, Path) and saved_in.exists():
+            controller.selected_input = saved_in
+            lbl_in_path.value = saved_in.name or str(saved_in)
+            lbl_in_path.color = get_color("text")
+
+        saved_out = cached_entry.get("output_dir")
+        if isinstance(saved_out, Path) and saved_out.exists() and saved_out.is_dir():
+            controller.selected_output_dir = saved_out
+            lbl_out_path.value = saved_out.name or str(saved_out)
+            lbl_out_path.color = get_color("text")
+
+        saved_opts = cached_entry.get("options")
+        if on_restore_state is not None and isinstance(saved_opts, Mapping):
+            on_restore_state(saved_opts, widgets)
+
+    if isinstance(selected_paths, dict) and route_key:
+        if not isinstance(getattr(page, "data", None), dict):
+            page.data = {}
+
+        def _save_current_view_state() -> None:
+            selected_paths[route_key] = {
+                "input_path": controller.selected_input,
+                "output_dir": controller.selected_output_dir,
+                "options": get_state() if callable(get_state) else {},
+            }
+
+        page.data["save_view_state"] = _save_current_view_state
 
     body: list[ft.Control] = [
         build_neon_brand_title(

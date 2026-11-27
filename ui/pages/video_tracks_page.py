@@ -1,5 +1,5 @@
-from collections.abc import Callable
-from pathlib import Path
+from collections.abc import Callable, Mapping
+from typing import Any
 
 import flet as ft
 
@@ -9,6 +9,7 @@ from ui.i18n import t
 from ui.theme import get_color
 from ui.utils.format_utils import video_input_formats
 
+ROUTE_KEY = "video_tracks"
 TRACKS_BOX_WIDTH = 385
 
 
@@ -42,7 +43,7 @@ def _build_track_box(icon: ft.IconData, title_key: str, list_col: ft.Column) -> 
 
 def create_video_tracks_page(
     page: ft.Page,
-    _selected_paths: dict[str, Path],
+    selected_paths: dict[str, Any],
     _on_navigate: Callable[[str], None],
 ) -> ft.Container:
     """Builds the single-file video audio & subtitle track selection page."""
@@ -73,6 +74,16 @@ def create_video_tracks_page(
             subtitle_list_col=subtitle_list_col,
         )
 
+    def on_restore_state(saved_opts: Mapping[str, Any], _w: ToolPageWidgets) -> None:
+        raw_indices = saved_opts.get("selected_indices")
+        indices = list(raw_indices) if isinstance(raw_indices, list) else None
+        controller.restore_video_tracks(
+            selected_indices=indices,
+            tracks_container=tracks_container,
+            audio_list_col=audio_list_col,
+            subtitle_list_col=subtitle_list_col,
+        )
+
     return build_tool_page(
         page=page,
         controller=controller,
@@ -88,4 +99,10 @@ def create_video_tracks_page(
         control_width=TRACKS_BOX_WIDTH,
         spacing=10,
         scrollable=True,
+        selected_paths=selected_paths,
+        route_key=ROUTE_KEY,
+        get_state=lambda: {
+            "selected_indices": controller.get_selected_stream_indices()
+        },
+        on_restore_state=on_restore_state,
     )

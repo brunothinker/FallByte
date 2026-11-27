@@ -116,6 +116,31 @@ class VideoTracksController(BaseController):
             stream_idx for stream_idx, cb in self._track_checkboxes.items() if cb.value
         )
 
+    def restore_video_tracks(
+        self,
+        selected_indices: list[int] | None,
+        tracks_container: ft.Column,
+        audio_list_col: ft.Column,
+        subtitle_list_col: ft.Column,
+    ) -> None:
+        """Re-populates track checklists when restoring persisted page state."""
+        if not self.selected_input or not self.selected_input.is_file():
+            return
+        audio_tracks, subtitle_tracks = inspect_video_tracks(self.selected_input)
+        self.audio_tracks = audio_tracks
+        self.subtitle_tracks = subtitle_tracks
+        self._track_checkboxes.clear()
+
+        self._populate_track_group(audio_list_col, audio_tracks, "msg_no_audio_tracks")
+        self._populate_track_group(
+            subtitle_list_col, subtitle_tracks, "msg_no_subtitle_tracks"
+        )
+        if selected_indices is not None:
+            selected_set = set(selected_indices)
+            for stream_idx, cb in self._track_checkboxes.items():
+                cb.value = stream_idx in selected_set
+        tracks_container.visible = True
+
     # ------------------------------------------------------------------
     # Template hooks
     # ------------------------------------------------------------------

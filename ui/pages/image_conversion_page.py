@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from pathlib import Path
+from typing import Any
 
 import flet as ft
 
@@ -16,16 +16,30 @@ from ui.utils.conversion_utils import (
 )
 from ui.utils.format_utils import image_input_formats
 
+ROUTE_KEY = "image_conversion"
+
 
 def create_conversion_page(
     page: ft.Page,
-    _selected_paths: dict[str, Path],
+    selected_paths: dict[str, Any],
     _on_navigate: Callable[[str], None],
 ) -> ft.Container:
     """Builds the image conversion page."""
+    saved_opts = (selected_paths.get(ROUTE_KEY) or {}).get("options") or {}
+    color_options = get_color_options()
+    valid_color_keys = {k for k, _ in color_options}
+
+    initial_fmt = saved_opts.get("target_format")
+    if initial_fmt not in SUPPORTED_CONVERSION_FORMATS:
+        initial_fmt = SUPPORTED_CONVERSION_FORMATS[0]
+
+    initial_color = saved_opts.get("color_key")
+    if initial_color not in valid_color_keys:
+        initial_color = color_options[0][0]
+
     dd_format = ft.Dropdown(
         label=t("lbl_target_format"),
-        value=SUPPORTED_CONVERSION_FORMATS[0],
+        value=initial_fmt,
         width=385,
         filled=True,
         bgcolor=get_color("card_bg"),
@@ -41,10 +55,9 @@ def create_conversion_page(
         options=[ft.dropdown.Option(fmt) for fmt in SUPPORTED_CONVERSION_FORMATS],
     )
 
-    color_options = get_color_options()
     dd_color = ft.Dropdown(
         label=t("lbl_transparency_color"),
-        value=color_options[0][0],
+        value=initial_color,
         width=385,
         filled=True,
         bgcolor=get_color("card_bg"),
@@ -71,4 +84,10 @@ def create_conversion_page(
             target_format=dd_format.value or SUPPORTED_CONVERSION_FORMATS[0],
             color_key=dd_color.value or color_options[0][0],
         ),
+        selected_paths=selected_paths,
+        route_key=ROUTE_KEY,
+        get_state=lambda: {
+            "target_format": dd_format.value or SUPPORTED_CONVERSION_FORMATS[0],
+            "color_key": dd_color.value or color_options[0][0],
+        },
     )

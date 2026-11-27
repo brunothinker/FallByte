@@ -301,6 +301,9 @@ def create_app_layout(
             pass
 
     def on_preferences_applied() -> None:
+        save_hook = state.get("save_view_state")
+        if callable(save_hook):
+            save_hook()
         modal_overlay.visible = False
         modal_overlay.content = None
         page.update()
@@ -386,6 +389,7 @@ def create_app_layout(
         state["back_row"] = bottom_back_bar if can_go_back else None
 
     def update_view() -> None:
+        state.pop("save_view_state", None)
         remove_stale_filepickers(page)
         view_control = build_page_view(
             route_key=current_route,

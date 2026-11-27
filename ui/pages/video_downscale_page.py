@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from pathlib import Path
+from typing import Any
 
 import flet as ft
 
@@ -12,6 +12,8 @@ from ui.i18n import t
 from ui.theme import get_color
 from ui.utils.format_utils import video_input_formats
 
+ROUTE_KEY = "video_downscale"
+
 _PRESET_LABEL_KEYS: dict[str, str] = {
     "1080p": "preset_resolution_1080p",
     "720p": "preset_resolution_720p",
@@ -21,14 +23,19 @@ _PRESET_LABEL_KEYS: dict[str, str] = {
 
 def create_video_downscale_page(
     page: ft.Page,
-    _selected_paths: dict[str, Path],
+    selected_paths: dict[str, Any],
     _on_navigate: Callable[[str], None],
 ) -> ft.Container:
     """Builds the video downscale page."""
+    saved_opts = (selected_paths.get(ROUTE_KEY) or {}).get("options") or {}
     default_preset = SUPPORTED_VIDEO_DOWNSCALE_PRESETS[0]
+    initial_preset = saved_opts.get("resolution")
+    if initial_preset not in SUPPORTED_VIDEO_DOWNSCALE_PRESETS:
+        initial_preset = default_preset
+
     dd_resolution = ft.Dropdown(
         label=t("lbl_target_resolution"),
-        value=default_preset,
+        value=initial_preset,
         width=385,
         filled=True,
         bgcolor=get_color("card_bg"),
@@ -56,4 +63,7 @@ def create_video_downscale_page(
         file_icon=ft.Icons.VIDEO_FILE,
         extra_controls=[dd_resolution],
         get_params=lambda: dd_resolution.value or default_preset,
+        selected_paths=selected_paths,
+        route_key=ROUTE_KEY,
+        get_state=lambda: {"resolution": dd_resolution.value or default_preset},
     )

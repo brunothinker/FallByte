@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from pathlib import Path
+from typing import Any
 
 import flet as ft
 
@@ -12,16 +12,24 @@ from ui.controllers.audio_normalization_controller import (
 from ui.i18n import t
 from ui.theme import get_color
 
+ROUTE_KEY = "audio_normalization"
+
 
 def create_audio_normalization_page(
     page: ft.Page,
-    _selected_paths: dict[str, Path],
+    selected_paths: dict[str, Any],
     _on_navigate: Callable[[str], None],
 ) -> ft.Container:
     """Builds the batch audio loudness normalization page (folder input only)."""
+    saved_opts = (selected_paths.get(ROUTE_KEY) or {}).get("options") or {}
+    valid_presets = {"music", "podcast", "broadcast"}
+    initial_preset = saved_opts.get("preset")
+    if initial_preset not in valid_presets:
+        initial_preset = DEFAULT_LOUDNESS_PRESET
+
     dd_preset = ft.Dropdown(
         label=t("lbl_loudness_preset"),
-        value=DEFAULT_LOUDNESS_PRESET,
+        value=initial_preset,
         width=385,
         filled=True,
         bgcolor=get_color("card_bg"),
@@ -50,4 +58,7 @@ def create_audio_normalization_page(
         source_mode="folder",
         extra_controls=[dd_preset],
         get_params=lambda: dd_preset.value or DEFAULT_LOUDNESS_PRESET,
+        selected_paths=selected_paths,
+        route_key=ROUTE_KEY,
+        get_state=lambda: {"preset": dd_preset.value or DEFAULT_LOUDNESS_PRESET},
     )
